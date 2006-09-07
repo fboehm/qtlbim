@@ -1,0 +1,47 @@
+\name{qb.slicetwo}
+\alias{qb.slicetwo}
+\alias{summary.qb.slicetwo}
+\alias{plot.qb.slicetwo}
+\alias{print.qb.slicetwo}
+\title{Slices for epistatic pairs.}
+\description{
+These routines refine QTL positions for epistatic pairs and show plots
+to reveal the nature of epistasis.
+}
+\usage{
+qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
+## S3 methods.
+summary.qb.slicetwo(object, \dots)
+print.qb.slicetwo(x, \dots)
+plot.qb.slicetwo(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{qbObject}{Object of class \code{qb}.}
+  \item{object}{Object of class \code{qb.slicetwo}.}
+  \item{x}{Object of class \code{qb.slicetwo}.}
+  \item{chr}{Chromosome vector.}
+  \item{pos}{Position vector corresponding to \code{chr}.}
+  \item{type}{Type of profile scan; see \code{\link{qb.scanone}}.}
+  \item{width}{Width of slice.}
+  \item{byrow}{Arrange plots by row (for slides) if \code{TRUE}.}
+  \item{figs}{Plot only selected figures. Full set of \code{c("profile",
+      "effects", "cellmean", "effectplot")} is default.}
+  \item{auto.par}{Automatic setting of plot parameters for multiple
+    plots if \code{TRUE}.}
+  \item{\dots}{Extra plot options.}
+}
+\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\author{ Brian S. Yandell, yandell@stat.wisc.edu }
+\seealso{\code{\link{qb.scantwo}}, \code{\link{qb.sliceone}}}
+\examples{
+\dontshow{
+qb.load(cross, qbExample)
+
+
+}
+temp <- qb.slicetwo(qbExample, chr = c(5,7), pos = c(15,15))
+summary(temp)
+plot(temp)
+}
+\keyword{hplot}
