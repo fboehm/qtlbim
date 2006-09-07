@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: covar.R,v 1.7.2.2 2006/09/05 22:41:41 byandell Exp $
+## $Id: covar.R,v 1.7.2.3 2006/09/07 21:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -235,7 +235,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
 plot.qb.varcomp <- function(x, log = TRUE, percent = 5,
                              cex = attr.cex, ...)
 {
-  require(lattice)
+  require("lattice")
   trellis.par.set(theme = col.whitebg(), warn = FALSE) ## white background
 
   attr.cex <- attr(x, "cex")
@@ -333,7 +333,7 @@ plot.qb.meancomp <- function(x,
                           ...)
 {
   ## Rename: qb.mean.
-  require(lattice)
+  require("lattice")
   trellis.par.set(theme = col.whitebg(), warn = FALSE) ## white background
 
   nfixcov <- attr(x, "nfixcov")
@@ -468,7 +468,7 @@ plot.qb.covar <- function(x, percent = 5, cex = attr(x, "cex"),
                            include.zero = TRUE, ...)
 {
   ## Lattice xyplot.
-  require(lattice)
+  require("lattice")
   trellis.par.set(theme = col.whitebg(), warn = FALSE) ## white background
 
   ## Set up formula for xyplot

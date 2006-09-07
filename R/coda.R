@@ -23,7 +23,7 @@ qb.coda <- function(object,
                     element = c("iterdiag","mainloci","pairloci","covariates","gbye"),
                     variables = c("nqtl","mean","envvar","var"))                            
 { 
-   require(coda)
+   require("coda")
    mcmc(qb.get(object, element[1])[, variables])
 }
 

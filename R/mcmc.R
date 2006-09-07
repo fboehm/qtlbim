@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: mcmc.R,v 1.4 2006/08/18 17:41:34 sbanerjee Exp $
+## $Id: mcmc.R,v 1.4.2.1 2006/09/07 21:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2006 Nengjun Yi and Tapan Mehta
 ##
@@ -191,7 +191,7 @@ qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"
   if( boxcox & ( length(yvalue[yvalue>0])!=length(yvalue) | trait!="normal" ) )
     stop("The boxcox transformation cannot be used for this data")
   if(boxcox & trait=="normal") {
-     require(MASS)
+     require("MASS")
      if( length(yvalue[yvalue>0])==length(yvalue) ) {   
          BC = boxcox(yvalue ~ 1)
          lamda = BC$x[ which.max(BC$y) ] 

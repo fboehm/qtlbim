@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: zzz.R,v 1.3 2006/08/08 02:34:33 byandell Exp $
+## $Id: zzz.R,v 1.3.2.1 2006/09/07 21:15:40 byandell Exp $
 ##
 ## .onLoad is run when the package is loaded with library(qtlbim)
 ##
@@ -28,7 +28,7 @@
   # The R documentation suggests that "require(qtl)" should be
   # replaced by an "import(qtl)" directive in the NAMESPACE file.
   # However package::qtl does not define a name space.
-  require(qtl)
+  require("qtl")
   
   }
 

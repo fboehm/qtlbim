@@ -1,6 +1,6 @@
 #####################################################################
 ## This code has been written by Dr.Yandell.
-## $Id: pairloci.R,v 1.7 2006/08/15 01:17:20 byandell Exp $
+## $Id: pairloci.R,v 1.7.2.1 2006/09/07 21:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -172,7 +172,7 @@ print.qb.epistasis <- function(x, ...) print(summary(x, ...))
 plot.qb.epistasis <- function(x, effects = c("aa","ad","da","dd"),
                               cex = 0.5, ...)
 {
-  require(lattice)
+  require("lattice")
   trellis.par.set(theme=col.whitebg(), warn = FALSE)
 
   effects <- effects[ match(names(x), effects, nomatch = 0) ]
