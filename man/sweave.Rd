@@ -48,7 +48,7 @@ for the slide version and
 \code{system.file("external", "hyperpaperextra.Rnw", package = "qtlbim")}
 for the preprint version.
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link[utils]{Sweave}}}
 \examples{

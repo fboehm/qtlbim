@@ -30,7 +30,7 @@ Find pairs of loci in MCMC samples. Produce scatter plot with generic
 detail complementary to \code{\link{qb.multloci}} and
 \code{\link{qb.scantwo}}.
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link{plot.qb}}, \code{\link{qb.scantwo}},

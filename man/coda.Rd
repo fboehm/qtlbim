@@ -29,10 +29,10 @@ used to analyze the MCMC output using R/coda.}
 }
 
 
-\author{Dr. Nengjun Yi, et al.,  nyi@ms.soph.uab.edu}
+\author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
  
  \references{
-  \url{http://www.soph.uab.edu/qtlbim}
+  \url{http://www.ssg.uab.edu/qtlbim}
   }
 
 \seealso{ \code{\link[coda]{mcmc}}, \code{\link{qb.mcmc}},

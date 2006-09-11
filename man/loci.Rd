@@ -26,7 +26,7 @@ plot.qb.loci(x, labels=FALSE, amount=0.35, cex, \dots )
   included. Adjust \code{amount} and \code{cex} to modify look of 
   plot. Most useful when looking at multiple chromosomes.
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link[base]{jitter}},\code{\link{subset.qb}}}

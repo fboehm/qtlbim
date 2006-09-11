@@ -1,6 +1,6 @@
-% \VignetteIndexEntry{qtlbim freeze notes}
-% \VignetteDepends{qtlbim}
-% \VignetteKeywords{QTL}
+%\VignetteIndexEntry{QTLBIM Prototype Paper Analyzing Hyper Data}
+%\VignetteDepends{qtlbim}
+%\VignetteKeywords{QTL}
 %\VignettePackage{qtlbim}
 \documentclass{article}
 \usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}

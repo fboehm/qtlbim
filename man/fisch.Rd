@@ -18,7 +18,7 @@ data(fisch)
 Patrick J. Gaffney (\url{mailto:paga@lubrizol.com}), Lubrizol Corp.
 }
 \references{
-\url{http://www.soph.uab.edu/qtlbim}
+\url{http://www.ssg.uab.edu/qtlbim}
 }
 \examples{
 data(fisch)

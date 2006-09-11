@@ -42,7 +42,7 @@ object and prepares data for \code{\link{qb.model}} and \code{\link{qb.mcmc}}
 It can also standardize or transform continuous data if specified.
 }
 \references{
-  \url{http://www.soph.uab.edu/qtlbim}}
+  \url{http://www.ssg.uab.edu/qtlbim}}
 
 
 \note{ This function returns a list and hence should have a differenct name from
@@ -50,7 +50,7 @@ that of the \code{cross} object.
 }
 
 
-\author{Dr. Nengjun Yi, et al.,  nyi@ms.soph.uab.edu}
+\author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
 
 
 \seealso{\code{\link{qb.genoprob}}, 

@@ -76,7 +76,7 @@ covariate GxE effects. The \code{sum.scan} is used for all types but the
 counts to get a summary across \code{scan} effects.
 }
 
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{summary.qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{

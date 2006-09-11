@@ -31,7 +31,7 @@ plot.qb.slicetwo(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
     plots if \code{TRUE}.}
   \item{\dots}{Extra plot options.}
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scantwo}}, \code{\link{qb.sliceone}}}
 \examples{

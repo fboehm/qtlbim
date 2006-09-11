@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: sweave.R,v 1.15.2.3 2006/09/01 18:48:59 byandell Exp $
+## $Id: sweave.R,v 1.15.2.4 2006/09/07 21:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -64,7 +64,7 @@ qb.sweave <- function(cross, pheno.col = 1, n.iter = 3000, n.draws = 64,
 
   assign(".qb.remove", remove.qb, ".GlobalEnv")
 
-  library(tools)
+  require("tools")
   Sweave(SweaveFile)
 }
 #################################################3

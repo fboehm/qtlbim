@@ -40,7 +40,7 @@ diagnostics except counts is \code{scan} = c("sum", "main",
 stacked plots. Individual columns from the \code{x} object can be
 plotted by specifying their names as a vector to option \code{scan}.
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scanone}}, \code{\link{summary.qb.scanone}},
   \code{\link[qtl]{plot.scanone}}}

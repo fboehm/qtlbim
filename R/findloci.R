@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: findloci.R,v 1.3 2006/08/09 16:29:23 byandell Exp $
+## $Id: findloci.R,v 1.3.2.1 2006/09/07 21:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2002 Brian S. Yandell
 ##
@@ -83,7 +83,7 @@ plot.qb.multloci <- function(x, amount = .75,
                              cex = attr(x, "cex"), ...)
 {
   chr <- attr(x, "chr")
-  library(lattice)
+  require("lattice")
   trellis.par.set(theme = col.whitebg(), warn = FALSE) ## white background
 
   is.two <- length(x$nqtl) > 2

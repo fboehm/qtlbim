@@ -50,7 +50,7 @@ main chromosomes and epistatic pairs.
     \code{qtla} and \code{qtlb}.} 
   \item{by.set}{List of connected sets of epistatic chromosomes.}
 }
-\references{http://www.soph.uab.edu/qtlbim}
+\references{http://www.ssg.uab.edu/qtlbim}
 \author{Brian S. Yandell}
 \seealso{\code{\link{step.fitqtl}}, \code{\link{qb.sweave}}}
 

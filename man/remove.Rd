@@ -34,7 +34,7 @@ removes this directory along with the
 \code{qbObject}. \code{qb.recover} attempts to recover the use of an
 orphaned \code{output.dir} after a crash of R. These are fragile routines.
 }
-\references{http://www.soph.uab.edu/qtlbim}
+\references{http://www.ssg.uab.edu/qtlbim}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}, \code{\link{qb.genoprob}}}
 \examples{

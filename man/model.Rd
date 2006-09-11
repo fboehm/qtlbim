@@ -46,7 +46,7 @@ This model considers two-way interaction as the highest level of both gene-gene 
 gene-environment interactions.
 }
 \references{
-  \url{http://www.soph.uab.edu/qtlbim}
+  \url{http://www.ssg.uab.edu/qtlbim}
   }
 
 
@@ -55,7 +55,7 @@ that of the \code{cross} object.
 }
 
 
-\author{Dr. Nengjun Yi, et al.,  nyi@ms.soph.uab.edu}
+\author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
 
 \seealso{\code{\link{qb.data}}, 
   \code{\link{qb.genoprob}},   \code{\link{qb.mcmc}}}

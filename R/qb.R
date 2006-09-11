@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.R,v 1.16.2.5 2006/09/06 18:42:25 byandell Exp $
+## $Id: qb.R,v 1.16.2.6 2006/09/08 16:47:41 byandell Exp $
 ##
 ##     Copyright (C) 2002 Brian S. Yandell
 ##
@@ -618,6 +618,7 @@ qb.demo <- function()
     if(!nchar(selection)) break
 
     stops <- c("exit","quit")
+    helps <- c("help","?")
 
     ## Selection is not empty, so proceed to find unique entry.
     while(nchar(selection)) {
@@ -630,8 +631,13 @@ qb.demo <- function()
     }
     if(length(selection)) {
       if(match(selection, stops, nomatch = 0)) break
-      if(nchar(selection))
-        demo(paste("qb", selection, "tour", sep = "."), "qtlbim", character.only = TRUE)
+      if(match(selection, helps, nomatch = 0))
+        demo(package = "qtlbim")
+      else {
+        if(nchar(selection))
+          demo(paste("qb", selection, "tour", sep = "."), "qtlbim",
+               character.only = TRUE)
+      }
     }
   }
   invisible()

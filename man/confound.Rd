@@ -33,7 +33,7 @@ dominance effect. Dashed lines at 5 percent significance limits.
   \item{chr}{Chromosome identifier.}
 The object inherits from \code{\link[qtl]{scanone}} objects.
 }
-\references{http://www.soph.uab.edu/qtlbim}
+\references{http://www.ssg.uab.edu/qtlbim}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{

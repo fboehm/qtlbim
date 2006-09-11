@@ -31,8 +31,8 @@ qb.genoprob(cross, map.func = c("Haldane","Kosambi"), step = 2,
   \code{\link[qtl]{calc.genoprob}}. See \code{\link[qtl]{calc.genoprob}}
   for value.
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
-\author{Dr. Nengjun Yi, et al.,  nyi@ms.soph.uab.edu}
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
 
 \seealso{\code{\link[qtl]{jittermap}}, \code{\link[qtl]{calc.genoprob}}.}
 

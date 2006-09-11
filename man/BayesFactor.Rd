@@ -55,7 +55,7 @@ print.qb.BayesFactor(x, \dots)
   \item{bfse}{Approximate standard error for bf computed using binomial
     variance of MCMC samples.}
 }
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link{plot.qb}}, \code{\link{qb.mcmc}}}

@@ -177,8 +177,8 @@ The following files are saved in \code{output.dir}:
    
    
 \references{
-  \url{http://www.soph.uab.edu/qtlbim}}
-\author{Nengjun Yi, nyi@ms.soph.uab.edu}
+  \url{http://www.ssg.uab.edu/qtlbim}}
+\author{Nengjun Yi, nyi@ms.ssg.uab.edu}
 
 \seealso{\code{\link{qb.sim.cross}},   \code{\link{qb.data}},   
   \code{\link{qb.model}},   \code{\link{qb.mcmc}}}

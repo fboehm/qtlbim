@@ -130,9 +130,9 @@ The outputted genotypes for markers and qtls will be coded as 1 and 2 for BC and
 1,2, and 3 for F2. Missing data will be coded as NA.}
 
 \references{
-  \url{http://www.soph.uab.edu/qtlbim}
+  \url{http://www.ssg.uab.edu/qtlbim}
   }
-\author{Dr. Nengjun Yi, et al.,  nyi@ms.soph.uab.edu}
+\author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
 
 \seealso{\code{\link{qb.genoprob}}, \code{\link{qb.data}} 
   \code{\link{qb.model}}, \code{\link{qb.mcmc}},

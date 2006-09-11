@@ -61,7 +61,7 @@ running average locus on the slice chromosome with respect to the other
 chromosomes.
 }
 
-\references{ \url{http://www.soph.uab.edu/qtlbim} }
+\references{ \url{http://www.ssg.uab.edu/qtlbim} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{summary.qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{
