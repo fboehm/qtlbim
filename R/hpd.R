@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: hpd.R,v 1.7 2006/08/28 10:25:37 byandell Exp $
+## $Id: hpd.R,v 1.7.2.1 2006/10/02 19:18:53 byandell Exp $
 ##
 ##     Copyright (C) 2003 Brian S. Yandell
 ##
@@ -152,7 +152,7 @@ summary.qb.hpdone <- function(object, chr = chrs, digits = 3, ...)
     tmp <- cbind(tmp, tmp2, tmp3)
     tmprow <- dimnames(tmp3)[[2]]
   }
-  dimnames(tmp) <- list(chr.hpd,
+  dimnames(tmp) <- list(attr(object$profile, "geno.names")[chr.hpd],
                         c(dimnames(object$hpd.region)[[2]],
                           attr(object, "profile"),
                           tmprow))

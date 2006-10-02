@@ -7,44 +7,31 @@
  * 
  */  
 //********************************************************************************
-
-#include <R.h>
-#include <Rmath.h>
-#include <math.h>
-#include <R_ext/Random.h>
-#include <stdio.h>
-#include <time.h>
-
 //********************************************************************************
+
+#ifndef BMQ_GENOPROB_H
+#define BMQ_GENOPROB_H
+
+
 // global parameters
 
-int CROSS;         // cross type 0:RILs, 1:BC, 2:F2
-
-int NG;            // number of genotypes
-
-int NS;            // number of individuals 
-
-int CHL;           // number of grids
-
-int M;             // number of marker   
+extern int CROSS;         // cross type 0:RILs, 1:BC, 2:F2
+extern int NG;            // number of genotypes
+extern int NS;            // number of individuals 
+extern int CHL;           // number of grids
+extern int M;             // number of marker   
 
 //********************************************************************************
 
-int HALDANE;      // 1: Haldane distance; 0: Kosambi distance
+extern int HALDANE;      // 1: Haldane distance; 0: Kosambi distance
+extern double CSTEP;     // length of the grid
+extern double *RECM;     // marker map
+extern double LCHR;      // chr length
+extern int **MK;         // marker genotype
+extern int KCHR;         // number of markers
 
-double CSTEP;     // length of the grid
-          
-double *RECM;     // marker map
-
-double LCHR;      // chr length
-
-int **MK;         // marker genotype
-
-int KCHR;         // number of markers
-
-
-double ***GenoProb;
-double *CHR_GRID;
+extern double ***GenoProb;
+extern double *CHR_GRID;
 
 //***************************************************************************************
 
@@ -61,3 +48,6 @@ void getGenoGrid(double *chrloci,double *chrprob);
 //***************************************************************************************
 
 void R_OutputManager(char **iterFile,char **covFile,char **mainFile,char **pairFile,char **gbyeFile);
+
+#endif // BMQ_GENOPROB_H
+

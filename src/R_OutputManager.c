@@ -1,9 +1,18 @@
 
+//********************************************************************
+
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+
+#include <R.h>
+#include <Rmath.h>
+#include <R_ext/Random.h>
 
 #include "bmq_mcmc.h"
-#include "stdio.h"
 #include "bmq_genoprob.h"
 
+//***************************************************************************
 void R_OutputManager(char **iterFile,char **covFile,char **mainFile,char **pairFile,char **gbyeFile){
     
    strcpy(covfile,covFile[0]);

@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: slice.R,v 1.12.2.6 2006/09/05 22:41:41 byandell Exp $
+## $Id: slice.R,v 1.12.2.7 2006/09/29 20:14:32 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -119,9 +119,12 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
   cross <- qb.cross(qbObject)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
   nind.pheno <- sum(!is.na(cross$pheno[[qb.get(qbObject, "pheno.col")]]))
+  geno.names <- names(cross$geno)
 
   ## Following prior used for Bayes factors.
-  bf.prior <- qb.get(qbObject, "mean.nqtl") / length(unlist(pull.loci(cross)))
+  bf.prior <- qb.get(qbObject, "mean.nqtl") /
+    length(unlist(pull.loci(cross)))
+  bf.prior <- bf.prior * bf.prior
 
   rm(cross)
   gc()
@@ -566,6 +569,8 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
   attr(x, "chr") <- chr
   attr(x, "slice") <- slice
   attr(x, "min.iter") <- min.iter
+  attr(x, "pheno.name") <- pheno.name
+  attr(x, "geno.names") <- geno.names
   attr(x, "qb") <- qb.name
   x
 }
@@ -693,7 +698,7 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
   pos <- attr(x, "pos")
 
   cross <- get(attr(x, "cross"))
-  markers <- find.marker(cross, chr, pos)
+  markers <- find.marker(cross, names(cross$geno)[chr], pos)
 
   is.bc <- class(cross)[1] == "bc"
   if(is.bc) {
@@ -726,38 +731,43 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
     if(is.profile) {
       ## Slice of objective function.
       ii <- paste("obj", i, sep = "")
-      plot(x[[ii]], scan = "epistasis", smooth=3)
+      plot(x[[ii]], scan = "epistasis", smooth=3,
+           main = paste(attr(x[[ii]], "method"),
+             "\n\nchr", chr[i], "by", chr[3-i]))
       abline(v = pos[i], lty = 2, col = "red")
-      title(main = paste("\n\nchr=", chr[i], "slice=", chr[3-i]))
     }
     if(is.effects) {
       ## Slice of Cockerham parameter estimates.
       ii <- paste("est", i, sep = "")
-      plot(x[[ii]], scan = "epistasis", smooth=3)
+      plot(x[[ii]], scan = "epistasis", smooth=3,
+           main = paste(attr(x[[ii]], "method"),
+             "\n\nchr", chr[i], "by", chr[3-i]))
       abline(v = pos[i], lty = 2, col = "red")
-      title(main = paste("\n\nchr=", chr[i], "slice=", chr[3-i]))
     }
     if(is.cellmean) {
       ## Slice of Cell means.
       ii <- paste("mean", i, sep = "")
       if(is.bc) {
         plot(x[[ii]], smooth=3, scan=scans[c(1,i+1,4-i,4)],
-             col=cols[c(1,i+1,4-i,4)])
+             col=cols[c(1,i+1,4-i,4)],
+             main = paste(attr(x[[ii]], "method"),
+               "\n\nchr", chr[i], "by", chr[3-i]))
         abline(v = pos[i], lty = 2, col = "red")
-        title(main = paste("\n\nchr=", chr[i], "slice=", chr[3-i]))
       }
       else {
         for(j in c("A","H","B")) {
-          plot(x[[ii]], smooth=3, scan=scans[[j]], col=cols)
+          plot(x[[ii]], smooth=3, scan=scans[[j]], col=cols,
+               main = paste(attr(x[[ii]], "method"),
+                 "\n\nchr", chr[i], "by", chr[3-i]))
           abline(v = pos[i], lty = 2, col = "red")
-          title(main = paste("\n\nchr=", chr[i], "slice=", chr[3-i]))
         }
       }
     }
     if(is.effectplot) {
       effectplot(cross, attr(x, "pheno.col"),
                  mname1 = markers[i], mname2 = markers[3-i],
-                 main = paste("chr", chr[c(i,3-i)], collapse = ", "))
+                 main = paste("interaction\n\nchr",
+                   paste(chr[c(i,3-i)], collapse = ", ")))
     }
   }
   invisible()

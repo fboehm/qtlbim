@@ -1,6 +1,6 @@
 #####################################################################
 ## This code has been written by Dr.Yandell.
-## $Id: pairloci.R,v 1.7.2.1 2006/09/07 21:15:39 byandell Exp $
+## $Id: pairloci.R,v 1.7.2.2 2006/10/02 19:18:53 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -26,9 +26,11 @@ qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15)
     cat("no epistatic pairs\n")
     return(invisible(NULL))
   }
-  percent <- 100 * rev(sort(table(interaction(
-    pairloci[, paste("chrom", 1:2, sep = "") ])))) /
-      nrow(qb.get(qbObject, "iterdiag"))
+  geno.names <- names(qb.cross(qbObject)$geno)
+  percent <- 100 *
+    rev(sort(table(interaction(geno.names[pairloci[, "chrom1"]],
+                               geno.names[pairloci[, "chrom2"]])))) /
+                                 nrow(qb.get(qbObject, "iterdiag"))
   percent <- percent[ percent >  cutoff ]
   if(length(percent) > nmax)
     percent <- percent[seq(nmax)]
@@ -126,7 +128,9 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
   }
 
   ## Identify pairs of chromosomes with interacting QTL.
-  inter <- interaction(pairloci[, c("chrom1","chrom2") ])
+  geno.names <- names(qb.cross(qbObject)$geno)
+  inter <- interaction(geno.names[pairloci[, "chrom1"]],
+                       geno.names[pairloci[, "chrom2"]])
   post <- qb.pair.posterior(qbObject, cutoff)
   if(length(post) > maxpair)
     post <- post[seq(maxpair)]
@@ -204,13 +208,14 @@ plot.qb.epistasis <- function(x, effects = c("aa","ad","da","dd"),
 ##############################################################################
 qb.chrom <- function(qbObject)
 {
-  chrom <- c(table(qb.get(qbObject, "mainloci")$chrom))
+  geno.names <- names(qb.cross(qbObject)$geno)
+  chrom <- c(table(geno.names[qb.get(qbObject, "mainloci")$chrom]))
   maplen <- unlist(lapply(pull.map(qb.cross(qbObject)),
                            function(x) diff(range(x))))
   niter <- nrow(qb.get(qbObject, "iterdiag"))
   ## caution: posterior does not account for duplicate chromosomes
   assess <- data.frame(posterior = chrom / sum(chrom),
-    prior = maplen[ as.numeric(names(chrom)) ] / sum(maplen))
+    prior = maplen[names(chrom)] / sum(maplen))
   assess$bf <- assess$posterior / assess$prior
   bf <- min(assess$bf)
   if(bf > 0 & min(assess$prior) > 0)
@@ -229,7 +234,9 @@ qb.pairs <- function(qbObject, cutoff = 1, nmax = 15)
   }
   npair <- qb.pair.nqtl(qbObject, cutoff, pairloci)
   niter <- nrow(qb.get(qbObject, "iterdiag"))
-  inter <- interaction(pairloci[ , paste("chrom",1:2,sep="") ])
+  geno.names <- names(qb.cross(qbObject)$geno)
+  inter <- interaction(geno.names[pairloci[, "chrom1"]],
+                       geno.names[pairloci[, "chrom2"]])
   posterior <- rev(sort(table(inter))) / niter
   posterior <- posterior[ posterior > cutoff / 100 ]
   posterior[posterior > 1] <- 1

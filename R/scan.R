@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: scan.R,v 1.11.2.3 2006/09/06 01:50:22 byandell Exp $
+## $Id: scan.R,v 1.11.2.4 2006/09/29 20:14:32 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -978,6 +978,7 @@ plot.qb.scanone <- function(x,
   ## and to get ylim right when type is estimate
 
   type <- attr(x, "method")
+  geno.names <- attr(x, "geno.names")
 
   ## Set up output grid.
   qbObject <- get(attr(x, "qb"))
@@ -989,8 +990,19 @@ plot.qb.scanone <- function(x,
 
   ## Subset index for selected chromosomes.
   if(!is.null(chr)) {
-    if(!is.numeric(chr))
-      stop("chr must be numeric index to chromosomes")
+    ## chr      = selected chromosome index.
+    ## chr.char = names of selected chromosomes.
+    ## chr.sub  = logical flag to select from xout.
+    ## xout     = grid of chr and pos.
+    if(!is.logical(chr))
+      chr <- seq(geno.names)[chr]
+    if(is.character(chr)) {
+      chr.char <- chr
+      chr <- match(chr, geno.names)
+    }
+    else {
+      chr.char <- geno.names[chr]
+    }
     chr.sub <- match(xout$chr, chr)
     chr <- chr[sort(unique(chr.sub))]
     chr.sub <- !is.na(chr.sub)
@@ -1135,7 +1147,9 @@ plot.qb.scanone <- function(x,
   ## This should be done by chr, possibly using smooth.spline.
   ## Need to start plotting with first scan object.
   niter <- unclass(table(qb.inter(qbObject, xout)))
-  xout[ ,type] <- qb.smoothone(x[chr.sub, scan[is.sum]], xout, smooth, niter)
+  xout[ ,type] <- qb.smoothone(x[chr.sub, scan[is.sum]], xout,
+                               smooth, niter)
+  xout$chr <- factor(geno.names[xout$chr])
   plot(xout, ..., ylim = ylim, main = main, col = col[is.sum])
   if(type == "log10") {
     tmp <- c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000)
@@ -1263,6 +1277,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   ## Need to do this before subsetting on chr.
   bf.prior <- qb.get(qbObject, "mean.nqtl") /
     length(unlist(pull.loci(qb.cross(qbObject))))
+  bf.prior <- bf.prior * bf.prior
   
   qb.name <- deparse(substitute(qbObject))
   if(!is.null(chr))
@@ -1305,6 +1320,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
   nind.pheno <- sum(!is.na(cross$pheno[[qb.get(qbObject, "pheno.col")]]))
   map <- pull.map(cross)
+  geno.names <- names(map)
   rm(cross)
   gc()
   
@@ -1737,6 +1753,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   attr(qb.scan, "chr") <- chr
   attr(qb.scan, "weight") <- weight
   attr(qb.scan, "pheno.name") <- pheno.name
+  attr(qb.scan, "geno.names") <- geno.names
   attr(qb.scan, "map") <- map
   attr(qb.scan, "qb") <- qb.name
   qb.scan
@@ -1769,21 +1786,29 @@ summary.qb.scantwo <- function(object,
   gridtwo <- qb.intertwo(qbObject, min.iter)
   inter <- paste(gridtwo[1, ], gridtwo[3, ], sep = ".")
 
+  ## Foll parallel track to uinter to get chromosome names.
+  geno.names <- attr(object, "geno.names")
+  chr.pair <- paste(geno.names[gridtwo[1, ]], geno.names[gridtwo[3, ]],
+                    sep = ":")
+
   ## Get unique pairs of chromosomes.
+  ## This assumes chromosome names are unique!
   tmp <- order(gridtwo[1, ], gridtwo[3, ])
   uinter <- unique(inter[tmp])
+  chr.pair <- unique(chr.pair[tmp])
   chrs <- as.matrix(gridtwo[c(1,3), tmp[!duplicated(inter[tmp])]])
   if(!missing(chr)) {
     tmp <- !is.na(match(uinter, c(outer(chr, chr, paste, sep = "."))))
     uinter <- uinter[tmp]
+    chr.pair <- chr.pair[tmp]
     chrs <- as.matrix(chrs[, tmp])
     keep <- !is.na(match(gridtwo[1, ], chr)) & !is.na(match(gridtwo[3, ], chr))
   }
   else
     keep <- rep(TRUE, ncol(gridtwo))
-  
+
   out <- matrix(0, length(uinter), 9)
-  dimnames(out) <- list(uinter, c("chr1", "chr2",
+  dimnames(out) <- list(chr.pair, c("chr1", "chr2",
                                   "n.qtl",
                                   "l.pos1", "l.pos2", "lower",
                                   "u.pos1", "u.pos2", "upper"))
@@ -1804,6 +1829,7 @@ summary.qb.scantwo <- function(object,
     }
     else
       out <- out[tmp, ]
+    uinter <- uinter[tmp]
   }
   else
     out <- NULL
@@ -1883,7 +1909,7 @@ summary.qb.scantwo <- function(object,
     x2$lod[row(x.iter) > col(x.iter)] <- x.iter[row(x.iter) > col(x.iter)]
     tmp <- summary(x2) ## lod.int has lower, lod.joint has max main posterior
     tmp2 <- paste(tmp$chr1,tmp$chr2,sep=".")
-    tmp2 <- match(dimnames(out)[[1]],tmp2)
+    tmp2 <- match(uinter,tmp2)
     for(i in c("pos1","pos2"))
       out[, paste("l", i, sep = ".")] <- tmp[tmp2, i]
     out[, "lower"] <- tmp[tmp2, "lod.int"]
@@ -1891,8 +1917,8 @@ summary.qb.scantwo <- function(object,
     x2$lod <- lod
     x2$lod[row(x.iter) > col(x.iter)] <- t(x.iter)[row(x.iter) > col(x.iter)]
     tmp <- summary(x2) ## lod.int has upper, lod.joint has max epis posterior
-    tmp2 <- paste(tmp$chr1,tmp$chr2,sep=".")
-    tmp2 <- match(dimnames(out)[[1]],tmp2)
+    tmp2 <- paste(tmp$chr1, tmp$chr2, sep = ".")
+    tmp2 <- match(uinter, tmp2)
     for(i in c("pos1","pos2"))
       out[, paste("u", i, sep = ".")] <- tmp[tmp2, i]
     out[, "upper"] <- tmp[tmp2, "lod.int"]
@@ -2169,9 +2195,30 @@ plot.qb.scantwo <- function(x,
                           verbose = FALSE,
                           ...)
 {
+  geno.names <- attr(x, "geno.names")
+
+  ## Make sure chr and slice are numerical indices.
+  if(is.null(chr))
+    chr <- seq(geno.names)
+  if(is.logical(chr))
+    chr <- seq(geno.names)[chr]
+  if(is.character(chr))
+    chr <- match(chr, geno.names, nomatch = 0)
+  chr <- chr[chr >= 0]
+  
+  if(!is.null(slice)) {
+    if(is.logical(slice))
+      slice <- seq(geno.names)[slice]
+    if(is.character(slice))
+      slice <- match(slice, geno.names, nomatch = 0)
+    if(slice <= 0)
+      stop("Option slice must be index to chromosome")
+  }
+  
   chrs <- chr
   if(!is.null(slice))
     chrs <- c(chrs, slice[1])
+  
   x2 <- qb.scantwo.smooth(x, chrs, smooth, ...)
 
   qbObject <- get(attr(x, "qb"))
@@ -2183,7 +2230,7 @@ plot.qb.scantwo <- function(x,
   type <- attr(x2, "method")
   scan <- attr(x2, "scan")
   min.iter <- attr(x, "min.iter")
-
+  
   if(verbose) {
     cat(paste(c("\nupper:","lower:"), type[c("upper","lower")], "of",
               pheno.name, "for", scan[c("upper","lower")],
@@ -2230,6 +2277,7 @@ plot.qb.scantwo <- function(x,
     }
     
     ## Plot scantwo object.
+    x2$map$chr <- factor(geno.names[x2$map$chr])
     plot(x2, lower = lower, nodiag = nodiag, main = main,
          incl.markers = TRUE, ...)
     if(verbose)
@@ -2244,6 +2292,7 @@ plot.qb.scantwo <- function(x,
       tmpar <- par(mfrow=c(2,1), mar=c(2.1,4.1,0.1,0.1))
       on.exit(par(tmpar))
     }
+    grid$chr <- factor(geno.names[grid$chr])
     plot(grid, ylim = range(grid[[3]], na.rm = TRUE), ...)
     abline(h = 0, lty = 3, lwd = 2, col = "red")
     if(var(grid[[4]]) > 0 & show.locus) {

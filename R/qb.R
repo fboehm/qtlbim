@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.R,v 1.16.2.6 2006/09/08 16:47:41 byandell Exp $
+## $Id: qb.R,v 1.16.2.7 2006/10/02 19:18:53 byandell Exp $
 ##
 ##     Copyright (C) 2002 Brian S. Yandell
 ##
@@ -423,7 +423,9 @@ qb.numqtl <- function(qb)
 qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
 {
   mainloci <- qb.get(qbObject, "mainloci")
-  counts <- tapply(mainloci$chrom, mainloci$niter, function(x) table(x),
+  geno.names <- names(qb.cross(qbObject)$geno)
+  counts <- tapply(geno.names[mainloci$chrom], mainloci$niter,
+                   function(x) table(x),
                    simplify = FALSE)
   pattern <- unlist(lapply(counts, function(x) {
     tmp <- paste(ifelse(x > 1,
@@ -458,7 +460,6 @@ qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
   nchrom <- length(chrlen)
   chrlen <- chrlen / sum(chrlen)
   
-  names(chrlen) <- seq(nchrom)
   fact <- rep(1, rng)
   for(i in 2:(rng+1)) 
     fact[i] <- fact[i-1] * i

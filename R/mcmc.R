@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: mcmc.R,v 1.4.2.1 2006/09/07 21:15:39 byandell Exp $
+## $Id: mcmc.R,v 1.4.2.3 2006/10/02 19:18:53 byandell Exp $
 ##
 ##     Copyright (C) 2006 Nengjun Yi and Tapan Mehta
 ##
@@ -202,7 +202,10 @@ qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"
   }
   if(standardize & trait=="normal")
     yvalue = (yvalue - mean(yvalue, na.rm=T))/sd(yvalue, na.rm=T)
+  ## Change missing to 999.
   yvalue[is.na(yvalue)] = 999
+  ## Change infinite to 999
+  yvalue[yvalue == Inf | yvalue == -Inf] = 999
 
   if(trait=="normal") ncategory = 0	
   if(trait!="normal") {
@@ -223,10 +226,14 @@ qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"
                
   fixcoef = as.matrix(cross$pheno[,fixcov]) # input fixed covariates   
   fixcoef[is.na(fixcoef)] = 999
+  ## Change infinite to 999
+  fixcoef[fixcoef == Inf | fixcoef == -Inf] = 999
 
   rancoef = as.matrix(cross$pheno[,rancov])  # input random covariates 
-  rancoef[rancoef==999] = NA
+  ## Change infinite to 999
+  rancoef[rancoef == Inf | rancoef == -Inf] = 999
   if(nrancov!=0) {
+    rancoef[rancoef==999] = NA
     for(i in 1:nrancov)          # recode the random covariates to 0,1,2,...
     {
        rancoef[ ,i] = factor(rancoef[ ,i])

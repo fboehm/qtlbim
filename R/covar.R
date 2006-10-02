@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: covar.R,v 1.7.2.3 2006/09/07 21:15:39 byandell Exp $
+## $Id: covar.R,v 1.7.2.4 2006/10/02 20:15:39 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -541,6 +541,7 @@ qb.confound <- function(qbObject, covar = 1)
                paste(gridfull$chr, gridfull$pos, sep = "."))
   pseudomark <- pseudomark[, tmp]
 
+  grid$chr <- names(cross$geno)[grid$chr]
   grid$coradd <- cor(pseudomark, covariate, use = "pairwise.complete.obs")
   if(is.f2)
     grid$cordom <- cor(apply(pseudomark, 2,

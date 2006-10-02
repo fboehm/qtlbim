@@ -1,13 +1,18 @@
 
 
-//***************************************************************************
+//********************************************************************
 
-#include "stdio.h"
-//#include "bmq_main.h"
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+
+#include <R.h>
+#include <Rmath.h>
+#include <R_ext/Random.h>
+
 #include "bmq_mcmc.h"
 
 //***************************************************************************
-
 void R_AnalysisEngine(int *nind,int *nchr,int *ngen, int *nloci,double *loci,double *prob,
 					  double *yvalue,int *traittype,int *ncategory,
 					  int *iter,int *thin,int *burnin,
