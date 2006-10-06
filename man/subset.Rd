@@ -44,8 +44,6 @@ QTL and at least the \code{pattern} across chromosomes. \code{pattern}
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 ## Subset to chr 1,3,5.
 qbSubset <- subset(qbExample, chr = c(1,3,5))

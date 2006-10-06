@@ -8,8 +8,8 @@ containing information on environmental variance, explained variance
 components, non-epistatic variance components.
 }
 \usage{
-qb.scanone(qbObject, epistasis = TRUE, scan, type, covar, chr,
-  sum.scan = "yes", min.iter = 1,
+qb.scanone(qbObject, epistasis = TRUE, scan, type, covar, adjust.covar,
+  chr, sum.scan = "yes", min.iter = 1,
   aggregate = TRUE, half = FALSE, verbose = FALSE)
 }
 \arguments{
@@ -21,6 +21,9 @@ qb.scanone(qbObject, epistasis = TRUE, scan, type, covar, chr,
   \item{covar}{Covariate(s) to include; default is \code{seq(nfixcov)}
     where \code{nfixcov} is taken from \code{\link{qb.data}}. Set to 0
     to exclude any covariates.}
+  \item{adjust.covar}{Adjustments to covariates. Default is
+    \code{NA}, which adjusts by covariate mean values. Values are
+    assumed to be in order of fixed covariates.}
   \item{chr}{Chromosomes to subset on if not \code{NULL}.}
   \item{sum.scan}{Sum over \code{scan} diagnostics if "yes" or "only";
     only report \code{sum} if "only".}

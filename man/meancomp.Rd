@@ -9,13 +9,16 @@ Examine grand mean and covariate Monte Carlo samples to glean estimates
 of data center and importance of covariates.
 }
 \usage{
-qb.meancomp(qbObject)
+qb.meancomp(qbObject, adjust.covar)
 summary.qb.meancomp(object, percent = 5, ...)
 print.qb.meancomp(x, ...)
 plot.qb.meancomp(x, covar, percent = 5, cex, ...)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
+  \item{adjust.covar}{Adjustments to covariates. Default is
+    \code{NA}, which adjusts by covariate mean values. Values are
+    assumed to be in order of fixed covariates.}
   \item{object}{Object of class \code{qb.meancomp}.}
   \item{x}{Object of class \code{qb.meancomp}.}
   \item{percent}{Percentile between 0 and 100 for summaries.}

@@ -10,8 +10,9 @@
 \usage{
 qb.sim.cross(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
   n.ind = 400, type = c("f2","bc"), missing.geno = 0.0,
-  missing.pheno = 0.0, ordinal = c(0.5,0.5), qtl.pos = NULL,
-  qtl.main = NULL, qtl.epis = NULL, covariate = NULL, gbye = NULL )
+  missing.pheno = 0.0, ordinal = c(0.5,0.5),
+  qtl.pos = NULL, qtl.main = NULL, qtl.epis = NULL,
+  covariate = NULL, gbye = NULL, seed = NULL )
 summary.qb.sim(object, \dots)
 } 
 \arguments{
@@ -70,10 +71,12 @@ summary.qb.sim(object, \dots)
   of the random covariate.
   } 
   \item{gbye}{
-  A matrix specifying the interaction between the fixed covariate and QTL main
-  effect. The first column is the index of the QTL, the other column(s) is(are)
-  the value(s) of interaction(s).
+    A matrix specifying the interaction between the fixed covariate and QTL main
+    effect. The first column is the index of the QTL, the other column(s) is(are)
+    the value(s) of interaction(s).
   }
+  \item{seed}{Set pseudo-random number seed with
+    \code{\link[base]{set.seed}} if not \code{NULL}.}
   \item{object}{An object of class \code{qb.sim}, typically the
     \code{qtl} element of a \code{cross} object created by
     \code{qb.sim.cross}.

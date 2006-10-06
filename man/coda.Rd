@@ -40,8 +40,6 @@ used to analyze the MCMC output using R/coda.}
 \examples{     
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 ## Default plots for iteration diagnostics "iterdiag".
 temp <- qb.coda(qbExample)

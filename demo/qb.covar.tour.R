@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.covar.tour.R,v 1.3.2.4 2006/09/07 01:55:21 byandell Exp $
+## $Id: qb.covar.tour.R,v 1.3.2.5 2006/10/06 15:42:45 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -68,3 +68,21 @@ plot(tmp)
 tmp <- qb.varcomp(qbsub)
 summary(tmp)
 plot(tmp)
+
+## Effects for interacting covariates.
+tmp <- qb.intcov(qbsub)
+summary(tmp)
+plot(tmp)
+
+## Cell mean scan for interacting covariates.
+tmpar <- par(mfrow=c(3,1))
+tmp <- qb.scanone(qbsub, type = "cellmean")
+plot(tmp)
+abline(v=35,lty=2)
+tmp <- qb.scanone(qbsub, type = "cellmean", adjust.covar = 1)
+plot(tmp)
+abline(v=35,lty=2)
+tmp <- qb.scanone(qbsub, type = "cellmean", adjust.covar = 1)
+plot(tmp)
+abline(v=35,lty=2)
+par(tmpar)

@@ -63,8 +63,6 @@ print.qb.BayesFactor(x, \dots)
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 temp <- qb.BayesFactor(qbExample)
 summary(temp)

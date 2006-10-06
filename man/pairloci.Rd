@@ -39,11 +39,21 @@ detail complementary to \code{\link{qb.multloci}} and
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
-temp <- qb.pairloci(qbExample, 1)
+## Top two are real epistasis; bottom two are spurious.
+tmpar <- par(mfrow = c(2,2))
+temp <- qb.pairloci(qbExample, c(5,7))
 summary(temp)
 plot(temp)
+temp <- qb.pairloci(qbExample, c(10,19))
+summary(temp)
+plot(temp)
+temp <- qb.pairloci(qbExample, c(5,10))
+summary(temp)
+plot(temp)
+temp <- qb.pairloci(qbExample, c(7,17))
+summary(temp)
+plot(temp)
+par(tmpar)
 }
 \keyword{models}

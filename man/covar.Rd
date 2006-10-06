@@ -8,10 +8,10 @@
 Compare main effects with GxE effects to address correlation of estimates.
 }
 \usage{
-qb.covar(qbObject, element = "add", covar = 1, chr, ...)
-summary.qb.covar(object, percent = 5, digits = 3, ...)
-print.qb.covar(x, ...)
-plot.qb.covar(x, percent = 5, cex, include.zero = TRUE, ...)
+qb.covar(qbObject, element = "add", covar = 1, adjust.covar, chr, \dots)
+summary.qb.covar(object, percent = 5, digits = 3, \dots)
+print.qb.covar(x, \dots)
+plot.qb.covar(x, percent = 5, cex, include.zero = TRUE, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
@@ -19,6 +19,9 @@ plot.qb.covar(x, percent = 5, cex, include.zero = TRUE, ...)
   \item{x}{Object of class \code{qb.covar}.}
   \item{element}{Main effect to examine ("add" or "dom").}
   \item{covar}{Index to covariates used in MCMC samples.}
+  \item{adjust.covar}{Adjustments to covariates. Default is
+    \code{NA}, which adjusts by covariate mean values. Values are
+    assumed to be in order of fixed covariates.}
   \item{chr}{Subset of chromosomes as integer vector.}
   \item{percent}{Percentile (0 to 100) for summaries.}
   \item{digits}{Number of significant digits to print.}

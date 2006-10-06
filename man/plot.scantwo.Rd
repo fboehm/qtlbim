@@ -7,7 +7,7 @@ Plots joint LOD for chromosomes on a two dimensional grid.
 }
 \usage{
 print.qb.scantwo(x, ...)
-plot.qb.scantwo(x, chr, smooth = 0, main, offset,
+plot.qb.scantwo(x, chr, smooth = 3, main, offset,
   lower = "joint", nodiag, slice = NULL,
   show.locus = TRUE, verbose = FALSE, ...)
 }
@@ -15,7 +15,8 @@ plot.qb.scantwo(x, chr, smooth = 0, main, offset,
 \arguments{
   \item{x}{An object of class \code{qb.scantwo}.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
-  \item{smooth}{Perform smoothing of \code{smooth} nearest neighbors.}
+  \item{smooth}{Perform smoothing if > 0 using weighted average over
+    \code{smooth} adjacent points.}
   \item{main}{Main title.}
   \item{offset}{Offset to make all values non-negative (see below).}
   \item{lower}{This parameter is passed on to the

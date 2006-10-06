@@ -38,8 +38,6 @@ detail complementary to \code{\link{plot.qb.scantwo}}.
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 temp <- qb.multloci(qbExample, 1)
 summary(temp)

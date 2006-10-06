@@ -46,8 +46,6 @@ summary.qb.diag(object, digits = 5, \dots )
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 temp <- qb.diag(qbExample)
 summary(temp)

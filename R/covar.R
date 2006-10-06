@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: covar.R,v 1.7.2.4 2006/10/02 20:15:39 byandell Exp $
+## $Id: covar.R,v 1.7.2.6 2006/10/10 16:26:57 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -41,41 +41,58 @@
 ## Include covariate add and dom in plot.qb.effects.
 ## Need to add covariate names to bmapqtl element.
 ##############################################################################
-covar.mean <- function(object, offset = covar.means, verbose = FALSE)
+covar.mean <- function(qbObject, adjust.covar, verbose = FALSE)
 {
-  nfixcov <- qb.get(object, "nfixcov")
-  nrancov <- qb.get(object, "nrancov")
+  nfixcov <- qb.get(qbObject, "nfixcov")
+  nrancov <- qb.get(qbObject, "nrancov")
   if(nfixcov + nrancov == 0) {
     return(numeric())
   }
   ## Covariate mean adjustment used for mean and main effects.
-  if(is.null(qb.get(object, "covar"))) {
+  if(is.null(qb.get(qbObject, "covar"))) {
     stop("no covar element in qb object", call. = FALSE,
             immediate. = TRUE)
   }
   else {
-    cross <- qb.cross(object)
-    covar.name <- names(cross$pheno)[qb.get(object, "covar")]
+    ## Could use qb.get(qbObject, "fixcoef") and qb.get(qbObject, "yvalue") here.
+    ## Recall that missing code used is 999.
+    cross <- qb.cross(qbObject)
+    covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
     if(nfixcov > 0) {
+      pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
+      use.value <- cross$pheno[, pheno.name]
+      use.value <- !is.na(use.value) & abs(use.value) != Inf 
       tmp <- cross$pheno[, covar.name[seq(nfixcov)]]
       if(nfixcov == 1)
-        covar.means <- mean(tmp, na.rm = TRUE)
+        covar.means <- mean(tmp[use.value], na.rm = TRUE)
       else
-        covar.means <- unlist(lapply(tmp, mean, na.rm = TRUE))
+        covar.means <- unlist(lapply(tmp[use.value, ], mean, na.rm = TRUE))
       covar.means <- c(covar.means, rep(0, nrancov))
     }
     else
       covar.mean <- rep(0, nrancov)
     names(covar.means) <- covar.name
   }
-  if(any(abs(offset) > 10^-6) & verbose) {
-    warning(paste("covariate offset(s):",
+
+  if(!missing(adjust.covar)) {
+    if(length(adjust.covar) > nfixcov + nrancov)
+      adjust.covar <- adjust.covar[seq(nfixcov + nrancov)]
+    else
+      adjust.covar <- c(adjust.covar,
+                        rep(NA, nfixcov + nrancov - length(adjust.covar)))
+    tmp <- !is.na(adjust.covar)
+    if(any(tmp))
+      covar.means[tmp] <- adjust.covar[tmp]
+  }
+  
+  if(any(abs(covar.means) > 10^-6) & verbose) {
+    warning(paste("covariate adjustment(s):",
                   paste(covar.name[seq(nfixcov)], collapse = ","),
                   "*",
-                  paste(round(offset[seq(nfixcov)], 3), collapse = ",")),
+                  paste(round(covar.means[seq(nfixcov)], 3), collapse = ",")),
             call. = FALSE, immediate. = TRUE)
   }
-  offset
+  covar.means
 }
 ##############################################################################
 covar.var <- function(qbObject)
@@ -88,7 +105,6 @@ covar.var <- function(qbObject)
   if(nfixcov == 0) {
     return(numeric())
   }
-  ## Covariate mean adjustment used for mean and main effects.
   if(is.null(qb.get(qbObject, "covar"))) {
        stop("no covar element in qb object", call. = FALSE,
             immediate. = TRUE)
@@ -288,7 +304,7 @@ summary.qb.varcomp <- function(object, ...)
 ##############################################################################
 print.qb.varcomp <- function(x, ...) print(summary(x, ...))
 ##############################################################################
-qb.meancomp <- function(qbObject)
+qb.meancomp <- function(qbObject, adjust.covar = NA)
 {
   ## Mean components: grand mean and covariates.
 
@@ -298,8 +314,8 @@ qb.meancomp <- function(qbObject)
 
   nfixcov <- qb.get(qbObject, "nfixcov")
   if(nfixcov) {
-    ## Set up mean offset.
-    covar.means <- covar.mean(qbObject)[seq(nfixcov)]
+    ## Set up mean adjusted for covariates.
+    covar.means <- covar.mean(qbObject, adjust.covar)[seq(nfixcov)]
     covar.name <- names(covar.means)
 
     ## Get Covariate main effect and grand mean.
@@ -378,6 +394,7 @@ plot.qb.meancomp <- function(x,
 }
 ##############################################################################
 qb.covar <- function(qbObject, element = "add", covar = 1,
+                     adjust.covar = NA,
                       chr, ...)
 {
   qbname <- deparse(substitute(qbObject))
@@ -385,8 +402,8 @@ qb.covar <- function(qbObject, element = "add", covar = 1,
   if(!missing(chr))
     qbObject <- subset(qbObject, chr = chr)
 
-  ## Set up mean offset.
-  covar.means <- covar.mean(qbObject)
+  ## Set up mean adjusted for covariates.
+  covar.means <- covar.mean(qbObject, adjust.covar)
   covar.name <- names(covar.means)
 
   ## Get GxE fixed effects for Covariate covar.
@@ -404,7 +421,7 @@ qb.covar <- function(qbObject, element = "add", covar = 1,
                         sep = ":"))
     tmp <- tmp[[element]]
 
-    ## Offset main by covariate.
+    ## Adjust main by covariate.
     if(covar.means[i] != 0)
       data$main[same] <- data$main[same] + covar.means[i] * tmp
     if(covar == i) {

@@ -17,6 +17,9 @@ useDynLib(qtlbim)
 # directive.  
 #
 
+export(covar.mean)
+export(qb.intcov)
+
 export(qb.coda)              
 export(qb.cross)
 export(qb.data)              
@@ -109,6 +112,8 @@ S3method(print, qb.hpdone)
 S3method(summary, qb.hpdone)
 
 S3method(plot, qb.loci)
+S3method(print, qb.loci)
+S3method(summary, qb.loci)
 
 S3method(plot, qb.meancomp)
 S3method(print, qb.meancomp)

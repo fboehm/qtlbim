@@ -7,15 +7,15 @@ Plot or print marginal diagnostics of effects from a qb.scanone object.
 }
 \usage{
 print.qb.scanone(x, ...)
-plot.qb.scanone(x, chr, smooth = 0, scan, ylim, scan.name, col, main,
+plot.qb.scanone(x, chr, smooth = 3, scan, ylim, scan.name, col, main,
   verbose = FALSE, ...)
 }
 
 \arguments{
   \item{x}{An object of class \code{qb.scanone}.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
-  \item{smooth}{Perform smoothing.  If O don't smooth.  If larger, then
-    smooth over \code{smooth} adjacent points.}
+  \item{smooth}{Perform smoothing if > 0 using weighted average over
+    \code{smooth} adjacent points.}
   \item{scan}{The model effects to include, the default is all
     those included in the \code{\link[qtl]{scanone}} object \code{x}.}
   \item{ylim}{Limits for vertical (y) axis; default uses data limits.}

@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: scan.R,v 1.11.2.4 2006/09/29 20:14:32 byandell Exp $
+## $Id: scan.R,v 1.11.2.5 2006/10/06 15:17:25 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -213,16 +213,34 @@ qb.count <- function(qbObject, stat, type, n.iter, bf.prior)
   stat
 }
 ##############################################################################
+qb.nind.pheno <- function(qbObject, pheno.name, nfixcov, cross)
+{
+  tmp <- cross$pheno[[qb.get(qbObject, "pheno.col")]]
+  tmp <- !is.na(tmp) & abs(tmp) != Inf
+  if(nfixcov) {
+    ## Reduce pheno count by missing covariate values.
+    covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
+    tmp2 <- cross$pheno[, covar.name]
+    if(nfixcov == 1)
+      tmp <- tmp & !is.na(tmp2) & abs(tmp2) != Inf
+    else
+      tmp <- tmp & apply(tmp2, 1, function(x) !is.na(x) & abs(x) != Inf)
+    rm(tmp2)
+  }
+  sum(tmp)
+}
+##############################################################################
 qb.scanone <- function(qbObject, epistasis = TRUE,
-                     scan = c("main", "GxE", "epistasis"),
-                     type = types,
-                     covar = if(nfixcov) seq(nfixcov) else 0,
-                     chr = NULL,
-                     sum.scan = "yes",
-                     min.iter = 1,
-                     aggregate = TRUE,
-                     half = FALSE,
-                     verbose = FALSE)
+                       scan = c("main", "GxE", "epistasis"),
+                       type = types,
+                       covar = if(nfixcov) seq(nfixcov) else 0,
+                       adjust.covar = NA,
+                       chr = NULL,
+                       sum.scan = "yes",
+                       min.iter = 1,
+                       aggregate = TRUE,
+                       half = FALSE,
+                       verbose = FALSE)
 {
   ## WARNING: Check covariates for npar and rss computations.
   ## Rethink qb.scan for nqtl. [Could use count already in place to do this
@@ -271,7 +289,9 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
-  nind.pheno <- sum(!is.na(cross$pheno[[qb.get(qbObject, "pheno.col")]]))
+  nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
+
+  ## Genotype names.
   geno.names <- names(cross$geno)
 
   ## Following prior used for Bayes factors.
@@ -301,8 +321,9 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
     totvar <- rep(0, length(levels(inter)))
   if(nfixcov) {
     ## Covariate means.
-    covar.means <- covar.mean(qbObject,
+    covar.means <- covar.mean(qbObject, adjust.covar,
                               verbose = verbose & (type == "estimate"))
+    
     ## Explained covariance for heritability.
     if(type == "heritability") {
       tmp <- apply(qb.varcomp(qbObject, c("fixcov","rancov")), 1, sum)
@@ -542,10 +563,10 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                 }
               }
               
-              if(type == "estimate") {
+              if(type == "estimate" | type == "cellmean") {
                 ## Offset parameter estimate by covariates.
                 if(covar.means[j] != 0)
-                main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
+                  main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
               }
             }
             if(is.count & any(scan.save == "GxE")) {
@@ -963,7 +984,7 @@ print.qb.scanone <- function(x, ...) print(summary(x, ...))
 ###################################################################
 plot.qb.scanone <- function(x,
                           chr = NULL,
-                          smooth = 0,
+                          smooth = 3,
                           scan = scan.plots,
                           ylim = ylims,
                           scan.name = scan.pretty,
@@ -986,14 +1007,14 @@ plot.qb.scanone <- function(x,
   if(!is.null(chr.qb))
     qbObject <- subset(qbObject, chr = chr.qb)
   
-  xout <- pull.grid(qbObject, offset = TRUE)
+  grid <- pull.grid(qbObject, offset = TRUE)
 
   ## Subset index for selected chromosomes.
   if(!is.null(chr)) {
     ## chr      = selected chromosome index.
     ## chr.char = names of selected chromosomes.
-    ## chr.sub  = logical flag to select from xout.
-    ## xout     = grid of chr and pos.
+    ## chr.sub  = logical flag to select from grid.
+    ## grid     = grid of chr and pos.
     if(!is.logical(chr))
       chr <- seq(geno.names)[chr]
     if(is.character(chr)) {
@@ -1003,16 +1024,16 @@ plot.qb.scanone <- function(x,
     else {
       chr.char <- geno.names[chr]
     }
-    chr.sub <- match(xout$chr, chr)
+    chr.sub <- match(grid$chr, chr)
     chr <- chr[sort(unique(chr.sub))]
     chr.sub <- !is.na(chr.sub)
     if(!sum(chr.sub))
       stop(paste("no samples for chromosomes", chr, collapse = ","))
     qbObject <- subset(qbObject, chr = chr)
-    xout <- pull.grid(qbObject, offset = TRUE)
+    grid <- pull.grid(qbObject, offset = TRUE)
   }
   else
-    chr.sub <- rep(TRUE, nrow(xout))
+    chr.sub <- rep(TRUE, nrow(grid))
   
   ## Figure out how to organize scans.
   scan.names <- dimnames(x)[[2]]
@@ -1084,7 +1105,7 @@ plot.qb.scanone <- function(x,
   min.iter <- attr(x, "min.iter")
   if(min.iter > 1) {
     ## Get number of samples per pos.
-    niter <- unclass(table(qb.inter(qbObject, xout)))
+    niter <- unclass(table(qb.inter(qbObject, grid)))
 
     ## Reduce x to loci with at least min.iter samples.
     x[chr.sub & niter < min.iter, scan] <- 0
@@ -1108,7 +1129,9 @@ plot.qb.scanone <- function(x,
         paste(scan, collapse = ","), "\n")
   }
 
-  ## Set up scanone object attributes.
+  ## Set up xout with scanone object attributes.
+  xout <- grid
+  xout$chr <- factor(geno.names[xout$chr])
   class(xout) <- c("scanone", "data.frame")
   attr(xout, "method") <- type
   attr(xout, "type") <- attr(x, "type")
@@ -1146,10 +1169,9 @@ plot.qb.scanone <- function(x,
   ## Smooth over points?
   ## This should be done by chr, possibly using smooth.spline.
   ## Need to start plotting with first scan object.
-  niter <- unclass(table(qb.inter(qbObject, xout)))
-  xout[ ,type] <- qb.smoothone(x[chr.sub, scan[is.sum]], xout,
+  niter <- unclass(table(qb.inter(qbObject, grid)))
+  xout[ ,type] <- qb.smoothone(x[chr.sub, scan[is.sum]], grid,
                                smooth, niter)
-  xout$chr <- factor(geno.names[xout$chr])
   plot(xout, ..., ylim = ylim, main = main, col = col[is.sum])
   if(type == "log10") {
     tmp <- c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000)
@@ -1161,7 +1183,7 @@ plot.qb.scanone <- function(x,
   ## All other scan objects added to plot.
   if(allscan) {
     for(varcomp in rev(scan[-is.sum])) {
-      xout[, type] <- qb.smoothone(x[chr.sub, varcomp], xout, smooth, niter)
+      xout[, type] <- qb.smoothone(x[chr.sub, varcomp], grid, smooth, niter)
       plot(xout, ..., add = TRUE, col = col[varcomp])
     }
     if(length(col) < 5)
@@ -1260,16 +1282,17 @@ qb.intertwo <- function(qbObject,
 }
 ###################################################################
 qb.scantwo <- function(qbObject, epistasis = TRUE,
-                     scan = list(upper = upper.scan, lower = lower.scan),
-                     type = c(
-                       upper = "heritability",
-                       lower = "heritability"),
-                     upper.scan = "epistasis",
-                     lower.scan = "joint",
-                     covar = if(nfixcov) seq(qbObject$nfixcov) else 0,
-                     chr = NULL,
-                     min.iter = 1,
-                     verbose = FALSE)
+                       scan = list(upper = upper.scan, lower = lower.scan),
+                       type = c(
+                         upper = "heritability",
+                         lower = "heritability"),
+                       upper.scan = "epistasis",
+                       lower.scan = "joint",
+                       covar = if(nfixcov) seq(qbObject$nfixcov) else 0,
+                       adjust.covar = NA,
+                       chr = NULL,
+                       min.iter = 1,
+                       verbose = FALSE)
 {
   ## Need to add aggregate facilities and redo counts as in qb.scanone.
 
@@ -1318,7 +1341,9 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
-  nind.pheno <- sum(!is.na(cross$pheno[[qb.get(qbObject, "pheno.col")]]))
+  nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
+
+  ## Genotype names.
   map <- pull.map(cross)
   geno.names <- names(map)
   rm(cross)
@@ -1368,7 +1393,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     totvar <- rep(0, length(inter))
   if(nfixcov) {
     ## Covariate means.
-    covar.means <- covar.mean(qbObject,
+    covar.means <- covar.mean(qbObject, adjust.covar,
                               verbose = verbose & (any(type == "estimate")))
 
     ## Explained covariance for heritability.
@@ -1536,10 +1561,9 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
             }
             
             ## Offset parameter estimate by covariates.
-            if(type[tri] == "estimate" & covar.means[covj] != 0 &
-               !done.est) {
-              main.val[same] <- main.val[same] +
-                covar.means[covj] * gbyej[[vari]]
+            if((type[tri] == "estimate" | type[tri] == "cellmean") &
+               covar.means[covj] != 0 & !done.est) {
+              main.val[same] <- main.val[same] + covar.means[covj] * gbyej[[vari]]
               done.est <- TRUE
             }
           }
@@ -2185,7 +2209,7 @@ qb.scantwo.smooth <- function(x,
 ###################################################################
 plot.qb.scantwo <- function(x,
                           chr = NULL,
-                          smooth = 0,
+                          smooth = 3,
                           main = mains,
                           offset = offsets,
                           lower = "joint",

@@ -1,6 +1,6 @@
 #####################################################################
 ## This code has been written by Dr.Yandell.
-## $Id: pairloci.R,v 1.7.2.2 2006/10/02 19:18:53 byandell Exp $
+## $Id: pairloci.R,v 1.7.2.3 2006/10/06 15:17:25 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -19,9 +19,9 @@
 ## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ## 
 ##############################################################################
-qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15)
+qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15,
+                              pairloci = qb.get(qbObject, "pairloci"))
 {
-  pairloci <- qb.get(qbObject, "pairloci")
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
     return(invisible(NULL))
@@ -75,7 +75,8 @@ qb.pairloci <- function(qbObject, chr)
   attr(d, "chr") <- chr
   attr(d, "niter") <- nrow(qb.get(qbObject, "iterdiag"))
   attr(d, "map") <- pull.map(qb.cross(qbObject))[chr]
-  attr(d, "post") <- qb.pair.posterior(qbObject)[paste(chr, collapse = ".")]
+  attr(d, "post") <-
+    qb.pair.posterior(qbObject, pairloci = pairloci)[paste(chr, collapse = ".")]
   d
 }
 ##############################################################################
@@ -131,7 +132,7 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
   geno.names <- names(qb.cross(qbObject)$geno)
   inter <- interaction(geno.names[pairloci[, "chrom1"]],
                        geno.names[pairloci[, "chrom2"]])
-  post <- qb.pair.posterior(qbObject, cutoff)
+  post <- qb.pair.posterior(qbObject, cutoff, pairloci = pairloci)
   if(length(post) > maxpair)
     post <- post[seq(maxpair)]
   if(!is.character(pairs))
@@ -173,7 +174,7 @@ summary.qb.epistasis <- function(object, ...)
 ##############################################################################
 print.qb.epistasis <- function(x, ...) print(summary(x, ...))
 ##############################################################################
-plot.qb.epistasis <- function(x, effects = c("aa","ad","da","dd"),
+plot.qb.epistasis <- function(x, effects = names(x)[-length(x)],
                               cex = 0.5, ...)
 {
   require("lattice")

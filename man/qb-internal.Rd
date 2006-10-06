@@ -1,4 +1,5 @@
 \name{qb.get}
+\alias{covar.mean}
 \alias{pull.grid}
 \alias{qb.get}
 \alias{qb.cross}
@@ -12,6 +13,7 @@
   namespace for technical use.
 }
 \usage{
+covar.mean(qbObject, adjust.covar, verbose = FALSE)
 pull.grid(qbObject, offset, spacing, mask.region)
 qb.cross(qbObject)
 qb.demo()
@@ -22,6 +24,10 @@ qb.reorder(qbObject)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
+  \item{adjust.covar}{Adjustments to covariates. Default is
+    \code{NA}, which adjusts by covariate mean values. Values are
+    assumed to be in order of fixed covariates.}
+  \item{verbose}{Verbose mode if \code{TRUE}.}
   \item{cross}{Object of class \code{cross} (see \code{\link[qtl]{read.cross}}).}
   \item{offset}{Offset by first marker if \code{TRUE}.}
   \item{spacing}{Add columns for \code{map}, \code{eq.spacing} and
@@ -53,6 +59,9 @@ qb.reorder(qbObject)
   currently \code{qbObject} refers to objects that are critical to it
   but not part of it: the \code{cross} object used to create it and the
   MCMC samples in files in \code{output.dir}.
+
+  \code{covar.mean} finds covariate means or adjusts them to
+  user-supplied values.
   
   \code{pull.grid} pulls the grid of pseudomarkers from the \code{cross}
   object associated with \code{qbObject}. The option \code{spacing}
@@ -80,6 +89,7 @@ qb.load(cross, qbExample)
 
 
 }
+covar.mean(qbExample)
 qb.get(qbExample, "output.dir")
 summary(qb.cross(qbExample))
 temp <- qb.get(qbExample, "iterdiag")

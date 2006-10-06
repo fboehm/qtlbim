@@ -25,10 +25,26 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
                          n.ind = 400, type = c("f2","bc"), missing.geno = 0.0,
                          missing.pheno = 0.0, ordinal = c(0.5,0.5),
                          qtl.pos = NULL, qtl.main = NULL, qtl.epis = NULL,
-                         covariate = NULL, gbye = NULL ) 
+                         covariate = NULL, gbye = NULL,seed=NULL ) 
 {  
     type <- type[1]
- 
+
+    if(!is.null(seed)) set.seed(seed)
+
+    if(!is.null(qtl.pos)){
+    	if(is.vector(qtl.pos)) qtl.pos = t(as.matrix(qtl.pos))
+    	if(ncol(qtl.pos)!=2) stop("qtl.pos should be a matrix with 2 columns")
+    }
+    if(!is.null(gbye)){
+    	if(is.vector(gbye)) gbye = t(as.matrix(gbye))
+    }
+    if(!is.null(qtl.main)){
+	if(is.vector(qtl.main)) qtl.main = t(as.matrix(qtl.main))
+    }
+    if(!is.null(qtl.epis)){
+    	if(is.vector(qtl.epis)) qtl.epis = t(as.matrix(qtl.epis))
+    }
+
 # generate marker map
 
     if(length(len) != length(n.mar) && length(len) != 1 && length(n.mar) != 1) 

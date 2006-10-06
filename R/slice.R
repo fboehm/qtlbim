@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: slice.R,v 1.12.2.7 2006/09/29 20:14:32 byandell Exp $
+## $Id: slice.R,v 1.12.2.8 2006/10/06 15:17:25 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -20,14 +20,15 @@
 ##
 ##############################################################################
 qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
-                      scan = c("main", "GxE", "epistasis"),
-                      type = types,
-                      covar = if(nfixcov) seq(nfixcov) else 0,
-                      chr = NULL,
-                      sum.scan = "yes",
-                      min.iter = 1,
-                      aggregate = TRUE,
-                      verbose = FALSE)
+                        scan = c("main", "GxE", "epistasis"),
+                        type = types,
+                        covar = if(nfixcov) seq(nfixcov) else 0,
+                        adjust.covar = NA,
+                        chr = NULL,
+                        sum.scan = "yes",
+                        min.iter = 1,
+                        aggregate = TRUE,
+                        verbose = FALSE)
 {
   ## 1-D slice through 2-D surface.
 
@@ -118,7 +119,9 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
-  nind.pheno <- sum(!is.na(cross$pheno[[qb.get(qbObject, "pheno.col")]]))
+  nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
+
+  ## Genotype names.
   geno.names <- names(cross$geno)
 
   ## Following prior used for Bayes factors.
@@ -145,7 +148,8 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
     totvar <- rep(0, length(levels(inter)))
   if(nfixcov) {
     ## Covariate means.
-    covar.means <- covar.mean(qbObject, verbose = verbose & (type == "estimate"))
+    covar.means <- covar.mean(qbObject, adjust.covar,
+                              verbose = verbose & (type == "estimate"))
     ## Explained covariance for heritability.
     if(type == "heritability") {
       tmp <- apply(qb.varcomp(qbObject, c("fixcov","rancov")), 1, sum)
@@ -340,10 +344,10 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
                 }
               }
               
-              if(type == "estimate") {
+              if(type == "estimate" | type == "cellmean") {
                 ## Offset parameter estimate by covariates.
                 if(covar.means[j] != 0)
-                main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
+                  main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
               }
             }
             if(is.count & any(scan.save == "GxE")) {
@@ -731,7 +735,7 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
     if(is.profile) {
       ## Slice of objective function.
       ii <- paste("obj", i, sep = "")
-      plot(x[[ii]], scan = "epistasis", smooth=3,
+      plot(x[[ii]], scan = "epistasis",
            main = paste(attr(x[[ii]], "method"),
              "\n\nchr", chr[i], "by", chr[3-i]))
       abline(v = pos[i], lty = 2, col = "red")
@@ -739,7 +743,7 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
     if(is.effects) {
       ## Slice of Cockerham parameter estimates.
       ii <- paste("est", i, sep = "")
-      plot(x[[ii]], scan = "epistasis", smooth=3,
+      plot(x[[ii]], scan = "epistasis",
            main = paste(attr(x[[ii]], "method"),
              "\n\nchr", chr[i], "by", chr[3-i]))
       abline(v = pos[i], lty = 2, col = "red")
@@ -748,15 +752,16 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
       ## Slice of Cell means.
       ii <- paste("mean", i, sep = "")
       if(is.bc) {
-        plot(x[[ii]], smooth=3, scan=scans[c(1,i+1,4-i,4)],
-             col=cols[c(1,i+1,4-i,4)],
+        plot(x[[ii]], scan = scans[c(1,i+1,4-i,4)],
+             col = cols[c(1,i+1,4-i,4)],
              main = paste(attr(x[[ii]], "method"),
                "\n\nchr", chr[i], "by", chr[3-i]))
         abline(v = pos[i], lty = 2, col = "red")
       }
       else {
         for(j in c("A","H","B")) {
-          plot(x[[ii]], smooth=3, scan=scans[[j]], col=cols,
+          plot(x[[ii]],
+               scan = scans[[j]], col = cols,
                main = paste(attr(x[[ii]], "method"),
                  "\n\nchr", chr[i], "by", chr[3-i]))
           abline(v = pos[i], lty = 2, col = "red")

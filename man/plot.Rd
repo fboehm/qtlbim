@@ -43,8 +43,6 @@ summary.qb(object, cutoff = 1, \dots)
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-  example(qb.mcmc)
-
 }
 plot(qbExample)
 summary(qbExample)

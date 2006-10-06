@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.R,v 1.16.2.7 2006/10/02 19:18:53 byandell Exp $
+## $Id: qb.R,v 1.16.2.8 2006/10/06 15:17:25 byandell Exp $
 ##
 ##     Copyright (C) 2002 Brian S. Yandell
 ##
@@ -281,8 +281,11 @@ plot.qb <- function(x, ask = dev.interactive(), verbose = TRUE, ...)
   plot(tmp, ...)
   
   cat("\nJittered plot of quantitative trait loci by chromosome...\n")
-  plot(qb.loci(x))
-
+  tmp <- qb.loci(x, ...)
+  if(verbose)
+    print(summary(tmp, ...))
+  plot(tmp, ...)
+  
   cat("\nBayes Factor selection plots...\n")
   tmp <- qb.BayesFactor(x, ...)
   if(verbose)
@@ -333,27 +336,73 @@ qb.smooth <- function(x, y)
   smo  
 }
 ##############################################################################
-qb.loci <- function(qbObject, ...)
+qb.loci <- function(qbObject, loci = c("main", "epistasis", "GxE"),
+                    covar = get.covar, ...)
 {
-  mainloci <- qb.get(qbObject, "mainloci")
-  if(0 == nrow(mainloci)) {
-    stop("no mcmc samples")
+  locis <- c("all", "main", "epistasis", "GxE")
+  loci <- locis[pmatch(tolower(loci), tolower(locis), nomatch = 1)]
+  loci <- unique(loci)
+
+  elements <- c("mainloci", "mainloci", "pairloci", "gbye")
+  names(elements) <- locis
+
+  out.list <- list()
+  for(element in loci) {
+    out <- qb.get(qbObject, elements[element])
+    if(is.null(out))
+      break
+    if(0 == nrow(out))
+      break
+    switch(element,
+           all = {
+             out.list[[element]] <- out[, c("chrom", "locus")]
+           },
+           main = {
+             tmp <- apply(as.matrix(out[, grep("^var", names(out))]), 1, sum) > 0
+             if(sum(tmp) > 0)
+               out.list[[element]] <- out[tmp, c("chrom", "locus")]
+           },
+           epistasis = {
+             ## Could get fancy here or in plot.qb.loci
+           ## by coloring most frequent pairs (using qb.pair.posterior).
+             tmp <- names(out)
+             find.chrom <- grep("chrom", tmp)
+             find.locus <- grep("locus", tmp)
+             out.list[[element]] <- data.frame(chrom = c(t(out[, find.chrom])),
+                                               locus = c(t(out[, find.locus])))
+           },
+           GxE = {
+             ## Could add covar option to subset.
+             get.covar <- qb.get(qbObject,
+                                 "nfixcov")[as.logical(qb.get(qbObject,
+                                                              "intcov"))]
+             tmp <- !is.na(match(out$covar, covar))
+             if(sum(tmp) > 0) {
+               out <- out[tmp, c("chrom", "locus")]
+               if(sum(tmp) == 1)
+                 out <- data.frame(chrom = out[1], locus = out[2])
+               out.list[[element]] <- out
+             }
+           })
   }
-  
+  class(out.list) <- c("qb.loci", "list")
+  attr(out.list, "map") <- pull.map(qb.cross(qbObject))
+
   ## get mean spacing between grid points
   grid <- diff(pull.grid(qbObject)$pos)
   grid <- mean(grid[grid > 0])
+  attr(out.list, "grid") <- grid
   
-  mainloci <- mainloci[, c("chrom", "locus")]
-  class(mainloci) <- c("qb.loci", "data.frame")
-  attr(mainloci, "map") <- pull.map(qb.cross(qbObject))
-  attr(mainloci, "grid") <- grid
-  attr(mainloci, "cex") <- qb.cex(qbObject)
-  mainloci
+  attr(out.list, "n.iter") <- qb.get(qbObject, "n.iter")
+  attr(out.list, "cex") <- qb.cex(qbObject)
+  out.list
 }
 ##############################################################################
-plot.qb.loci <- function(x, labels = FALSE, amount = .35,
-                          cex = attr(x, "cex"), ...)
+plot.qb.loci <- function(x, loci = names(x), labels = FALSE, amount = .35,
+                         cex = attr(x, "cex"),
+                         col = c(all = "gray50", main = "blue", epistasis = "purple",
+                           GxE = "darkred", marker = "green"),
+                         ...)
 {
   amount <- pmax(0, pmin(0.45, amount))
   amount <- array(amount, 2)
@@ -361,29 +410,50 @@ plot.qb.loci <- function(x, labels = FALSE, amount = .35,
   map <- attr(x, "map")
   nmap <- names(map)
 
+  if(is.null(names(col))) {
+    col <- array(col, length(loci))
+    names(col) <- loci
+  }
+  if(is.na(match("marker", names(col))))
+    col <- c(col, marker = "green")
+
   ## Jittered plot of sampled loci.
-  jlocus <- jitter(x$locus, , amount[2] * attr(x, "grid"))
-  uchrom <- sort(unique(x$chrom))
+  rlocus <- range(unlist(lapply(x, function(x) range(x$locus)))) +
+    c(-1,1) * amount[2] * attr(x, "grid")
+  uchrom <- sort(unique(unlist(lapply(x, function(x) unique(x$chrom)))))
   nchrom <- length(uchrom)
   ochrom <- rep(0, max(uchrom))
   ochrom[uchrom] <- seq(nchrom)
-  plot(c(1,nchrom) + c(-.5,.5), range(0,jlocus),
+  plot(c(1,nchrom) + c(-.5,.5), range(0,rlocus),
        type = "n", xaxt = "n", xlab = "", ylab = "", ...)
   axis(1, seq(nchrom), nmap[uchrom])
   mtext("chromosome", 1, 2)
+  mtext(paste(loci, col[loci], sep = "=", collapse = ", "), 1, 3)
   mtext("MCMC sampled loci", 2, 2)
   cxy <- par("cxy")[2] / 4
 
-  ## Add blue lines for markers (and names if markers = TRUE).
+  ## Add lines for markers (and names if markers = TRUE).
   for(i in seq(nchrom)) {
     ii <- uchrom[i]
     tmp <- map[[nmap[ii]]]
     for(j in tmp)
-      lines(i + c(-.475,.475), rep(j, 2), col = "blue",
+      lines(i + c(-.475,.475), rep(j, 2), col = col["marker"],
             lwd = 2)
   }
-  points(jitter(ochrom[x$chrom], , amount[1]), jlocus, cex = cex,
-         col = "gray50")
+
+  ## Jitter points vertically and horizontally.
+  ## Side by side columns for loci at each chr.
+  nloci <- length(loci)
+  for(i in seq(nloci)) {
+    points(jitter(ochrom[x[[loci[i]]]$chrom] +
+                  (2 * i - nloci - 1) * amount[1] / nloci,
+                  , amount[1] / nloci),
+           jitter(x[[loci[i]]]$locus, , amount[2] * attr(x, "grid")),
+           cex = cex,
+           col = col[loci[i]])
+  }
+  ## Could add points from other loci elements here?
+  ## But it may be too busy.
 
   ## Add marker names if markers = TRUE.
   if(labels) 
@@ -391,10 +461,31 @@ plot.qb.loci <- function(x, labels = FALSE, amount = .35,
       ii <- uchrom[i]
       tmp <- map[[nmap[ii]]]
       text(rep(i-.5, length(tmp)), cxy + tmp, names(tmp),
-           adj = 0, cex = 0.5, col = "blue")
+           adj = 0, cex = 0.5, col = col["marker"])
     }
   invisible()
 }
+##############################################################################
+summary.qb.loci <- function(object, digit = 1, ...)
+{
+  n.iter <- attr(object, "n.iter")
+  nmap <- names(attr(object, "map"))
+  lapply(object,
+         function(object, digit) {
+           tmp <- round(t(sapply(tapply(object$locus, nmap[object$chrom],
+                                        function(x) {
+                                          c(n.qtl = length(x) / n.iter,
+                                            quantile(x, c(.25,.5,.75)))
+                                        }),
+                                 c)),
+                        digit)
+           tmp <- tmp[order(-tmp[, "n.qtl"]), ]
+           tmp <- tmp[tmp[, "n.qtl"] > 0 | seq(nrow(tmp)) < 3, ]
+         }, 
+         digit)
+}
+##############################################################################
+print.qb.loci <- function(x, ...) print(summary(x, ...))
 ##############################################################################
 qb.numqtl <- function(qb)
 {
