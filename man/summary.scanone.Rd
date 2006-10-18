@@ -6,11 +6,13 @@
 Summary of a qb.scanone object.
 }
 \usage{
-summary.qb.scanone(object, chr, threshold = 0, sort = "no", digits = 3,
-  smooth = 3, n.qtl = 0.05, min.iter, verbose = FALSE, \dots)
-summary.qb.scantwo(object, chr, threshold = 0, sort = "no", digits = 3,
-  which.pos = "upper", min.iter, refine = FALSE, width = 10,
-  smooth = 3, n.qtl = 0.05, verbose = FALSE, \dots)
+\method{summary}{qb.scanone}(object, chr, threshold = 0,
+  sort = "no", digits = 3, smooth = 3, n.qtl = 0.05,
+  min.iter, verbose = FALSE, \dots)
+\method{summary}{qb.scantwo}(object, chr, threshold = 0,
+  sort = "no", digits = 3, which.pos = "upper", min.iter,
+  refine = FALSE, width = 10, smooth = 3, n.qtl = 0.05,
+  verbose = FALSE, \dots)
 }
 
 \arguments{

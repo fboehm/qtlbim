@@ -10,10 +10,9 @@ to reveal the nature of epistasis.
 }
 \usage{
 qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
-## S3 methods.
-summary.qb.slicetwo(object, \dots)
-print.qb.slicetwo(x, \dots)
-plot.qb.slicetwo(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
+\method{summary}{qb.slicetwo}(object, \dots)
+\method{print}{qb.slicetwo}(x, \dots)
+\method{plot}{qb.slicetwo}(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

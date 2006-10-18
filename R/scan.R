@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: scan.R,v 1.11.2.5 2006/10/06 15:17:25 byandell Exp $
+## $Id: scan.R,v 1.11.2.6 2006/10/18 16:13:46 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -1131,7 +1131,7 @@ plot.qb.scanone <- function(x,
 
   ## Set up xout with scanone object attributes.
   xout <- grid
-  xout$chr <- factor(geno.names[xout$chr])
+  xout$chr <- ordered(geno.names[xout$chr], geno.names)
   class(xout) <- c("scanone", "data.frame")
   attr(xout, "method") <- type
   attr(xout, "type") <- attr(x, "type")
@@ -2301,7 +2301,7 @@ plot.qb.scantwo <- function(x,
     }
     
     ## Plot scantwo object.
-    x2$map$chr <- factor(geno.names[x2$map$chr])
+    x2$map$chr <- ordered(geno.names[x2$map$chr], geno.names)
     plot(x2, lower = lower, nodiag = nodiag, main = main,
          incl.markers = TRUE, ...)
     if(verbose)
@@ -2316,7 +2316,7 @@ plot.qb.scantwo <- function(x,
       tmpar <- par(mfrow=c(2,1), mar=c(2.1,4.1,0.1,0.1))
       on.exit(par(tmpar))
     }
-    grid$chr <- factor(geno.names[grid$chr])
+    grid$chr <- ordered(geno.names[grid$chr], geno.names)
     plot(grid, ylim = range(grid[[3]], na.rm = TRUE), ...)
     abline(h = 0, lty = 3, lwd = 2, col = "red")
     if(var(grid[[4]]) > 0 & show.locus) {

@@ -10,7 +10,7 @@ qtl model fits.
 \usage{
 step.fitqtl(cross, qtl, pheno.col = 1, arch, cutoff = 0.05,
   trace = 1, steps = 100)
-anova.step.fitqtl(object, object2, \dots)
+\method{anova}{step.fitqtl}(object, object2, \dots)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

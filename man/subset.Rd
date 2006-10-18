@@ -6,7 +6,7 @@ Subset Bayesian interval mapping iterations on number of QTL and/or
 chromosome pattern of QTL, using exact match or inclusive subsetting.
 }
 \usage{
-subset.qb(x, nqtl=1, pattern=NULL, exact=FALSE, chr,
+\method{subset}{qb}(x, nqtl=1, pattern=NULL, exact=FALSE, chr,
   region, offset = TRUE, restrict.pair = TRUE, \dots)
 }
 \arguments{

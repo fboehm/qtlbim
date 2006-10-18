@@ -10,10 +10,9 @@ samples for a chromosome.
 }
 \usage{
 qb.multloci(qbObject, chr)
-## S3 methods.
-plot.qb.multloci(x, amount = 0.75, cex, \dots )
-print.qb.multloci(x, \dots )
-summary.qb.multloci(object, \dots )
+\method{plot}{qb.multloci}(x, amount = 0.75, cex, \dots )
+\method{print}{qb.multloci}(x, \dots )
+\method{summary}{qb.multloci}(object, \dots )
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

@@ -9,8 +9,7 @@ samples. It is not enough to remove the R object.
 \usage{
 qb.remove(qbObject, verbose = TRUE)
 qb.recover(cross, traitName, output.dir, n.thin = 40, n.burnin,
-  algorithm = "M-H", genoupdate = FALSE, ...)
-
+  algorithm = "M-H", genoupdate = FALSE, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb} (see \code{\link{qb.mcmc}}).}

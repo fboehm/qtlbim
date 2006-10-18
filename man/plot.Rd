@@ -8,9 +8,9 @@
   providing graphical model assessment tools.
 }
 \usage{
-plot.qb(x, ask = dev.interactive(), verbose = TRUE, \dots)
-print.qb(x, \dots)
-summary.qb(object, cutoff = 1, \dots)
+\method{plot}{qb}(x, ask = dev.interactive(), verbose = TRUE, \dots)
+\method{print}{qb}(x, \dots)
+\method{summary}{qb}(object, cutoff = 1, \dots)
 }
 \arguments{
   \item{x}{An object of class \code{qb}.}

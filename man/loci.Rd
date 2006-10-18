@@ -11,10 +11,9 @@ Separate colored vertical bands by loci element.
 }
 \usage{
 qb.loci(qbObject, loci = c("main", "epistasis", "GxE"), covar, \dots)
-## S3 methods.
-plot.qb.loci(x, loci, labels = FALSE, amount = 0.35, cex, col, \dots)
-print.qb.loci(x, \dots)
-summary.qb.loci(object, digit = 1, \dots)
+\method{plot}{qb.loci}(x, loci, labels = FALSE, amount = 0.35, cex, col, \dots)
+\method{print}{qb.loci}(x, \dots)
+\method{summary}{qb.loci}(object, digit = 1, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

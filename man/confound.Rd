@@ -8,7 +8,7 @@ routines examine the pattern of confounding.
 }
 \usage{
 qb.confound(qbObject, covar = 1)
-plot.qb.confound(x, ylim, main, ...)
+\method{plot}{qb.confound}(x, ylim, main, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

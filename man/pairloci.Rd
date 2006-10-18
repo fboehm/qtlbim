@@ -10,10 +10,9 @@ epistatic pairs for selected chromosomes.
 }
 \usage{
 qb.pairloci(qbObject, chr)
-## S3 methods.
-plot.qb.pairloci(x, main, cex = 0.75, \dots )
-print.qb.pairloci(x, \dots )
-summary.qb.pairloci(object, \dots )
+\method{plot}{qb.pairloci}(x, main, cex = 0.75, \dots )
+\method{print}{qb.pairloci}(x, \dots )
+\method{summary}{qb.pairloci}(object, \dots )
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

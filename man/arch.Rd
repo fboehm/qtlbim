@@ -16,8 +16,8 @@ QTL from MCMC samples.
 qb.arch(object, \dots)
 qb.arch.default(object, chr, pos, tolerance = 10, \dots)
 qb.arch.step.fitqtl(object, main, epistasis, \dots)
-summary.qb.arch(object, \dots)
-print.qb.arch(x, \dots)
+\method{summary}{qb.arch}(object, \dots)
+\method{print}{qb.arch}(x, \dots)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

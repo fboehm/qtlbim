@@ -10,9 +10,9 @@ Determine HPD region across genome, including position of posterior mode.
 \usage{
 qb.hpdone(qbObject, level = 0.5, profile = "2logBF",
   effects = "cellmean", scan = "sum", chr, smooth = 3, \dots)
-summary.qb.hpdone(object, chr, digits = 3, \dots)
-print.qb.hpdone(x, \dots)
-plot.qb.hpdone(x, chr, smooth = 3, \dots)
+\method{summary}{qb.hpdone}(object, chr, digits = 3, \dots)
+\method{print}{qb.hpdone}(x, \dots)
+\method{plot}{qb.hpdone}(x, chr, smooth = 3, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

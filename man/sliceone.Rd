@@ -13,9 +13,9 @@ Generic summary and plot can be used for display.
 qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type, covar,
   adjust.covar, chr, sum.scan = "yes", min.iter = 1,
   aggregate = TRUE, verbose = FALSE)
-summary.qb.sliceone(object, chr, \dots)
-print.qb.sliceone(x, \dots)
-plot.qb.sliceone(x, \dots, scan, auto.par = TRUE)
+\method{summary}{qb.sliceone}(object, chr, \dots)
+\method{print}{qb.sliceone}(x, \dots)
+\method{plot}{qb.sliceone}(x, \dots, scan, auto.par = TRUE)
 }
 \arguments{
   \item{qbObject}{An object of class \code{qb}.}

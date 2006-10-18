@@ -10,9 +10,9 @@ of data center and importance of covariates.
 }
 \usage{
 qb.meancomp(qbObject, adjust.covar)
-summary.qb.meancomp(object, percent = 5, ...)
-print.qb.meancomp(x, ...)
-plot.qb.meancomp(x, covar, percent = 5, cex, ...)
+\method{summary}{qb.meancomp}(object, percent = 5, \dots)
+\method{print}{qb.meancomp}(x, \dots)
+\method{plot}{qb.meancomp}(x, covar, percent = 5, cex, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
@@ -25,7 +25,7 @@ plot.qb.meancomp(x, covar, percent = 5, cex, ...)
   \item{covar}{Sequence of covariate identifiers for plot.}
   \item{cex}{Character expansion for plot symbols. Default shrinks with
     number of MCMC iterations.}
-  \item{...}{Extra parameters passed along.}
+  \item{\dots}{Extra parameters passed along.}
 }
 \details{
 Grand mean is adjusted to mean level of covariates. Diagonal of

@@ -6,9 +6,9 @@
 Plot or print marginal diagnostics of effects from a qb.scanone object.
 }
 \usage{
-print.qb.scanone(x, ...)
-plot.qb.scanone(x, chr, smooth = 3, scan, ylim, scan.name, col, main,
-  verbose = FALSE, ...)
+\method{print}{qb.scanone}(x, \dots)
+\method{plot}{qb.scanone}(x, chr, smooth = 3, scan, ylim,
+  scan.name, col, main, verbose = FALSE, \dots)
 }
 
 \arguments{

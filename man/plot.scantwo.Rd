@@ -6,10 +6,10 @@
 Plots joint LOD for chromosomes on a two dimensional grid.
 }
 \usage{
-print.qb.scantwo(x, ...)
-plot.qb.scantwo(x, chr, smooth = 3, main, offset,
+\method{print}{qb.scantwo}(x, \dots)
+\method{plot}{qb.scantwo}(x, chr, smooth = 3, main, offset,
   lower = "joint", nodiag, slice = NULL,
-  show.locus = TRUE, verbose = FALSE, ...)
+  show.locus = TRUE, verbose = FALSE, \dots)
 }
 
 \arguments{

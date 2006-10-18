@@ -11,9 +11,9 @@ loci. Covariates and GxE may be included.
 }
 \usage{
 qb.varcomp(qbObject, scan, aggregate = TRUE)
-summary.qb.varcomp(object, ...)
-print.qb.varcomp(x, ...)
-plot.qb.varcomp(x, log = TRUE, percent = 5, cex, ...)
+\method{summary}{qb.varcomp}(object, \dots)
+\method{print}{qb.varcomp}(x, \dots)
+\method{plot}{qb.varcomp}(x, log = TRUE, percent = 5, cex, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

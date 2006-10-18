@@ -16,10 +16,9 @@ qb.epistasis(qbObject, effects = c("aa", "ad", "da", "dd"),
   cutoff = 1, maxpair = 5, pairs, \dots)
 qb.intcov(qbObject, covar, effects = c("add","dom"),
   cutoff = 1, nmax = 5, cov.chr, \dots)
-## S3 methods.
-plot.qb.epistasis(x, effects, cex = 0.5, \dots )
-print.qb.epistasis(x, \dots )
-summary.qb.epistasis(object, \dots )
+\method{plot}{qb.epistasis}(x, effects, cex = 0.5, \dots )
+\method{print}{qb.epistasis}(x, \dots )
+\method{summary}{qb.epistasis}(object, \dots )
 }
 \arguments{
   \item{qbObject}{An object of class \code{qb}.}

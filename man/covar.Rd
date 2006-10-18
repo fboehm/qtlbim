@@ -9,9 +9,9 @@ Compare main effects with GxE effects to address correlation of estimates.
 }
 \usage{
 qb.covar(qbObject, element = "add", covar = 1, adjust.covar, chr, \dots)
-summary.qb.covar(object, percent = 5, digits = 3, \dots)
-print.qb.covar(x, \dots)
-plot.qb.covar(x, percent = 5, cex, include.zero = TRUE, \dots)
+\method{summary}{qb.covar}(object, percent = 5, digits = 3, \dots)
+\method{print}{qb.covar}(x, \dots)
+\method{plot}{qb.covar}(x, percent = 5, cex, include.zero = TRUE, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}

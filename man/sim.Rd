@@ -3,17 +3,18 @@
 \alias{qb.sim.cross}
 \alias{summary.qb.sim}
 \title{Simulates QTL related data for an F2 or BC cross.}
-\description{This function is used to simulate genotypic, phenotypic and covariate data for
-              BC and F2 populations. The underlying genetic model is Cockerham's model and
-              data for both continuous (normally distributed only) and ordinal traits 
-              can be generated.}
+\description{This function is used to simulate genotypic, phenotypic and
+  covariate data for BC and F2 populations. The underlying genetic model
+  is Cockerham's model and data for both continuous (normally
+  distributed only) and ordinal traits can be generated.
+}
 \usage{
 qb.sim.cross(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
   n.ind = 400, type = c("f2","bc"), missing.geno = 0.0,
   missing.pheno = 0.0, ordinal = c(0.5,0.5),
   qtl.pos = NULL, qtl.main = NULL, qtl.epis = NULL,
   covariate = NULL, gbye = NULL, seed = NULL )
-summary.qb.sim(object, \dots)
+\method{summary}{qb.sim}(object, \dots)
 } 
 \arguments{
   \item{len}{ defines the length (in cM) of each chromosome and number of

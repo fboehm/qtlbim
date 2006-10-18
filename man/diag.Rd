@@ -11,10 +11,9 @@ as LOD, variance, or heritability.
 }
 \usage{
 qb.diag(qbObject, items= c("mean","envvar","var","herit"), \dots)
-## S3 methods.
-plot.qb.diag(x, \dots )
-print.qb.diag(x, \dots )
-summary.qb.diag(object, digits = 5, \dots )
+\method{plot}{qb.diag}(x, \dots )
+\method{print}{qb.diag}(x, \dots )
+\method{summary}{qb.diag}(object, digits = 5, \dots )
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
