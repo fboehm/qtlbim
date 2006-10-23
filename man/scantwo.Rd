@@ -9,7 +9,7 @@ components, epistatic and non-epistatic variance components.
 }
 \usage{
 qb.scantwo(qbObject, epistasis = TRUE, scan, type,
-  upper.scan = "epistasis", lower.scan = "joint", covar,
+  upper.scan = "epistasis", lower.scan = "full", covar,
   adjust.covar, chr, min.iter = 1, verbose = FALSE)
 }
 \arguments{
@@ -46,17 +46,17 @@ either specify \code{scan} as a list, or profide \code{upper.scan} and
 \code{lower.scan} separately.
 
 The \code{scan} defaults for types other than counts to \code{list(upper =
-"epistasis", lower = "joint")}; you can modify the list \code{scan} or
+"epistasis", lower = "full")}; you can modify the list \code{scan} or
 the separate options \code{upper.scan} and \code{lower.scan}. The string
 "epistasis" is short-hand for the epistatic effects, \code{c("aa", "ad",
-  "da", "dd")}. The string "joint" is shorthand for the epistatics
+  "da", "dd")}. The string "full" is shorthand for the epistatics
 effects plus main effects, \code{c("add", "dom")}, plus any GxE terms.
 
 The \code{type} defaults to \code{c(upper = "LPD", lower =
   "LPD")}. See \code{\link{qb.scanone}} for the range of possible
 types. Mostly the 2-D version of \code{type} provides marginal summaries
 for pairs of loci. However, for type \code{"nqtl"}, the marginal summaries
-involving main effects (e.g. with \code{scan} values \code{"joint"} or
+involving main effects (e.g. with \code{scan} values \code{"full"} or
 \code{"main"} or \code{"add"} or \code{"dom"}) show, for each pair of
 chromosomes, the average number of QTL at both chromosomes.
 }
@@ -69,7 +69,7 @@ chromosomes, the average number of QTL at both chromosomes.
 qb.load(cross, qbExample)
 
 }
-temp <- qb.scantwo(qbExample, chr = c(5,7,10,19))
+temp <- qb.scantwo(qbExample)
 summary(temp)
 plot(temp)
 }

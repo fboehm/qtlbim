@@ -2,7 +2,7 @@ library(qtlbim)
 
 qb.load(cross, qbExample)
 
-x = qb.coda( qbExample, "iterdiag", variables=c(2,3,4,5) )
+x = qb.coda( qbExample, "iterdiag")
 summary(x)
 
 ## ask before plot routines

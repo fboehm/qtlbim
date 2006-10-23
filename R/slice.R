@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: slice.R,v 1.12.2.8 2006/10/06 15:17:25 byandell Exp $
+## $Id: slice.R,v 1.12.2.9 2006/10/23 17:00:37 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -496,19 +496,10 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
       }
     }
     else if(is.lod) {
-      ## Number of parameters in QTL model averaged over MCMC runs.
-      ## Not correct for covariates yet!
-      npar <- rep(0, nrow(iterdiag))
-      tmp <- apply(as.matrix(mainloci[ ,var1]), 1, function(x) sum(x > 0))
-      tmp <- tapply(tmp, mainloci$niter, sum)
-      npar[iterdiag.nqtl > 0] <- tmp
-      if(epistasis) {
-        tmp <- apply(as.matrix(pairloci[ ,var2]), 1, function(x) sum(x > 0))
-        tmp <- tapply(tmp, pairloci$niter, sum)
-        tmp2 <- match(unique(pairloci$niter), iterdiag$niter, nomatch = 0)
-        npar[tmp2] <- npar[tmp2] + tmp
-      }
-      
+      ## Number of model parameters.
+      npar <- qb.npar(var1, var2, nfixcov, nrancov, intcov, iterdiag.nqtl,
+                      iterdiag, mainloci, gbye, pairloci)
+
       ## Residual sum of squares (RSS) averaged over MCMC runs.
       tmp <- (nind.pheno - npar - 1) * iterdiag$envvar
       rss <- unlist(tapply(tmp[match(mainloci$niter, 

@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.plot.tour.R,v 1.5.2.4 2006/09/07 01:55:21 byandell Exp $
+## $Id: qb.plot.tour.R,v 1.5.2.5 2006/10/23 17:11:54 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -41,12 +41,9 @@ on.exit({
 ## now get a series of plots after prompts
 plot(qbExample)
 
-## limiting attention to patterns with QTL on Chr 1,3,5,12.
-qbsub <- subset(qbExample, pattern = c(1,3,5,12), chr = c(1,3,5,12))
-
 ## Model selection via Bayes factor.
-plot(qb.BayesFactor(qbsub))
+plot(qb.BayesFactor(qbExample))
 
 ## Show effects and HPD region.
-plot(qb.hpdone(qbsub))
+plot(qb.hpdone(qbExample))
 

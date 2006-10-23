@@ -39,7 +39,7 @@ qb.load(cross, qbExample)
 
 
 }
-temp <- qb.slicetwo(qbExample, chr = c(5,7), pos = c(15,15))
+temp <- qb.slicetwo(qbExample, chr = c(1,2), pos = c(45,12))
 summary(temp)
 plot(temp)
 }

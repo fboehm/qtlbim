@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.covar.tour.R,v 1.3.2.5 2006/10/06 15:42:45 byandell Exp $
+## $Id: qb.covar.tour.R,v 1.3.2.6 2006/10/23 17:11:54 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -48,41 +48,38 @@ tmp <- qb.meancomp(qbExample)
 summary(tmp)
 plot(tmp)
 
-if(!exists("qbsub"))
-  qbsub <- subset(qbExample, pattern = c(1,3,5,12), chr = c(1,3,5,12))
-
 ## Show main effects vs. GxE effect estimates.
 ## Default for covar is first covariate.
-tmp <- qb.covar(qbsub)
+tmp <- qb.covar(qbExample)
 plot(tmp)
 summary(tmp)
-plot(qb.covar(qbsub, element = "dom"))
+plot(qb.covar(qbExample, element = "dom"))
 
 ## Show correlation of covariate with markers.
 ## Default for covar is first covariate.
-tmp <- qb.confound(qbsub)
+tmp <- qb.confound(qbExample)
 summary(tmp)
 plot(tmp)
 
 ## Variance components, including random covariate.
-tmp <- qb.varcomp(qbsub)
+tmp <- qb.varcomp(qbExample)
 summary(tmp)
 plot(tmp)
 
 ## Effects for interacting covariates.
-tmp <- qb.intcov(qbsub)
+tmp <- qb.intcov(qbExample)
 summary(tmp)
 plot(tmp)
 
 ## Cell mean scan for interacting covariates.
 tmpar <- par(mfrow=c(3,1))
-tmp <- qb.scanone(qbsub, type = "cellmean")
+tmp <- qb.scanone(qbExample, type = "cellmean")
 plot(tmp)
 abline(v=35,lty=2)
-tmp <- qb.scanone(qbsub, type = "cellmean", adjust.covar = 1)
+tmp <- qb.scanone(qbExample, type = "cellmean", adjust.covar = 1)
 plot(tmp)
 abline(v=35,lty=2)
-tmp <- qb.scanone(qbsub, type = "cellmean", adjust.covar = 1)
+tmp <- qb.scanone(qbExample, type = "cellmean", adjust.covar = 1)
 plot(tmp)
 abline(v=35,lty=2)
 par(tmpar)

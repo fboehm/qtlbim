@@ -1,6 +1,9 @@
+R/qtlbim package (http://www.ssg.uab.edu/qtlbim)
 1.04-x	Internal version; conversion from R/bim to R/qtlbim
 1.05-x	Beta release.
 1.6.0	Fix C code for Mac OSX; improved chromosome name handling.
 1.6.1	Fix examples; improved covariate graphics.
 1.6.2	Fix generic method use in example pages;
 	fix chromosome name handling.
+1.6.3	Shorten examples; fix degrees of freedom and LPD in scan;
+	upgrade to R/qtl 1.04.

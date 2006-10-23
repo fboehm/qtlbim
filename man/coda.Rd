@@ -6,8 +6,7 @@ This function creates an object of class \code{\link[coda]{mcmc}} from
 an object of class \code{qb} produced by the package \code{R/qb}.
 }
 \usage{
-qb.coda( object, element,
-  variables = c("nqtl","mean","envvar","var"))                            
+qb.coda( object, element, variables)                            
 }
 
 \arguments{
@@ -46,7 +45,7 @@ temp <- qb.coda(qbExample)
 plot(temp)
 
 ## Summaries for some "mainloci" elements.
-temp <- qb.coda(qbExample, "mainloci", c("chrom","locus","add","dom"))
+temp <- qb.coda(qbExample, "mainloci")
 plot(temp)
 }
 \keyword{manip}

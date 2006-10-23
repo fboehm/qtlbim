@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.scan.tour.R,v 1.2.2.4 2006/09/07 01:55:21 byandell Exp $
+## $Id: qb.scan.tour.R,v 1.2.2.5 2006/10/23 17:11:54 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -25,61 +25,36 @@ library(qtlbim)
 
 qb.load(cross, qbExample)
 
-one <- qb.scanone(qbExample, type = "LOD")
-
+## Conditional contribution to LPD across whole genome.
+one <- qb.scanone(qbExample, type = "LPD")
 summary(one)
-sum.one <- summary(one, threshold = c(main = 5, epistasis = 5, GxE = 5),
-                   order = "sum")
-sum.one
-chrs <- as.vector(sum.one[,"chr"])
+plot(one)
 
-## ask before plot routines
-tmpar <- par(ask = dev.interactive())
-on.exit({
-  par(tmpar)
-})
-
-## show conditional contribution to LOD across whole genome
-plot(one, smooth = 3)
-## focus on heritability for 
-plot(one, chr = chrs, smooth = 3)
-## show only main effects LOD
-one <- qb.scanone(qbExample, type = "LOD", aggregate = FALSE)
-plot(one, chr = chrs, scan = "main", smooth = 3,
+## Show only main effects LPD.
+one <- qb.scanone(qbExample, type = "LPD", aggregate = FALSE)
+plot(one, scan = "main",
      col=c(add.fix.cov="turquoise", dom.fix.cov="magenta"))
 
 ## 2-D scan conditional on all other QTL
-two <- qb.scantwo(qbExample, chr = chrs, type = "LOD")
-
-sum.two <- summary(two, threshold = c(upper=5), sort = "upper")
-sum.two
-chr2 <- as.matrix(sum.two[,1:2])
-## nearest neighbor smoothing of order 3
-plot(two, smooth = 3)
-
-plot(two, chr=chr2[1,], smooth = 3)
+two <- qb.scantwo(qbExample, type = "LPD")
+plot(two)
 
 ####################################################3
-## Subset on regions of chromosomes 1,3,5.
+## Subset on regions of chromosomes 1,2.
+qbSubset <- subset(qbExample, chr = c(1,2),
+  region = data.frame(chr = c(1,2), start = c(35,2), end = c(55,22)))
 
-qb2 <- subset(qbExample, chr = chr2[1,],
-               region = data.frame(
-                 chr = chr2[1,],
-                 start = rep(0,2),
-                 end = rep(40,2)))
-
-two <- qb.scantwo(qb2, type = "LOD")
-plot(two, smooth = 3)
+two <- qb.scantwo(qbSubset, type = "LPD")
+plot(two)
 
 ####################################################################
 ## Variance components: add and aa.
-two <- qb.scantwo(qb2, type = "var",
+two <- qb.scantwo(qbSubset, type = "var",
                   scan = list(lower = "add", upper = "aa"))
-plot(two, smooth = 3)
+plot(two)
 ## Heritability: main and ad.
-two <- qb.scantwo(qb2, type = "her",
+two <- qb.scantwo(qbSubset, type = "her",
                   scan = list(lower = "main", upper = "ad"))
-plot(two, smooth = 3)
+plot(two)
 
-plot(qb.scanone(qbExample, chr = chrs, type = "detect"),
-     smooth = 3)
+plot(qb.scanone(qbExample, chr = chrs, type = "detect"))

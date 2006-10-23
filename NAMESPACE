@@ -130,10 +130,12 @@ S3method(summary, qb.pairloci)
 S3method(plot, qb.scanone)        
 S3method(print, qb.scanone)
 S3method(summary, qb.scanone)     
+S3method(print, summary.qb.scanone)        
 
 S3method(plot, qb.scantwo)
 S3method(print, qb.scantwo)        
 S3method(summary, qb.scantwo)
+S3method(print, summary.qb.scantwo)        
 
 S3method(plot, qb.sliceone)
 S3method(print, qb.sliceone)

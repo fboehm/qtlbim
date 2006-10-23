@@ -7,12 +7,11 @@ Summary of a qb.scanone object.
 }
 \usage{
 \method{summary}{qb.scanone}(object, chr, threshold = 0,
-  sort = "no", digits = 3, smooth = 3, n.qtl = 0.05,
-  min.iter, verbose = FALSE, \dots)
+  sort = "no", smooth = 3, n.qtl = 0.05,
+  min.iter, \dots)
 \method{summary}{qb.scantwo}(object, chr, threshold = 0,
-  sort = "no", digits = 3, which.pos = "upper", min.iter,
-  refine = FALSE, width = 10, smooth = 3, n.qtl = 0.05,
-  verbose = FALSE, \dots)
+  sort = "no", which.pos = "upper", min.iter,
+  refine = FALSE, width = 10, smooth = 3, n.qtl = 0.05, \dots)
 }
 
 \arguments{
@@ -21,7 +20,6 @@ Summary of a qb.scanone object.
   \item{threshold}{Threshold(s) for inclusion in summary (see below).}
   \item{sort}{Sort by selected column of \code{object} ("no" indicates
     sort by \code{chromosome}).}
-  \item{digits}{Significant digits to round summary.}
   \item{which.pos}{Base position estimate on this summary for maximal
     statistics such as \code{LOD}.}
   \item{min.iter}{Minimum number of iterations included at each position
@@ -31,7 +29,6 @@ Summary of a qb.scanone object.
   \item{smooth}{Degree of nearest neighbor smoothing to determine maxima.}
   \item{n.qtl}{Minimum number of estimated QTL per chromosome or
     chromosome pair.}
-  \item{verbose}{Show meta-information if \code{TRUE}.}
   \item{\dots}{Not used.}
 }
 
@@ -63,10 +60,13 @@ example.
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{
-example(qb.scanone)
-summary(temp, threshold = c(sum=5), sort = "sum")
+\dontshow{
+qb.load(cross, qbExample)
+}
+temp <- qb.scanone(qbExample)
+summary(temp, threshold = c(sum=15), sort = "sum")
 
-example(qb.scantwo)
+temp <- qb.scantwo(qbExample)
 summary(temp, threshold = c(upper=3), sort = "upper")
 }
 \keyword{utilities}

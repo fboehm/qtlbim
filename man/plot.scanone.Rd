@@ -1,18 +1,21 @@
 \name{plot.qb.scanone}
 \alias{plot.qb.scanone}
 \alias{print.qb.scanone}
+\alias{print.summary.qb.scanone}
 \title{Plot or print qb.scanone object.}
 \description{
 Plot or print marginal diagnostics of effects from a qb.scanone object.
 }
 \usage{
-\method{print}{qb.scanone}(x, \dots)
+\method{print}{summary.qb.scanone}(x, digits = 3, \dots)
+\method{print}{qb.scanone}(x, digits = 3, \dots)
 \method{plot}{qb.scanone}(x, chr, smooth = 3, scan, ylim,
   scan.name, col, main, verbose = FALSE, \dots)
 }
 
 \arguments{
   \item{x}{An object of class \code{qb.scanone}.}
+  \item{digits}{Significant digits to round with print.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
   \item{smooth}{Perform smoothing if > 0 using weighted average over
     \code{smooth} adjacent points.}

@@ -185,50 +185,8 @@ The following files are saved in \code{output.dir}:
 
 
 \examples{
-## Here is a simple example used in the "scan" vignette.
-
-## Simulation map: 201 markers with 1 cM spacing.
-sim.map <- list(ch1 = 0:200)
-names(sim.map$ch1) <- paste("M", 0:200, sep = "")
-
-## Simulation model: QTL at 100 cM of size 1.R
-sim.model <- rbind(qtl.1=c(chr=1,pos=100,effect=1))
-
-## Set random number seed.
-set.seed(1234)
-## Simulate BC using R/qtl's sim.cross
-sim <- sim.cross(map = sim.map, model = sim.model,
-  n.ind = 100, type = "bc")
-## Set up genotype probabilities.
-sim <- qb.genoprob(sim,step=2)
-
-## Create MCMC samples. Vignette had n.iter = 3000.
-qbSim <- qb.mcmc(sim, epistasis=FALSE, n.iter = 300, seed = 1616)
-
-## Summary of qb object "qbSim".
-summary(qbSim)
-
-## Remove MCMC samples.
-qb.remove(qbSim)
-
-## Remove simulated data.
-remove(sim, sim.model, sim.map)
-
 \dontrun{
-## Here is the example as save in the R/qtlbim package.
-
-## Simulate F2 cross.
-cross <- qb.sim.cross(len = rep(100,20), n.mar = 11, eq.spacing =FALSE,
-  n.ind = 500, type = "f2", ordinal = c(0.3,0.3,0.2,0.2),
-  missing.geno = 0.03, missing.pheno = 0.03,
-  qtl.pos = rbind(qtl.1=c(chr=1,pos=15),qtl.2=c(1,45),qtl.3=c(3,12),
-    qtl.4=c(5,15),qtl.5=c(7,15),qtl.6=c(10,15),qtl.7=c(12,35),qtl.8=c(19,15)),
-  qtl.main = rbind(main.1=c(qtl=1,add=0.5,dom=0),main.2=c(2,0,0.7),
-    main3=c(3,-0.5,0),main4=c(4,0.5,-0.5)),
-  qtl.epis = rbind(epis1=c(qtl.a=4,qtl.b=5,aa=-0.7,ad=0,da=0,dd=0),
-    epis2=c(6,8,0,1.2,0,0)),
-  covariate = c(fix.cov=0.5,ran.cov=0.07),
-  gbye = rbind(GxE.1=c(qtl=7,add=0.8,dom=0)) ) 
+example(qb.sim.cross)
 
 ## Calculate grids and genotypic probabilites.
 cross <- qb.genoprob(cross, step=2)
@@ -236,8 +194,8 @@ cross <- qb.genoprob(cross, step=2)
 ## Create MCMC samples
 ## First line as qb.data options; second line has qb.model options.
 qbExample <- qb.mcmc(cross, pheno.col = 3, rancov = 2, fixcov = 1,
-  chr.nqtl = rep(3,nchr(cross)), prop = c(0.5, 1, 0.5), intcov = 1,
-  n.iter = 3000, n.thin = 10, n.burnin = 1000, genoupdate = FALSE)
+  chr.nqtl = rep(3,nchr(cross)), intcov = 1, interval = rep(10,3),
+  n.iter = 1000, n.thin = 20)
 }
 }
 \keyword{models}

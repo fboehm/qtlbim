@@ -1,26 +1,26 @@
 \name{plot.qb.scantwo}
 \alias{plot.qb.scantwo}
 \alias{print.qb.scantwo}
+\alias{print.summary.qb.scantwo}
 \title{Two dimensional LOD Plot of Epistasis/joint}
 \description{
 Plots joint LOD for chromosomes on a two dimensional grid.
 }
 \usage{
-\method{print}{qb.scantwo}(x, \dots)
+\method{print}{summary.qb.scantwo}(x, digits = 3, \dots)
+\method{print}{qb.scantwo}(x, digits = 3, \dots)
 \method{plot}{qb.scantwo}(x, chr, smooth = 3, main, offset,
-  lower = "joint", nodiag, slice = NULL,
-  show.locus = TRUE, verbose = FALSE, \dots)
+  nodiag, slice = NULL, show.locus = TRUE, verbose = FALSE, \dots)
 }
 
 \arguments{
   \item{x}{An object of class \code{qb.scantwo}.}
+  \item{digits}{Significant digits to round with print.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
   \item{smooth}{Perform smoothing if > 0 using weighted average over
     \code{smooth} adjacent points.}
   \item{main}{Main title.}
   \item{offset}{Offset to make all values non-negative (see below).}
-  \item{lower}{This parameter is passed on to the
-    \code{\link[qtl]{plot.scanone}} function.}
   \item{nodiag}{If \code{TRUE} do not include diagonal in plot.}
   \item{slice}{Take 1-D slice through 2-D surface is not \code{NULL}
     (see below).}
@@ -40,11 +40,12 @@ at 1 and, by default, the min and max are at 0 and 2, respectively, for
 each half of the plot. We need this at this time because
 \code{\link[qtl]{plot.scantwo}} does not allow negative values.
 
-The \code{\link[qtl]{plot.scantwo}} arguments \code{lower} and \code{nodiag}
-are set to ensure values are all shown and not modified by
-\code{\link[qtl]{plot.scantwo}}. The user is free to change them, but the
-plots may be non-sensical. For instance, change to \code{lower =
-  "cond-int"} produces much white area on the image.
+The \code{\link[qtl]{plot.scantwo}} argument \code{nodiag}
+is set to ensure values are all shown and not modified by
+\code{\link[qtl]{plot.scantwo}}. Plots with different values for
+\code{nodiag} or \code{lower} than the defauls may be non-sensical. For
+instance, passing \code{lower = "cond-int"} produces much white area
+on the image.
 
 A non-null \code{slice} yields a 1-D view of the 2-D surface. The plots
 for slices use \code{\link[qtl]{plot.scantwo}}. The elements of the slice

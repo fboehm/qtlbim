@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: mcmc.R,v 1.4.2.3 2006/10/02 19:18:53 byandell Exp $
+## $Id: mcmc.R,v 1.4.2.4 2006/10/16 19:29:14 nyi Exp $
 ##
 ##     Copyright (C) 2006 Nengjun Yi and Tapan Mehta
 ##
@@ -302,7 +302,7 @@ qb.model <- function( cross, epistasis = TRUE,
      	d = diff(range(cross$geno[[i]]$map))/interval[i]   
      	if( d < chr.nqtl[i] ) chr.nqtl[i] = as.integer(d)
      }
-     if(chr.nqtl[i] > length(cross$geno[[1]]$map)) chr.nqtl[i] = length(cross$geno[[1]]$map)  
+     if(chr.nqtl[i] > length(cross$geno[[i]]$map)) chr.nqtl[i] = length(cross$geno[[i]]$map)  
      if(chr.nqtl[i] < 0) chr.nqtl[i] = 0      
   }
   if(max.nqtl > sum(chr.nqtl)) max.nqtl = sum(chr.nqtl)

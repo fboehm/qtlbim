@@ -21,10 +21,19 @@
 
 qb.coda <- function(object,
                     element = c("iterdiag","mainloci","pairloci","covariates","gbye"),
-                    variables = c("nqtl","mean","envvar","var"))                            
+                    variables = variable.list[[element]])
 { 
    require("coda")
-   mcmc(qb.get(object, element[1])[, variables])
+   variable.list <- list(iterdiag = c("nqtl","mean","envvar","var"),
+                         mainloci = c("chrom","add","dom"),
+                         pairloci = c("chrom","aa","ad","da","dd"),
+                         covariates = "cov1",
+                         gbye = c("n.gbye","chrom","add","dom"))
+   element <- match.arg(element)
+   tmp <- qb.get(object, element)
+   variables <- names(tmp)[match(variables, names(tmp), nomatch = 0)]
+   if(length(variables))
+      mcmc(tmp[, variables])
 }
 
 

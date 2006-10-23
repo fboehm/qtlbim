@@ -89,7 +89,7 @@ qb.load(cross, qbExample)
 }
 temp <- qb.scanone(qbExample)
 summary(temp)
-plot(temp, chr = c(1,3,5,7,10,12,19))
+plot(temp)
 }
 \keyword{models}
 \keyword{hplot}

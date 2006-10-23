@@ -57,14 +57,12 @@ main chromosomes and epistatic pairs.
 \examples{
 \dontshow{
 qb.load(cross, qbExample)
-
-
 }
 ## Run qb.scantwo and get summary to use in qb.arch
-temp <- summary(qb.scantwo(qbExample, chr = c(5,7),
-  type = "2logBF"), threshold = c(upper = 3))
+temp <- summary(qb.scantwo(qbExample, type = "2logBF"),
+  threshold = c(upper = 10))
 ## qb.arch default use. 
-cross.arch <- qb.arch(temp, chr = c(1,1,3,5,7), pos = c(15,45,12,15,15))
+cross.arch <- qb.arch(temp, chr = c(1,1,2,3), pos = c(15,45,12,15))
 cross.arch
 }
-\keyword{utilities}% at least one, from doc/KEYWORDS
+\keyword{utilities}

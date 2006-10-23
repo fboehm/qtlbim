@@ -323,7 +323,7 @@ summary(temp)
 <<fig=TRUE,echo=TRUE,height=4,label=Scanone-SimOne>>=
 plot(temp)
 @ 
-\caption{Plot of {\tt qb.scanone} for posteriro of simulated data.  Notice 
+\caption{Plot of {\tt qb.scanone} for posterior of simulated data.  Notice 
 that the overwhelming majority of the posterior is concentrated in the 
 vicinity of marker 100.}
 \end{figure}
@@ -567,7 +567,7 @@ blue (main effects) curve near position five on chromosome one.}
 \subsubsection{Simulating Data with Main Effects \& Epistatic Effects.}
 As a final example of {\tt qb.scantwo} operating on simulated data, we 
 can take a look at data that involves both an epistatic effect and a 
-main effect.  To do with we use the value of {\tt qtl.main.model} above 
+main effect.  We use the value of {\tt qtl.main.model} above, 
 which specifies a main effect and the original value of 
 {\tt qtl.epi.model}.
 \begin{Schunk}

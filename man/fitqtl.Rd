@@ -49,12 +49,10 @@ analysis with \code{\link[qtl]{fitqtl}}. \code{anova.step.fitqtl} is an
 \dontshow{
 if(!exists("cross.arch"))
   example(qb.arch)
-
 }
-cross.sub <- subset(cross, chr = c(1,3,5,7))
-cross.sub <- sim.geno(cross.sub, n.draws = 16, step = 2, error = 0.01)
-qtl <- makeqtl(cross.sub, chr = c(1,1,3,5,7), pos = c(15,45,12,15,15))
-cross.step <- step.fitqtl(cross.sub, qtl, pheno.col = 3, arch = cross.arch)
+cross <- sim.geno(cross, n.draws = 8, step = 2, error = 0.01)
+qtl <- makeqtl(cross, chr = c(1,1,2,3), pos = c(15,45,12,15))
+cross.step <- step.fitqtl(cross, qtl, pheno.col = 3, arch = cross.arch)
 anova(cross.step)
 cross.step$arch
 }

@@ -22,7 +22,7 @@ if(.qb.Package) { ## Called by Sweave directly or in R build.
   .qb.cross <- hyper
   .qb.pheno <- 1
   .qb.niter <- 3000
-  .qb.draws <- 64
+  .qb.draws <- 8
   .qb.scan.type <- "2logBF"
   .qb.hpd.level <- 0.5
   .qb.threshold <- c(upper=2)

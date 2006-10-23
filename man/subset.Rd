@@ -45,14 +45,8 @@ QTL and at least the \code{pattern} across chromosomes. \code{pattern}
 \dontshow{
 qb.load(cross, qbExample)
 }
-## Subset to chr 1,3,5.
-qbSubset <- subset(qbExample, chr = c(1,3,5))
-
-## Subset to chr 1,3,5 but restrict to only pairs with 1,3,5.
-qbSubset <- subset(qbExample, chr = c(1,3,5), restrict.pair = TRUE)
-
-## Subset to chr 1,3,5, and to within 10 cM of QTL on chr 3,5.
-qbSubset <- subset(qbExample, chr = c(1,3,5),
-  region = data.frame(chr = c(3,5), start = c(2,5), end = c(22,25)))
+## Subset to chr 1,2, and to within 10 cM of QTL on chr 1,2.
+qbSubset <- subset(qbExample, chr = c(1,2),
+  region = data.frame(chr = c(1,2), start = c(35,2), end = c(55,22)))
 }
 \keyword{utilities}

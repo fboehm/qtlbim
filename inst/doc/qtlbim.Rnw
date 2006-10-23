@@ -37,6 +37,7 @@ This library R/qtlbim requires R/qtl 1.03.
 
 <<label=LoadQtlBim>>=
 library(qtlbim)
+qb.load(hyper, qbHyper)
 @
 <<echo=FALSE>>=
 # Make width of chunks 60.
@@ -68,68 +69,62 @@ diagnostics. The proper way to remove a \texttt{qb} object created by
 \texttt{qb.mcmc} is to use the \texttt{qb.remove} routine, as
 indicated below. 
 
-This document tries to walk you through the {\tt R/qtlbim} package by
-demonstrating the following major functions.
+This document walks through the {\tt R/qtlbim} package by
+demonstrating the following major functions: creation of Bayesian
+samples from the posterior using MCMC sampling; use of plot and
+summary tools to examine genetic architecture; data management in
+R/qtlbim.
 
-\section{Data Simulation}
 
-R/qtlbim has an inbuilt function {\tt qb.sim.cross} to simulated a
-backcross or F2 data set of class {\tt cross} (see R/qtl help pages
-for details). The following chunk of code generates a data set of
-100 individuals of F2 mating design. These individuals are genotyped
-for 11 not equally spaced markers on 20 chromosomes. There are 7 QTLs,
-two on chromosome 1 and one each on chromosomes 3,5,7,10 and 19. QTL
-numbers 1,3 and 4 have additive main effects of 0.5, -0.5 and 0.5 and
-numbers 2 and 4 have dominant main effects of 0.5 and -0.5. QTL
-numbers 4 and 5 have an additive-additive interaction of -0.7 and
-numbers 6 and 7 have an additive-dominant interaction of 1.2. Two
-covariates, a binary fixed covariate and an ordinal random are
-generated with their corresponding coefficients as 0.5 and 0.07. G x E
-(gene x environemt) interaction is also considered with the fixed
-covariate. A normal phenotype and an ordinal phenotype with 3
-categories are measured. 7\% of the genotypes are randomly missing.
+\section{Hyper Data Demo}
 
-<<label=SimData>>=
-cross <- qb.sim.cross(len=rep(100,20), n.mar=11, eq.spacing=F, n.ind=100, type="f2", 
-                 ordinal=c(0.3,0.3,0.2,0.2), missing.geno=0.03, missing.pheno=0.07,
-                 qtl.pos=rbind(c(1,15),c(1,45),c(3,12),c(5,15),c(7,15),c(10,15),c(12,35),c(19,15)),
-                 qtl.main=rbind(c(1,0.5,0),c(2,0,0.7),c(3,-0.5,0),c(4,0.5,-0.5)),
-                 qtl.epis=rbind(c(4,5,-0.7,0,0,0),c(6,8,0,1.2,0,0)),
-                 covariate=c(0.5,0.07), gbye=rbind(c(7,0.8,0))) 
+This document focuses on the \texttt{hyper} dataset
+from \texttt{R/qtl}. 
+One way to produce a \texttt{qb} object is to run
+the \texttt{hyper} demo by typing
+\begin{Schunk}
+\begin{Sinput}
+demo(qb.hyper.tour)
+\end{Sinput}
+\end{Schunk}
+at the \texttt{R} prompt. 
+Alternatively a \texttt{qb} object 
+can be created by the  following sequence of commands. 
+\begin{Schunk}
+\begin{Sinput}
+# First load the library
+library(qtlbim)
 
-@
+# Now load the hyper data set.
+data(hyper)
 
-By using the function {\tt qb.sim.cross} a list is attached to cross
-object named "qtl".  This list is typically not a part of the {\tt
-cross} object as described in {\tt read.cross} of the R/qtl library
-and is generated only with the {\tt qb.sim.cross()} function.
+# Select just the columns in the hyper data set corresponding to  
+# chromosomes one through 19.  This means that we have dropped
+# the X-chromosome from our analysis, since R/qtlbim does not
+# properly handle X yet.
+hyper = subset(hyper, chr=1:19)
 
-<<>>=
+# Calculate genotype  probabilities.
+hyper = qb.genoprob(hyper, step=2) 
 
-names(cross)
+# Now run the MCMC model selection algorithm. Running this command 
+# may take as much as 15 minutes on slower computers.
+qbHyper = qb.mcmc(hyper, pheno.col = 1, seed = 1616)
+\end{Sinput}
+\end{Schunk}
 
-@
-
-The {\tt cross\$qtl} contains information about the true values
-which can be compared to after the analysis.
-
-<<>>=
-
-summary(cross$qtl)
-
-@
-
-The summary of the cross object summary is shown below.
-
-<<>>=
-summary(cross)
-@
+The comments in the code above describe the meaning of each step in
+the sequence of commands used to produce \texttt{qbHyper}. The option
+\texttt{seed} sets the random number seed so that this run can be
+repeated exactly. The \texttt{demo(qb.hyper.tour)} or the 
+\texttt{qb.mcmc} command above creates a \texttt{qb} object called
+\texttt{qbHyper} that is used throughout this vignette.
 
 \section{Bayesian QTL Mapping}
 
-
-This section describes how to create Markov chain Monte Carlo (MCMC)
-samples from the Bayesian posterior to be used for QTL mapping.
+This section describes in more detail how to create Markov chain Monte
+Carlo (MCMC) samples from the Bayesian posterior to be used for QTL
+mapping.
 
 The function {\tt qb.genoprob} creates a grid of putative QTL
 positions throughout the entire genome and compute the genotypic
@@ -140,16 +135,12 @@ markers but the probability distribution can be inferred from the
 observed marker data using the multipoint method (\textsc{Jiang} and
 \textsc{Zeng} 1997).
 
-<<label=GenoProbSimData>>=
-cross <- qb.genoprob(cross,map.func="Haldane",step=5)
-@
-
 In the simplest case, where defaults in the next subsections are used,
 MCMC samples are created with the following call:
 
 \begin{Schunk}
 \begin{Sinput}
-qbSim <- qb.mcmc(cross, pheno.col = 1)
+qbHyper <- qb.mcmc(hyper, pheno.col = 1)
 \end{Sinput}
 \end{Schunk}
 
@@ -166,14 +157,13 @@ distribution, the random and/or fixed covariates and whether to standardize or t
 use a boxcox transformation. Note that, the cross object can have several phenotypes
 and some of which could be used as covariates.
 
-<<label=QbDataSimData>>=
 
-
-qbData <- qb.data( cross, pheno.col = 3, trait = "normal", rancov = 2, fixcov = 1,
-                   boxcox = F, standardize = F )
-
-
-@
+\begin{Schunk}
+\begin{Sinput}
+qbData <- qb.data(hyper, pheno.col = =, trait = "normal",
+  boxcox = F, standardize = F)
+\end{Sinput}
+\end{Schunk}
 
 \subsection{Defining the model}
 
@@ -221,12 +211,13 @@ rudimentary non-Bayesian analysis. For example, R/qtl can be used to
 analyze this data without epistasis and the number of QTLs detected
 could be used as the prior number of QTLs.
  
-<<label=QbModelSimData>>=
-qbModel <- qb.model( cross, epistasis = TRUE, main.nqtl = 3, 
-                interval = rep(5,nchr(cross)),chr.nqtl = rep(2,nchr(cross)),
-                depen = FALSE, prop = c(0.5, 0.1, 0.05),intcov = 1 )
-
-@
+\begin{Schunk}
+\begin{Sinput}
+qbModel <- qb.model(hyper, epistasis = TRUE, main.nqtl = 3, 
+  interval = rep(5,nchr(cross)), chr.nqtl = rep(2,nchr(cross)),
+  depen = FALSE, prop = c(0.5, 0.1, 0.05))
+\end{Sinput}
+\end{Schunk}
 
 \subsection{Running MCMC}
 
@@ -245,127 +236,21 @@ distribution. The M-H algorithm is a lot faster compared to the Gibbs
 sampler. Here we only produce 5000 samples (= {\tt n.iter * n.thin})
 for illustration purposes.
 
-<<label=QbMCMCSimData>>=
+\subsection{Examining a \texttt{qb} Object}
 
+Please note that the plot and summary routines in this package all use
+the S3 generic method. That is, we create an object with a call to
+\texttt{qb.xxx} and then plot it using the generic \texttt{plot}
+command. Manual pages show the complete set of command and plot
+options.
 
-qbSim <- qb.mcmc(cross, data = qbData, model = qbModel, main.qtl=3,
-                  n.iter=500, n.thin=10, 
-                   algorithm = "M-H", genoupdate = F)
-
-@
-
-\subsection{Examining qb Object}
-
-The \texttt{qbSim} is an object of class \texttt{qb} to which we can
+The \texttt{qbHyper} is an object of class \texttt{qb} to which we can
 apply the generic \texttt{summary} or \texttt{plot} routines. We defer
 plots to later sections. Here we show only the summary:
 
 <<label=SummaryQbMCMC>>=
-summary(qbSim)
+summary(qbHyper)
 @
-
-\subsection{Cleaning Up}
-
-Often we want to keep a \texttt{qb} object around for some time to
-examine various diagnostics. While we might just use the \texttt{R}
-command \texttt{rm} or \texttt{remove} to remove the internal object,
-it is wise to instead use the \texttt{R/qtlbim} command
-\texttt{qb.remove} to remove internal and external files. Recall that
-\texttt{qb.mcmc} creates an external directory with a unique name,
-containing tens of Mb of MCMC samples. The proper way to remove the
-object \texttt{qbSim} is as follows:
-
-<<label=RemoveQb>>=
-qb.remove(qbSim)
-@
-
-It is possible to recover an orphaned external \texttt{qb} directory,
-say if an \texttt{R} session is corrupted or the internal \texttt{qb}
-object is inadvertantly removed. See the manual page on
-\texttt{qb.recover} for further information.
-
-<<echo=FALSE,results=hide,label=InitHyperData>>=
-# Setup
-require(qtlbim)
-
-##################################################### 
-# Make sure that the qbHyper object is in scope.
-# This object is needed for the vignette.  If it
-# isn't in scope, then we can try to reload it from
-# an old file.  If that fails we rerun the basic 
-# analysis for the hyper data.
-#
-# NB:  The reason for using the cached version of
-# the qbHyper object is that building this object
-# takes a considerable amount of time.  Using the
-# cached result means that the vignette can be 
-# modified and recompiled quickly when changes don't
-# involved the qbHyper object itself.  
-#
-# If you wish to recreate the qbHyper object,
-# then simply delete the object and the file
-# "Hyper.RData"
-
-if(!qb.load(hyper, qbHyper)) {
-  data(hyper)
-  ## Exclude X chromosome.
-  hyper = subset(hyper,sapply(hyper$geno,class) != "X")
-
-  hyper = qb.genoprob(hyper, step = 2) 
-
-  qbHyper = qb.mcmc(hyper, pheno.col = 1, mydir = "qtlbimPDF",
-                    genoupdate=TRUE, verbose = FALSE, seed = 1616)
-  save(file = file.path("qtlbimPDF", "Hyper.RData"))
-}
-@ 
-
-\section{Hyper Dataset Demo}
-
-The remainder of this document focuses on the \texttt{hyper} dataset
-from \texttt{R/qtl}.One way to produce a \texttt{qb} object is to run
-the \texttt{hyper} demo by typing
-\begin{Schunk}
-\begin{Sinput}
-demo(qb.hyper.tour)
-\end{Sinput}
-\end{Schunk}
-at the \texttt{R} prompt. 
-Alternatively a \texttt{qb} object 
-can be created by the  following sequence of commands. 
-\begin{Schunk}
-\begin{Sinput}
-# First load the library
-library(qtlbim)
-
-# Now load the hyper data set.
-data(hyper)
-
-# Select just the columns in the hyper data set corresponding to  
-# chromosomes one through 19.  This means that we have dropped
-# the X-chromosome from our analysis.
-hyper = subset(hyper, chr=1:19)
-
-# Calculate genotype  probabilities.
-hyper = qb.genoprob(hyper, step=2) 
-
-# Now run the MCMC model selection algorithm. Running this command 
-# may take as much as 15 minutes on slower computers.
-qbHyper = qb.mcmc(hyper, pheno.col = 1,genoupdate=TRUE, seed = 1616)
-\end{Sinput}
-\end{Schunk}
-
-The comments in the code above describe the meaning of each step in
-the sequence of commands used to produce \texttt{qbHyper}. The option
-\texttt{seed} sets the random number seed so that this run can be
-repeated exactly. The \texttt{demo(qb.hyper.tour)} or the 
-\texttt{qb.mcmc} command above creates a \texttt{qb} object called
-\texttt{qbHyper} that is used throughout this vignette.
-
-Please note that the plotting routines in this package all use the S3
-generic method. That is, we create an object with a call to
-\texttt{qb.xxx} and then plot it using the generic \texttt{plot}
-command. Manual pages show the complete set of command and plot
-options.
 
 \section{Plotting MCMC History}
 The final command above produced the \texttt{qbHyper} object by running the MCMC 
@@ -642,5 +527,84 @@ number of QTL.}
 \label{figPlotQBDIAG}
 \end{figure}
 
+\section{Data Management}
+
+\subsection{Data Simulation}
+
+R/qtlbim has an inbuilt function {\tt qb.sim.cross} to simulated a
+backcross or F2 data set of class {\tt cross} (see R/qtl help pages
+for details). The following chunk of code generates a data set of
+100 individuals of F2 mating design. These individuals are genotyped
+for 11 not equally spaced markers on 20 chromosomes. There are 7 QTLs,
+two on chromosome 1 and one each on chromosomes 3,5,7,10 and 19. QTL
+numbers 1,3 and 4 have additive main effects of 0.5, -0.5 and 0.5 and
+numbers 2 and 4 have dominant main effects of 0.5 and -0.5. QTL
+numbers 4 and 5 have an additive-additive interaction of -0.7 and
+numbers 6 and 7 have an additive-dominant interaction of 1.2. Two
+covariates, a binary fixed covariate and an ordinal random are
+generated with their corresponding coefficients as 0.5 and 0.07. G x E
+(gene x environemt) interaction is also considered with the fixed
+covariate. A normal phenotype and an ordinal phenotype with 3
+categories are measured. 7\% of the genotypes are randomly missing.
+
+<<label=SimData>>=
+cross <- qb.sim.cross(len=rep(100,20), n.mar=11, eq.spacing=F, n.ind=100, type="f2", 
+                 ordinal=c(0.3,0.3,0.2,0.2), missing.geno=0.03, missing.pheno=0.07,
+                 qtl.pos=rbind(c(1,15),c(1,45),c(3,12),c(5,15),c(7,15),c(10,15),c(12,35),c(19,15)),
+                 qtl.main=rbind(c(1,0.5,0),c(2,0,0.7),c(3,-0.5,0),c(4,0.5,-0.5)),
+                 qtl.epis=rbind(c(4,5,-0.7,0,0,0),c(6,8,0,1.2,0,0)),
+                 covariate=c(0.5,0.07), gbye=rbind(c(7,0.8,0))) 
+
+@
+
+By using the function {\tt qb.sim.cross} a list is attached to cross
+object named "qtl".  This list is typically not a part of the {\tt
+cross} object as described in {\tt read.cross} of the R/qtl library
+and is generated only with the {\tt qb.sim.cross()} function.
+
+<<>>=
+
+names(cross)
+
+@
+
+The {\tt cross\$qtl} contains information about the true values
+which can be compared to after the analysis.
+
+<<>>=
+
+summary(cross$qtl)
+
+@
+
+The summary of the cross object summary is shown below.
+
+<<>>=
+summary(cross)
+@
+
+\subsection{Cleaning Up}
+
+Often we want to keep a \texttt{qb} object around for some time to
+examine various diagnostics. While we might just use the \texttt{R}
+command \texttt{rm} or \texttt{remove} to remove the internal object,
+it is wise to instead use the \texttt{R/qtlbim} command
+\texttt{qb.remove} to remove internal and external files. Recall that
+\texttt{qb.mcmc} creates an external directory with a unique name,
+containing tens of Mb of MCMC samples. The proper way to remove the
+object \texttt{qbSim} is as follows:
+
+\begin{Schunk}
+\begin{Sinput}
+qb.remove(qbSim)
+\end{Sinput}
+\end{Schunk}
+
+[If you use \texttt{remove.qb} on qbHyper, you will also remove it
+from your installed library, so be careful!]
+It is possible to recover an orphaned external \texttt{qb} directory,
+say if an \texttt{R} session is corrupted or the internal \texttt{qb}
+object is inadvertantly removed. See the manual page on
+\texttt{qb.recover} for further information.
 
 \end{document}

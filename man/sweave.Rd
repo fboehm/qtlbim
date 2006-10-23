@@ -65,7 +65,7 @@ system("pdflatex hyperslide")
 
 ## Create document form, with extra section.
 qb.sweave(hyper,
-  SweaveFile = system.file("doc", "hyperpaper.Rnw", package = "qtlbim"))
+  SweaveFile = system.file("external", "hyperpaper.Rnw", package = "qtlbim"))
   SweaveExtra = system.file("external", "hyperpaperextra.Rnw",
     package = "qtlbim"))
 system("pdflatex hyperpaper")

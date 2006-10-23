@@ -75,12 +75,12 @@ qb.load(cross, qbExample)
 
 }
 ## Get profile of heritability.
-temp <- qb.sliceone(qbExample, slice = 7)
+temp <- qb.sliceone(qbExample, slice = 1, chr = 2:3)
 summary(temp)
 plot(temp)
 
 ## Get profile of cell means.
-temp <- qb.sliceone(qbExample, slice = 7, chr = 5, type = "cellmean")
+temp <- qb.sliceone(qbExample, slice = 1, chr = 2:3, type = "cellmean")
 summary(temp)
 plot(temp)
 }
