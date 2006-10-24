@@ -41,6 +41,8 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
                       effects = "cellmean", scan = "sum",
                       chr = chrs, smooth = 3, ...)
 {
+  qb.exists(qbObject)
+  
   ## Goal: identify regions with posterior above level.
 
   qbName <- deparse(substitute(qbObject))

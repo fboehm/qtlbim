@@ -53,6 +53,8 @@ qb.pair.nqtl <- function(qbObject, cutoff = 1,
 ##############################################################################
 qb.pairloci <- function(qbObject, chr)
 {
+  qb.exists(qbObject)
+  
   pairloci <- qb.get(qbObject, "pairloci")
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
@@ -122,6 +124,8 @@ plot.qb.pairloci <- function(x, main = mainchr, cex = 0.75, ...)
 qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
                          cutoff = 1, maxpair = 5, pairs = names(post), ...)
 {
+  qb.exists(qbObject)
+  
   pairloci <- qb.get(qbObject, "pairloci")
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")

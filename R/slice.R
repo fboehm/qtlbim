@@ -30,6 +30,8 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
                         aggregate = TRUE,
                         verbose = FALSE)
 {
+  qb.exists(qbObject)
+  
   ## 1-D slice through 2-D surface.
 
   qb.name <- deparse(substitute(qbObject))
@@ -95,6 +97,7 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
 
   ## Number of fixed covariates
   nfixcov <- qb.get(qbObject, "nfixcov")
+  nrancov <- qb.get(qbObject, "nrancov")
   intcov <- qb.get(qbObject, "intcov")
   
   ## Determine type of scan.
@@ -623,6 +626,8 @@ plot.qb.sliceone <- function(x, ..., scan, auto.par = TRUE)
 ######################################################
 qb.slicetwo <- function(qbObject, chr, pos, type = "2logBF", width = 10)
 {
+  qb.exists(qbObject)
+  
   qb.name <- deparse(substitute(qbObject))
   chr <- unlist(chr)
   pos <- unlist(pos)

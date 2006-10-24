@@ -97,6 +97,8 @@ summary.qb <- function(object, cutoff = 1, ...)
   cat("Interacting covariates:", qb.get(object, "intcov"))
 ##  cat("Contrast:", qb.get(object, "contrast"), "\n")
 
+  qb.exists(object)
+  
   ## Summaries of results.
   iterdiag <- qb.get(object, "iterdiag")
   cat("\nDiagnostic summaries:\n")
@@ -263,6 +265,8 @@ qb.cex <- function(qb, min.cex = 3.85)
 
 plot.qb <- function(x, ask = dev.interactive(), verbose = TRUE, ...)
 {
+  qb.exists(x)
+  
   ## ask before plot routines
   tmpar <- par(ask = ask)
   ## ask before lattice plots
@@ -339,6 +343,8 @@ qb.smooth <- function(x, y)
 qb.loci <- function(qbObject, loci = c("main", "epistasis", "GxE"),
                     covar = get.covar, ...)
 {
+  qb.exists(qbObject)
+  
   locis <- c("all", "main", "epistasis", "GxE")
   loci <- locis[pmatch(tolower(loci), tolower(locis), nomatch = 1)]
   loci <- unique(loci)
@@ -580,6 +586,8 @@ qb.BayesFactor <- function(qbObject,
                             items = c("nqtl","pattern","chrom","pairs"),
                             cutoff.pattern = 0.2, cutoff.pairs = 1, nmax = 15)
 {
+  qb.exists(qbObject)
+  
   assess <- list()
 
   if(any(pmatch(tolower(items), "nqtl", nomatch = 0)))
@@ -639,6 +647,8 @@ plot.qb.BayesFactor <- function(x, ...)
 ##############################################################################
 qb.diag <- function(qbObject, items= c("mean","envvar","var","herit"), ...)
 {
+  qb.exists(qbObject)
+  
   iterdiag <- qb.get(qbObject, "iterdiag")
   nhist <- length(items)
   diag <- matrix(NA, nrow(iterdiag), nhist + 1)

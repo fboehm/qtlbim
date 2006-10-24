@@ -25,6 +25,8 @@ qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
 qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
                          cutoff = 1, nmax = 5, cov.chr = names(post), ...)
 {
+  qb.exists(qbObject)
+  
   ## Use qb.gbye.posterior to find interesting pairs.
   ## Set up object as in qb.epistasis.
   ## Set up plot or use plot.qb.epistasis.
@@ -36,7 +38,8 @@ qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
   }
 
   ## Identify covariates and chromosomes with interacting QTL.
-  geno.names <- names(qb.cross(qbObject)$geno)
+  cross <- qb.cross(qbObject)
+  geno.names <- names(cross$geno)
   get.covar <- qb.get(qbObject,
                       "nfixcov")[as.logical(qb.get(qbObject, "intcov"))]
   if(!length(covar))

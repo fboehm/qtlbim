@@ -22,7 +22,9 @@
 qb.coda <- function(object,
                     element = c("iterdiag","mainloci","pairloci","covariates","gbye"),
                     variables = variable.list[[element]])
-{ 
+{
+  qb.exists(object)
+  
    require("coda")
    variable.list <- list(iterdiag = c("nqtl","mean","envvar","var"),
                          mainloci = c("chrom","add","dom"),

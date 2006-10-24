@@ -172,12 +172,27 @@ qb.remove <- function(qbObject, verbose = TRUE)
 {
   qbName <- deparse(substitute(qbObject))
   tmp <- qb.get(qbObject, "output.dir")
-  if(verbose)
-    warning(paste("Removing internal", qbName, "and external directory",
-                  tmp),
-            call. = FALSE, immediate. = TRUE)
-  unlink(tmp, recursive = TRUE)
+  if(dirname(tmp) != system.file("external", package = "qtlbim")) {
+    if(verbose)
+      warning(paste("Removing internal", qbName, "and external directory",
+                    tmp),
+              call. = FALSE, immediate. = TRUE)
+    unlink(tmp, recursive = TRUE)
+  }
+  else {
+    if(verbose)
+      warning(paste("Removing internal", qbName),
+              call. = FALSE, immediate. = TRUE)
+  }
   remove(list = qbName, pos = 1)
+}
+##############################################################################
+qb.exists <- function(qbObject)
+{
+  tmp <- qb.get(qbObject, "output.dir")
+  if(!file.exists(tmp))
+    stop(paste("Object contains no MCMC samples in", tmp))
+  invisible()
 }
 ##############################################################################
 qb.recover <- function(cross, traitName,

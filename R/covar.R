@@ -116,6 +116,8 @@ covar.var <- function(qbObject)
 ##############################################################################
 qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
 {
+  qb.exists(qbObject)
+  
   ## Variance components for MCMC samples.
 
   ## Get scan components.
@@ -306,6 +308,8 @@ print.qb.varcomp <- function(x, ...) print(summary(x, ...))
 ##############################################################################
 qb.meancomp <- function(qbObject, adjust.covar = NA)
 {
+  qb.exists(qbObject)
+  
   ## Mean components: grand mean and covariates.
 
   ## Get grand mean.
@@ -397,6 +401,8 @@ qb.covar <- function(qbObject, element = "add", covar = 1,
                      adjust.covar = NA,
                       chr, ...)
 {
+  qb.exists(qbObject)
+  
   qbname <- deparse(substitute(qbObject))
   
   if(!missing(chr))
@@ -521,6 +527,8 @@ plot.qb.covar <- function(x, percent = 5, cex = attr(x, "cex"),
 ##############################################################################
 qb.confound <- function(qbObject, covar = 1)
 {
+  qb.exists(qbObject)
+  
   cross <- qb.cross(qbObject)
   grid <- pull.grid(qbObject)
   is.f2 <- class(cross)[1] == "f2"

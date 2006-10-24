@@ -56,6 +56,8 @@ qb.loci <- function(qbObject, chr = sort(unique(mainloci[, "chrom"])),
 ##############################################################
 qb.multloci <- function(qbObject, chr = 1)
 {
+  qb.exists(qbObject)
+  
   chr <- chr[1]
   tmp <- qb.locus(qbObject, chr)
   tmp <- round(100 * tmp / sum(tmp), 1)

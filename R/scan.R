@@ -283,6 +283,8 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                        half = FALSE,
                        verbose = FALSE)
 {
+  qb.exists(qbObject)
+  
   ## WARNING: Check covariates for npar and rss computations.
   ## Rethink qb.scan for nqtl. [Could use count already in place to do this
   ## readily, but not worth it for this freeze.]
@@ -1333,6 +1335,8 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
                        min.iter = 1,
                        verbose = FALSE)
 {
+  qb.exists(qbObject)
+  
   ## Need to add aggregate facilities and redo counts as in qb.scanone.
 
   ## Following prior used for Bayes factors.
