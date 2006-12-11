@@ -16,7 +16,7 @@ qb.epistasis(qbObject, effects = c("aa", "ad", "da", "dd"),
   cutoff = 1, maxpair = 5, pairs, \dots)
 qb.intcov(qbObject, covar, effects = c("add","dom"),
   cutoff = 1, nmax = 5, cov.chr, \dots)
-\method{plot}{qb.epistasis}(x, effects, cex = 0.5, \dots )
+\method{plot}{qb.epistasis}(x, effects, cex = 0.5, main, \dots )
 \method{print}{qb.epistasis}(x, \dots )
 \method{summary}{qb.epistasis}(object, \dots )
 }
@@ -37,6 +37,7 @@ qb.intcov(qbObject, covar, effects = c("add","dom"),
   \item{effects}{Character string of model effects.}
   \item{cex}{Horizontal expansion factor for characters in the plot.
     See \code{\link[graphics]{par}}.}
+  \item{main}{Main titles for plots; default is \code{effects}.}
   \item{\dots}{Arguments passed to generic \code{\link[graphics]{plot}}.}
 }
 
@@ -44,7 +45,7 @@ qb.intcov(qbObject, covar, effects = c("add","dom"),
   Returns a table of counts of epistatic pairs with counts above the
   cutoff value.
 }
-\references{\url{http://www.ssg.uab.edu/qtlbim}}
+\references{\url{http://www.qtlbim.org}}
 \author{Brian S. Yandell, yandell@stat.wisc.edu }
 
 \examples{

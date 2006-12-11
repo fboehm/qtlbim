@@ -10,7 +10,7 @@ Plot or print marginal diagnostics of effects from a qb.scanone object.
 \method{print}{summary.qb.scanone}(x, digits = 3, \dots)
 \method{print}{qb.scanone}(x, digits = 3, \dots)
 \method{plot}{qb.scanone}(x, chr, smooth = 3, scan, ylim,
-  scan.name, col, main, verbose = FALSE, \dots)
+  scan.name, col, main, sub, verbose = FALSE, \dots)
 }
 
 \arguments{
@@ -26,6 +26,7 @@ Plot or print marginal diagnostics of effects from a qb.scanone object.
   \item{col}{Named vector of colors for plot. Names of colors correspond
     to effects to be plotted. Unnamed colors will be made \code{"black"}.}
   \item{main}{Main title for the plot}
+  \item{sub}{Subtitle for the plot; default is color names if not too long}
   \item{verbose}{Give verbose feedback if \code{TRUE}.}
   \item{\dots}{Other values passed to the generic plot function.}
 }
@@ -43,7 +44,7 @@ diagnostics except counts is \code{scan} = c("sum", "main",
 stacked plots. Individual columns from the \code{x} object can be
 plotted by specifying their names as a vector to option \code{scan}.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scanone}}, \code{\link{summary.qb.scanone}},
   \code{\link[qtl]{plot.scanone}}}

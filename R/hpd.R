@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: hpd.R,v 1.7.2.2 2006/10/23 17:00:37 byandell Exp $
+## $Id: hpd.R,v 1.7.2.4 2006/12/01 19:59:09 byandell Exp $
 ##
 ##     Copyright (C) 2003 Brian S. Yandell
 ##
@@ -146,7 +146,7 @@ summary.qb.hpdone <- function(object, chr = chrs, digits = 3, ...)
   tmp3 <- tmp3[match(chr, tmp3[, "chr"]), -(1:4)]
   if(length(chr.hpd) == 1) {
     ## Kludge adjustment if only on chr.
-    tmp <- c(tmp, tmp2, tmp3)
+    tmp <- c(tmp, tmp2, unlist(tmp3))
     tmp <- t(as.matrix(tmp))
     tmprow <- names(tmp3)
   }

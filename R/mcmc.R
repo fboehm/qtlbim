@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: mcmc.R,v 1.4.2.4 2006/10/16 19:29:14 nyi Exp $
+## $Id: mcmc.R,v 1.4.2.5 2006/12/07 21:37:02 banerjee-s Exp $
 ##
 ##     Copyright (C) 2006 Nengjun Yi and Tapan Mehta
 ##
@@ -89,8 +89,10 @@ qb.mcmc <- function(cross,
   depen = model$depen
   prop = model$prop
 
+  totaliter = n.iter*n.thin + n.burnin
+  
   if(verbose) {
-    cat("Bayesian MCMC run in progress. The current saved iterations: \n")     
+cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The current iterations are saved: \n",sep=" "))     
     start.walltime = Sys.time()
   }
 

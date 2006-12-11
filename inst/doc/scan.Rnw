@@ -139,108 +139,16 @@ data set.
 
 \section{Using and Interpreting Qb.Scan Routines}
 This section illustrates the basic uses and interpretation of the qb.scan 
-routines using both simulated data and experimental data.  The value of 
-the simulated data is that we have complete control over the model from which 
-the data are generated, so that we can provide very simple examples with 
-predictable outcomes.    Our real data is the 
-{\tt hyper}  data included in the {\tt R/qtl} package.
-
-\subsection{Simulating Data Using {\tt R/qtl}}
-As an initial illustration, we use simulated data with a modest sample 
-size.  For the simulation we set the number of individuals in the 
-sample ({\tt n.ind}) to be 100,
-<<label=SimulationSetupStart>>=
-n.ind <- 100		## number of individuals
-@
-assign a single QTL at position ({\tt qtl.pos}) 100  on a 200cM 
-chromosome ({\tt n.mark}) with markers at every 1cM ({\tt by.mark}),
-<<>>=
-n.mark <- 200		## number of markers
-by.mark <- 1		## cM spacing between markers
-qtl.pos <- n.mark / 2	## position of QTL
-@
-and set the substitution effect size ({\tt qtl.effect})  to be 2.
-<<label=SimulationSetupEnd>>=
-qtl.effect <- 2		## size of substitution effect
-@
-\noindent
-In order to use these setting to simulate a data set requires four 
-steps.  
-\begin{enumerate}
-\item First, invoke the 
-R/qtlbim library.  Notice that when {\tt R/qtlbim} is loaded the  
-{\tt R/qtl} library and any other required  packages  will be 
-automatically loaded. 
+routines using simulated data and the {\tt hyper}  data included in
+the {\tt R/qtl} package. In later  experimental data.  The value of
+using simulated data is that we have complete control over the model
+from which the data are generated, so that we can provide very simple
+examples with predictable outcomes. We first attach the {\tt R/qtlbim}
+library, which in turn attaches {\tt R/qtl} and other needed
+libraries.
 <<echo=TRUE,label=LoadingQtlbim>>=
 library(qtlbim)
 @ 
-\item
-Second, create a sequence of marker data ({\tt markers}) and use 
-{\tt sim.cross} to simulate a data set  with one  QTL.
-<<echo=TRUE,label=DefiningMarkers>>=
-markers <- seq(0, n.mark, by = by.mark)
-names(markers) <- paste("M", markers, sep = "")
-@ 
-\item
-Third, construct a marker map ({\tt sim.map}) and a model 
-({\tt sim.model}).  The marker map specifies which markers appear on 
-each  chromosome.  The model is a matrix specifying the chromosome, the 
-qtl position and effect size.
-<<echo=TRUE,label=DefiningSimMap>>=
-sim.map <- list(ch1 = markers)
-sim.model <- matrix(c(1, qtl.pos, qtl.effect / 2), 1, 3)
-colnames(sim.model) <- c("chromosome","qtl-position","effect-size")
-@
-\item
-Fourth, simulate data using the {\tt R/qtl} function 
-{\tt sim.cross}.  Because  {\tt sim.cross} uses {\tt R}'s internal 
-random number generator,  setting {\tt R}'s random number seed prior to 
-calling {\tt sim.cross}  guarantees that the simulation is 
-repeatable. We only do 1000 iterations here for demonstration purposes.
-\begin{Schunk}
-\begin{Sinput}
-set.seed(1234)
-sim <- sim.cross(map = sim.map, model = sim.model,
-  n.ind = n.ind, type = "bc")
-\end{Sinput}
-\end{Schunk}
-\end{enumerate}
-<<echo=FALSE,results=hide,label=MCMC-SimOne>>=
-n.iter <- 1000		## number of iterations for MCMC
-qb.random.seed <- 1616
-if(exists("sim"))
-  rm(sim)
-if(exists("qbSim"))
-  rm(qbSim)
-if(!qb.load(sim, qbSim, file = "SimOne.RData")) {
-  set.seed(1234)
-  sim <- sim.cross(map = sim.map, model = sim.model,
-    n.ind = n.ind, type = "bc")
-  sim <- qb.genoprob(sim,step=2)
-
-  ## WWNWW
-  ## This is a hack meant to get us past the fact that because 
-  ## epistasis=TRUE causes an error when running summary(sim.lod). 
-  ## Unhack by uncommenting next line and removing the subsequent line.
-  qbSim <- qb.mcmc(sim, epistasis=FALSE, n.iter = n.iter,
-    seed=qb.random.seed,verbose=FALSE,mydir="scanPDF")
-  ##   qbSimOne <- qb.mcmc(sim, n.iter = n.iter)
-
-  ## Save now done externally.
-  ## save(sim, qbSim, file = file.path("scanPDF", "SimMain.RData"))
-}
-@ 
-The {\tt summary} function can be used to give a quick synopsis of the 
-simulated data.
-<<label=SummarySim>>=
-summary(sim)
-@ 
-It is worth noting that creating our simulated data has only required 
-functions available in the {\tt R/qtl} package and that up to this 
-point we have not called any functions from the {\tt R/qtlbim} package.  
-Later we simulate data from multiple QTL models.  Simulating these 
-multiple qtl models requires using the {\tt qb.sim.cross} function in 
-the {\tt R/qtlbim} package.
 
 \subsection{Loading the {\tt hyper} Data}
 The {\tt hyper} data come from 250 backcross individuals in which the 
@@ -277,6 +185,7 @@ but this chromosome.
 hyper <- subset(hyper,sapply(hyper$geno,class) != "X")
 \end{Sinput}
 \end{Schunk}
+
 \subsection{Running the MCMC Analysis on Simulated Data \& 
 The {\tt hyper} Data}
 Now that we have data, we can begin to use the new methods available 
@@ -289,71 +198,52 @@ function {\tt qb.genoprob} followed by the MCMC sampler
 and does not use {\tt R}'s built-in random number generator, in order 
 to make our simulations repeatable we pass an integer seed 
 ({\tt qb.random.seed}) directly to {\tt qb.mcmc}.  
-\begin{Schunk}
-\begin{Sinput}
-sim <- qb.genoprob(sim,step=2)
-qbSim <- qb.mcmc(sim, epistasis=FALSE, n.iter = 1000,
-   seed=1616, verbose=FALSE, mydir="scanPDF")
-\end{Sinput}
-\end{Schunk}
-By default the {\tt qb.mcmc} function will print out progress messages 
+By default the {\tt qb.mcmc} function prints out progress messages 
 of the number of iterations completed.  These progress messages can be 
 suppressed by setting {\tt verbose=FALSE}.  To run the MCMC sampler on 
 the {\tt hyper} data we use the command
 \begin{Schunk}
 \begin{Sinput}
 hyper <- qb.genoprob(hyper, step=2)
+qb.random.seed <- 1616
 qbHyper <- qb.mcmc(hyper, genoupdate=TRUE, n.iter = n.iter, 
   seed = qb.random.seed, verbose=FALSE,mydir="scanPDF")
 \end{Sinput}
 \end{Schunk}
+
 \subsection{Using {\tt qb.scanone}}
-The object {\tt qbSim} created above contains the results of the MCMC 
+The object {\tt qbHyper} created above contains the results of the MCMC 
 run.  Each iteration of the Monte Carlo chain represents a single QTL 
 model.  The entire Monte Carlo chain represents a sample from the 
 posterior distribution of all possible models.  One simple summary of 
 the MCMC sample is the posterior profile, or the
 posterior probability of a QTL at each locus.  A summary and plot of
 these counts is carried out as follows.
-<<label=Scanone-SimOne>>=
-temp <- qb.scanone(qbSim,type="posterior") 
+<<label=Scanone-HyperPost>>=
+temp <- qb.scanone(qbHyper,type="posterior") 
 summary(temp)
 @ 
 \begin{figure}
-<<fig=TRUE,echo=TRUE,height=4,label=Scanone-SimOne>>=
+<<fig=TRUE,echo=TRUE,height=4,label=Scanone-HyperPost>>=
 plot(temp)
 @ 
 \caption{Plot of {\tt qb.scanone} for posterior of simulated data.  Notice 
-that the overwhelming majority of the posterior is concentrated in the 
-vicinity of marker 100.}
+the posterior concentrated on chromosomes 1, 4, 6 and 15.}
 \end{figure}
-The plot of {\tt qb.scanone.counts} shows that the overwhelming majority 
-of models included just one QTL in the vicinity of marker 100.  This is 
-consistent with out simulated data since the true model was for a 
-single QTL at marker 100.
+The plot shows the posterior concentrated on chromosomes 1, 4, 6 and
+15. This is consistent with other findings for these data.
+The blue lines in the plot indicate main effects, the 
+purple indicate epistatic effects and black curves (where visible) 
+represent the sum of main and epistatic effects.   
 
-   In order to run {\tt qb.scanone} on the {\tt qbHyper} we follow the same 
-procedure. Here we show 2log(BF), or log of the Bayes factor,
+Here we show 2log(BF), or log of the Bayes factor,
 measuring the strength of evidence (> 2.1 is high) for a QTL.
-<<label=Scanone-HyperData>>=
+In order to examine the effects on 1, 4, 6 and 15 more closely, we can
+plot subsets of chromosomes by using the plot 
+command {\tt plot(temp, chr=c(1,4,6,15)}.  
+<<label=Scanone-HyperBF>>=
 temp <- qb.scanone(qbHyper,type="2logBF")
 @ 
-\begin{figure}
-<<fig=TRUE,echo=FALSE,height=4,label=Scanone-HyperData>>=
-plot(temp)
-@
-\caption{Plot of {\tt qb.scanone} for 2log(Bayes factor) on blood
-pressure ({\tt bp}) for the {\tt hyper} data.}
-\end{figure}
-
-\noindent
-The plot of {\tt qb.scanone} shows noticable peaks on chromosomes 1,
- 4, 6 and 15.  The blue lines in the plot indicate main effects, the 
-purple indicate epistatic effects and black curves (where visible) 
-represent the sum of main and epistatic effects.   In order to examine 
-the effects on 1, 4, 6 and 15 more closely, we can plot subsets of 
-chromosomes (Figure~\ref{fig-subsetsqb.scanone}) by  using the plot 
-command {\tt plot(temp, chr=c(1,4,6,15)}.  
 <<>>=
 @ 
 \begin{figure}
@@ -492,10 +382,10 @@ In order to illustrate the extreme case where there are main effects
 but no epistatic effects we can modify the simulation parameters 
 {\tt qtl.main.model} and {\tt qtl.epi.model}.  Since 
 {\tt qtl.main.model} consisted entirely of zeros (indicating no main 
-effects), we can add a main effect of size 10 for the first QTL as 
+effects), we can add a main effect of size 10 for the second QTL as 
 follows.
 <<>>=
-qtl.main.model[1,'main.effect.size'] = 10
+qtl.main.model[2,'main.effect.size'] = 10
 @ 
 Since we have no epistatic component to the new model, we replace 
 {\tt qtl.epi.model} in the call to {\tt qb.sim.cross} with {\tt NULL}.
@@ -527,7 +417,7 @@ if(!qb.load(sim, qbSim, file = "SimMain.RData")) {
 Running {\tt qb.sim.cross}, {\tt qb.mcmc} and plotting the results of 
 {\tt qb.scantwo} gives a plot of data in which there is no 
 epistatic effect, but in which there is a main effect.  This is indicated
-by the horizontal band at 5{\tt cm} on chromosome 1.
+by the horizontal band near \Sexpr{qtl.positions[2,2]} {\tt cM} on chromosome 1.
 \begin{Schunk}
 \begin{Sinput}
 sim <- qb.genoprob(sim)
@@ -771,10 +661,7 @@ very close in practice. This is less apparent from the summaries in
 the previous section, as the Bayesian estimates are attenuated by the
 putative effects of other QTL along the genome. This is a technical
 post-processing issue of properly sorting out the effects of multiple
-linked loci, which we intend to address in the next freeze. Notice in
-the second plot how closely the qb.scanone (solid red line) and scanone
-(dashed black line) profiles of the substitution effect agree near
-\Sexpr{qtl.pos}cM.
+linked loci.
 
 \subsection{Variance components}
 

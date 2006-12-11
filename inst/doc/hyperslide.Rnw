@@ -163,7 +163,8 @@ if(exists("cross.qb")) {
 
 <<echo=TRUE,label=HPDSummary>>=
 hpd.level
-cross.hpd <- qb.hpdone(cross.qb, hpd.level)
+scan.type
+cross.hpd <- qb.hpdone(cross.qb, hpd.level, scan.type)
 sum.one <- summary(cross.hpd)
 sum.one
 chrs <- as.vector(sum.one[, "chr"])
@@ -171,7 +172,7 @@ pos <- sum.one[, "pos"]
 @
 \begin{Schunk}
 \begin{Sinput}
-> plot(cross.hpd, profile = scan.type)
+> plot(cross.hpd)
 \end{Sinput}
 \end{Schunk}
 
@@ -183,7 +184,7 @@ pos <- sum.one[, "pos"]
 <<results=tex,echo=FALSE,label=HPDPlot>>=
 file <- paste(.qb.PDFDir, "/slide1hpd.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
-plot(cross.hpd, profile = scan.type)
+plot(cross.hpd)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
 @
@@ -228,7 +229,7 @@ first simulate missing markers\\
 then construct QTL object
 
 <<echo=TRUE,label=InitializeFitQTL>>=
-cross.sub <- subset(cross, chr = cross.arch$qtl$chr)
+cross.sub <- subset(cross, chr = unique(cross.arch$qtl$chr))
 n.draws
 cross.sub <- sim.geno(cross.sub, n.draws=n.draws, step=2, error=0.01)
 qtl <- makeqtl(cross.sub, cross.arch$qtl$chr, cross.arch$qtl$pos)
@@ -331,7 +332,8 @@ show detail plots for epistatic pairs (if any)
 +  for(i in seq(nrow(cross.arch$pair.by.chr$chr))) {
 +    chri <- cross.arch$pair.by.chr$chr[i,]
 +    posi <- cross.arch$pair.by.chr$pos[i,]
-+    plot(qb.slicetwo(cross.qb, chri, posi, scan.type))
++    if(chri[1] != chri[2])
++      plot(qb.slicetwo(cross.qb, chri, posi, scan.type))
 +  }
 +}
 \end{Sinput}
@@ -348,19 +350,23 @@ if(!is.null(cross.arch$pair.by.chr))
 <<results=tex,echo=FALSE,label=PairPlots>>=
 ## Note extra R overhead to produce an arbitrary number of plots.
 if(!is.null(cross.arch$pair.by.chr)) {
+  cross <- sim.geno(cross, step = qb.get(cross.qb, "step"))
   for(i in seq(nrow(cross.arch$pair.by.chr$chr))) {
     chri <- cross.arch$pair.by.chr$chr[i,]
     posi <- cross.arch$pair.by.chr$pos[i,]
-    file <- paste(.qb.PDFDir, "/slide-", chri[[1]], "-", chri[[2]], ".pdf",
-      sep = "")
-    pdf(file = file, paper = "special", width = 9, height = 6)
-    plot(qb.slicetwo(cross.qb, chri, posi, scan.type))
-    invisible(dev.off())
-    cat("\\begin{frame}[fragile]\n")
-    cat("\\frametitle{Epistatic Pair", chri[[1]], "and", chri[[2]], "}\n\n")
-    cat("\\includegraphics{", file, "}\n\n", sep = "")
-    cat("\n\\end{frame}\n\n")
-    warning(paste("writing", file), call. = FALSE, immediate. = TRUE)
+    if(chri[1] != chri[2]) {
+      file <- paste(.qb.PDFDir, "/slide-", chri[[1]], "-", chri[[2]], ".pdf",
+        sep = "")
+      pdf(file = file, paper = "special", width = 9, height = 6)
+      tmp <- qb.slicetwo(cross.qb, chri, posi, scan.type)
+      plot(tmp)
+      invisible(dev.off())
+      cat("\\begin{frame}[fragile]\n")
+      cat("\\frametitle{Epistatic Pair", chri[[1]], "and", chri[[2]], "}\n\n")
+      cat("\\includegraphics{", file, "}\n\n", sep = "")
+      cat("\n\\end{frame}\n\n")
+      warning(paste("writing", file), call. = FALSE, immediate. = TRUE)
+    }
   }
   cat("\n\n")
 }

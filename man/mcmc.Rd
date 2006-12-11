@@ -20,7 +20,9 @@ qb.mcmc(cross, data, model, mydir = ".", n.iter = 3000, n.thin = 40,
                 If no directory is specified, the default directory is the current working 
                 directory.}
   \item{n.iter}{number of iterations to be saved in \code{mydir}, the default being
-                3000.}
+                3000. Note that, \code{n.iter} is not the total number of         iterations performed but the number iterations saved or considered as posterior
+                samples for future analysis. The actual number of iterations would be \code{n.burnin + n.iter*n.thin}                                                
+                }
   \item{n.thin}{the thinning number which must be a positive number (default=40)}
   \item{n.burnin}{the initial burn-in period, i.e number of iterations to discard
                   at the beginning of the MCMC run default being 0.01*n.iter*n.thin.}
@@ -41,7 +43,7 @@ qb.mcmc(cross, data, model, mydir = ".", n.iter = 3000, n.thin = 40,
 }
 
 \details{
-A composite model space approach to develop a Basian model selection framework for identifying
+A composite model space approach to develop a Bayesian model selection framework for identifying
 interacting QTL for complex traits in experimental crosses from two inbred lines. By placing a liberal
 constraint on the upper bound of the number of detectable QTL we restrict attention to models of 
 fixed dimension. Either Gibbs sampler or Metroplis-Hastings algorithm can be applied to sample
@@ -177,7 +179,7 @@ The following files are saved in \code{output.dir}:
    
    
 \references{
-  \url{http://www.ssg.uab.edu/qtlbim}}
+  \url{http://www.qtlbim.org}}
 \author{Nengjun Yi, nyi@ms.ssg.uab.edu}
 
 \seealso{\code{\link{qb.sim.cross}},   \code{\link{qb.data}},   

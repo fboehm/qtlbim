@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.scan.tour.R,v 1.2.2.5 2006/10/23 17:11:54 byandell Exp $
+## $Id: qb.scan.tour.R,v 1.2.2.6 2006/12/05 20:12:23 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -32,8 +32,7 @@ plot(one)
 
 ## Show only main effects LPD.
 one <- qb.scanone(qbExample, type = "LPD", aggregate = FALSE)
-plot(one, scan = "main",
-     col=c(add.fix.cov="turquoise", dom.fix.cov="magenta"))
+plot(one, scan = "add")
 
 ## 2-D scan conditional on all other QTL
 two <- qb.scantwo(qbExample, type = "LPD")
@@ -57,4 +56,4 @@ two <- qb.scantwo(qbSubset, type = "her",
                   scan = list(lower = "main", upper = "ad"))
 plot(two)
 
-plot(qb.scanone(qbExample, chr = chrs, type = "detect"))
+plot(qb.scanone(qbExample, type = "detect"))

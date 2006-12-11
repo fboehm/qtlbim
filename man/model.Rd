@@ -46,7 +46,7 @@ This model considers two-way interaction as the highest level of both gene-gene 
 gene-environment interactions.
 }
 \references{
-  \url{http://www.ssg.uab.edu/qtlbim}
+  \url{http://www.qtlbim.org}
   }
 
 

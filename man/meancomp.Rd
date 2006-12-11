@@ -36,7 +36,7 @@ yields a density plot for the grand mean alone.
 \code{qb.meancomp} is a matrix with columns for the grand mean and for
 each fixed covariate. Summaries show mean and upper and lower percentiles.
 }
-\references{http://www.ssg.uab.edu/qtlbim}
+\references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{

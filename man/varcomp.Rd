@@ -38,7 +38,7 @@ including additive and dominance terms). Any subset of these may be chosen.
 variance components. Each row represents an MCMC iteration. Values are
 averaged over loci. 
 }
-\references{http://www.ssg.uab.edu/qtlbim}
+\references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{

@@ -339,11 +339,9 @@ void Mean(double YBAR,double VP)     //prior for AMU is N(YBAR,VP)
 //*******************************************************************
 //update residual variance
 
-void ResidualVariance(double VP)  //prior for VE is Inv-chisq(NU,TAU)
+void ResidualVariance()  //prior for VE is uniform
 {	
 		int I; double T1=0.0,T2=0.0,U,U0;
-		
-		int NU=6; double TAU=VP/3;
 
         for(I=0;I<NS;I++)
 		{
@@ -351,13 +349,8 @@ void ResidualVariance(double VP)  //prior for VE is Inv-chisq(NU,TAU)
             ANORMAL(&U,&U0);
             T2=T2+U*U; 
 		} 
-		for(I=0;I<NU;I++)
-		{
-            ANORMAL(&U,&U0);
-            T2=T2+U*U; 
-		} 
-     	
-		VE=(T1+NU*TAU)/T2;       //see Gelman P301
+
+		VE=T1/T2;
 		
 		return;
 }
@@ -1472,7 +1465,7 @@ if(CATEGORY!=1)
 
 Mean(YBAR,VP);
 
-if(CATEGORY!=2) ResidualVariance(VP);
+if(CATEGORY!=2) ResidualVariance();
 
 
 for(L=0;L<NQTL;L++)

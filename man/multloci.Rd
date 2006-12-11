@@ -29,7 +29,7 @@ scatter plot, density plots and histogram of counts with generic
 \code{plot} or show numerical \code{summary}. The plot provides position
 detail complementary to \code{\link{plot.qb.scantwo}}.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link{plot.qb}}, \code{\link{qb.scantwo}}}

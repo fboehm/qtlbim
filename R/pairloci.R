@@ -1,6 +1,6 @@
 #####################################################################
 ## This code has been written by Dr.Yandell.
-## $Id: pairloci.R,v 1.7.2.3 2006/10/06 15:17:25 byandell Exp $
+## $Id: pairloci.R,v 1.7.2.5 2006/12/01 19:59:09 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -179,12 +179,13 @@ summary.qb.epistasis <- function(object, ...)
 print.qb.epistasis <- function(x, ...) print(summary(x, ...))
 ##############################################################################
 plot.qb.epistasis <- function(x, effects = names(x)[-length(x)],
-                              cex = 0.5, ...)
+                              cex = 0.5, main = effects, ...)
 {
   require("lattice")
   trellis.par.set(theme=col.whitebg(), warn = FALSE)
 
   effects <- effects[ match(names(x), effects, nomatch = 0) ]
+  main <- array(main, length(effects))
   for(j in seq(along = effects)) {
     form <- formula(paste(effects[j], "inter", sep = "~"))
     print(bwplot(form, x, jitter = TRUE, factor = 1, cex = cex,
@@ -205,7 +206,7 @@ plot.qb.epistasis <- function(x, effects = names(x)[-length(x)],
                    }
                  },
                  horizontal = FALSE,
-                 main = effects[j]),
+                 main = main[j]),
           split = c(j, 1, length(effects), 1),
           more = (j < length(effects)))
   }

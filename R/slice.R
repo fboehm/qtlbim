@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: slice.R,v 1.12.2.9 2006/10/23 17:00:37 byandell Exp $
+## $Id: slice.R,v 1.12.2.11 2006/12/01 19:59:09 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -33,6 +33,7 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
   qb.exists(qbObject)
   
   ## 1-D slice through 2-D surface.
+  ## Does not allow slice chr to be included in chr list.
 
   qb.name <- deparse(substitute(qbObject))
 
@@ -47,6 +48,13 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
                        restrict.pair = FALSE)
   else
     chr <- seq(length(qb.cross(qbObject)$geno))
+
+  ## Drop slice from chr list.
+  tmp <- match(slice["chr"], chr, nomatch = 0)
+  if(tmp)
+    chr <- chr[-tmp]
+  if(!length(chr))
+    stop("chr cannot be same as slice")
 
   ## Set up slice vector.
   ## slice = c(chr=, upper=TRUE, start=, end=, weight=c(0,1,2))
@@ -551,13 +559,13 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
   tmp2 <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
   tmp2[is.na(tmp2)] <- mean(tmp2, na.rm = TRUE)
   x <- cbind(x, slice = tmp2)
+  tmp <- dimnames(x)
 
   ## Drop slice chromosome if not in chr list.
-  if(is.na(match(slice["chr"], chr))) {
-    tmp <- dimnames(x)
+  if(is.na(match(slice["chr"], chr)))
     x <- as.matrix(x[pull.grid(qbObject)$chr != slice["chr"], ])
-    dimnames(x) <- list(NULL, tmp[[2]])
-  }
+
+  dimnames(x) <- list(NULL, tmp[[2]])
 
   ## Assign attributes passed to generic plot and summary.
   attr(x, "class") <- c("qb.sliceone", "qb.scanone", "matrix")
@@ -632,6 +640,8 @@ qb.slicetwo <- function(qbObject, chr, pos, type = "2logBF", width = 10)
   chr <- unlist(chr)
   pos <- unlist(pos)
   names(chr) <- names(pos) <- NULL
+  if(length(chr) != 2 | chr[1] == chr[2])
+    stop("chr must be two distinct chromosome IDs")
 
   slice <- list()
   for(i in 1:2) {
@@ -672,6 +682,7 @@ qb.slicetwo <- function(qbObject, chr, pos, type = "2logBF", width = 10)
   attr(slice, "type") <- type
   attr(slice, "chr") <- chr
   attr(slice, "pos") <- pos
+  attr(slice, "step") <- qb.get(qbObject, "step")
   slice
 }
 ######################################################
@@ -680,12 +691,16 @@ summary.qb.slicetwo <- function(object, ...)
   out <- list(rbind(summary(object$obj1),
                     summary(object$obj2)))
   names(out) <- attr(object, "type")
-  out$cellmean <- list(rbind(summary(object$mean1),
-                             summary(object$mean2)))
-  out$estimate <- list(rbind(summary(object$est1),
-                             summary(object$est2)))
+  out$cellmean <- rbind(summary(object$mean1),
+                        summary(object$mean2))
+  out$estimate <- rbind(summary(object$est1),
+                        summary(object$est2))
+  class(out) <- c("summary.qb.slicetwo", "list")
   out
 }
+######################################################
+print.summary.qb.slicetwo <- function(x, ...)
+  lapply(x, function(x) {print(x); cat("\n")})
 ######################################################
 print.qb.slicetwo <- function(x, ...) print(summary(x, ...))
 ######################################################
@@ -716,6 +731,8 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
   is.effects <- any(pmatch(tolower(figs), "effects", nomatch = 0))
   is.cellmean <- any(pmatch(tolower(figs), "cellmean", nomatch = 0))
   is.effectplot <- any(pmatch(tolower(figs), "effectplot", nomatch = 0))
+  if(is.effectplot & is.null(cross$geno[[1]]$draws))
+    cross <- sim.geno(cross, step = attr(x, "step"))
   num.plots <-
     is.profile + is.effects + (3 - 2 * is.bc) * is.cellmean + is.effectplot
 

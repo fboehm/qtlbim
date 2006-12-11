@@ -61,7 +61,7 @@ involving main effects (e.g. with \code{scan} values \code{"full"} or
 chromosomes, the average number of QTL at both chromosomes.
 }
 
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{plot.qb.scanone}}}
 \examples{

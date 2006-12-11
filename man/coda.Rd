@@ -31,7 +31,7 @@ used to analyze the MCMC output using R/coda.}
 \author{Dr. Nengjun Yi, et al.,  nyi@ms.ssg.uab.edu}
  
  \references{
-  \url{http://www.ssg.uab.edu/qtlbim}
+  \url{http://www.qtlbim.org}
   }
 
 \seealso{ \code{\link[coda]{mcmc}}, \code{\link{qb.mcmc}},

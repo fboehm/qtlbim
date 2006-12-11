@@ -60,7 +60,7 @@ vector are:
   weighting (default).}
 }
 
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scantwo}}, \code{\link[qtl]{plot.scantwo}}}
 \examples{

@@ -39,7 +39,7 @@ qb.loci(qbObject, loci = c("main", "epistasis", "GxE"), covar, \dots)
   for each chromosome. Adjust \code{amount} and \code{cex} to modify
   look of plot. Most useful when looking at multiple chromosomes.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link[base]{jitter}},\code{\link{subset.qb}}}

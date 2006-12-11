@@ -30,7 +30,7 @@ qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
     plots if \code{TRUE}.}
   \item{\dots}{Extra plot options.}
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scantwo}}, \code{\link{qb.sliceone}}}
 \examples{

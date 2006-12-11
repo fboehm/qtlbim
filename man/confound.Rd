@@ -1,6 +1,8 @@
 \name{qb.confound}
 \alias{qb.confound}
 \alias{plot.qb.confound}
+\alias{print.qb.confound}
+\alias{summary.qb.confound}
 \title{Examine confounding of covariate with pseudomarkers.}
 \description{
 Covariates used in gene mapping may be correlated with covariates. These
@@ -9,10 +11,13 @@ routines examine the pattern of confounding.
 \usage{
 qb.confound(qbObject, covar = 1)
 \method{plot}{qb.confound}(x, ylim, main, \dots)
+\method{print}{qb.confound}(x, \dots)
+\method{summary}{qb.confound}(object, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
   \item{x}{Object of class \code{qb.confound}.}
+  \item{object}{Object of class \code{qb.confound}.}
   \item{covar}{Index to covariate}
   \item{ylim}{Limits for \code{y} (vertical) plotting axis.}
   \item{main}{Title for plot.}
@@ -33,7 +38,7 @@ dominance effect. Dashed lines at 5 percent significance limits.
   \item{chr}{Chromosome identifier.}
 The object inherits from \code{\link[qtl]{scanone}} objects.
 }
-\references{http://www.ssg.uab.edu/qtlbim}
+\references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{

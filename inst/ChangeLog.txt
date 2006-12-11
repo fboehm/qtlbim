@@ -7,3 +7,4 @@ R/qtlbim package (http://www.ssg.uab.edu/qtlbim)
 	fix chromosome name handling.
 1.6.3	Shorten examples; fix degrees of freedom and LPD in scan;
 	upgrade to R/qtl 1.04.
+1.6.4	Minor logic errors; check output.dir exists.

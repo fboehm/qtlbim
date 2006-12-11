@@ -36,7 +36,7 @@ QTL and at least the \code{pattern} across chromosomes. \code{pattern}
   present, chromosome names are not allowed. Further subsets to only
   include QTL from these iterations that are on chromosomes \code{chr}.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link[qtl]{read.cross}}}

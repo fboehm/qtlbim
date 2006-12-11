@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: covar.R,v 1.7.2.6 2006/10/10 16:26:57 byandell Exp $
+## $Id: covar.R,v 1.7.2.8 2006/12/06 15:26:31 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -579,7 +579,16 @@ qb.confound <- function(qbObject, covar = 1)
   grid
 }  
 ##############################################################################
-print.qb.confound <- function(x, ...) print(summary(x, ...))
+print.qb.confound <- function(x, ...)
+{
+  print(summary(x, ...))
+}
+##############################################################################
+summary.qb.confound <- function(object, ...)
+{
+  class(object) <- c("scanone", "data.frame")
+  print(summary(object, ...))
+}
 ##############################################################################
 plot.qb.confound <- function(x,
                               ylim = range(c(x[, 2 + curves]), na.rm = TRUE),

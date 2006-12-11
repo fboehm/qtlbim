@@ -160,7 +160,7 @@ and some of which could be used as covariates.
 
 \begin{Schunk}
 \begin{Sinput}
-qbData <- qb.data(hyper, pheno.col = =, trait = "normal",
+qbData <- qb.data(hyper, pheno.col = 1, trait = "normal",
   boxcox = F, standardize = F)
 \end{Sinput}
 \end{Schunk}
@@ -233,8 +233,10 @@ sampler. The M-H algorithm samples from a proposal density
 approximating the conditional posterior distributions whereas Gibbs
 sampler samples directly from the conditional posterior
 distribution. The M-H algorithm is a lot faster compared to the Gibbs
-sampler. Here we only produce 5000 samples (= {\tt n.iter * n.thin})
-for illustration purposes.
+sampler. We would saving 3000 samples which is the default {\tt n.iter}. It 
+is worth mentioning that {\tt n.iter} does not specify the total number samples
+drawn from the posterior distribution but merely indicates the number of samples that would be saved and used for posterior analysis. The first {\tt n.burnin} samples are discarded to allow the chain to converge to the posterior distribution and after that every {\tt n.thin} sample is considered to reduce serial
+correlation resulting in a total of {\tt n.burnin + n.iter*n.thin} samples drawn.
 
 \subsection{Examining a \texttt{qb} Object}
 

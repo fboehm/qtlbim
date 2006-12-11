@@ -184,8 +184,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
                   xd1 <- (1+xa1)*(1-xa1)-0.5
                   xa2 <- qtl.geno[ ,qtl.epis[i,2]]-2
                   xd2 <- (1+xa2)*(1-xa2)-0.5
-                  pheno.normal <- pheno.normal+xa1*xa2*qtl.epis[i,3]+xa1*xd2*qtl.epis[i,4]
-                                              +xd1*xa2*qtl.epis[i,5]+xd1*xd2*qtl.epis[i,6]  
+                  pheno.normal <- pheno.normal+xa1*xa2*qtl.epis[i,3]+xa1*xd2*qtl.epis[i,4]+xd1*xa2*qtl.epis[i,5]+xd1*xd2*qtl.epis[i,6]  
               }
            } 
         }

@@ -36,7 +36,7 @@ qb.diag(qbObject, items= c("mean","envvar","var","herit"), \dots)
   \code{"addvar"} (variance of \code{add}), \code{"domvar"} (variance of
   \code{add}). Marginal and conditional medians are printed.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link{plot.qb}}, \code{\link[stats]{density}},

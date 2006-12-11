@@ -56,7 +56,7 @@ effects of multiple QTL and epistasis. Subsets based on 1-D scans can be
 used for 2-D subsequent screens. See \code{demo(qb.qb.scan.tour)} for an
 example.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{

@@ -90,6 +90,7 @@ S3method(summary, qb.BayesFactor)
 
 S3method(plot, qb.confound)
 S3method(print, qb.confound)
+S3method(summary, qb.confound)
 
 S3method(plot, qb.covar)
 S3method(print, qb.covar)
@@ -144,6 +145,7 @@ S3method(summary, qb.sliceone)
 S3method(plot, qb.slicetwo)
 S3method(print, qb.slicetwo)
 S3method(summary, qb.slicetwo)
+S3method(print, summary.qb.slicetwo)        
 
 S3method(plot, qb.varcomp)
 S3method(print, qb.varcomp)

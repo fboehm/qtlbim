@@ -27,7 +27,7 @@
   \code{\link[base]{summary}} produces a summary, while the generic
   \code{\link[base]{print}} passes through to \code{summary}.
 }
-\references{ \url{http://www.ssg.uab.edu/qtlbim} }
+\references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
 \seealso{\code{\link[base]{plot}}, \code{\link[base]{print}},

@@ -42,7 +42,7 @@ effect and chromosome. Summary objects have eight columns, three for main
 effect and GxE (mean, lower and upper percentile), followed by
 correlation and p-value. Summaries are done by chromosome.
 }
-\references{http://www.ssg.uab.edu/qtlbim}
+\references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{

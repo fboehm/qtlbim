@@ -190,8 +190,10 @@ qb.remove <- function(qbObject, verbose = TRUE)
 qb.exists <- function(qbObject)
 {
   tmp <- qb.get(qbObject, "output.dir")
-  if(!file.exists(tmp))
-    stop(paste("Object contains no MCMC samples in", tmp))
+  if(!file.exists(tmp)) {
+    cat("\n")
+    stop(paste("Object contains no MCMC samples in", tmp), call. = FALSE)
+  }
   invisible()
 }
 ##############################################################################

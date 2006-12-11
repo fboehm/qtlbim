@@ -139,7 +139,7 @@ void R_AnalysisEngine(int *nind,int *nchr,int *ngen, int *nloci,double *loci,dou
 					  double *interval,int *chrnqtl,
 					  int *envi,int *qtl_envi,int *nrancov,int *nfixcov,int *intcov,double *rancoef,double *fixcoef,int *nran,
 					  int *depen,double *prop,int *seed,
-		      int *verbose); 
+		              int *verbose); 
 
 //******************************************************************
 // C functions included  
@@ -164,7 +164,7 @@ double GenotypeSampling(int I,int L,int II,int QL);
 
 void Mean(double YBAR,double VP);
 
-void ResidualVariance(double VP);
+void ResidualVariance();
 
 void MainEffect(int L);
 

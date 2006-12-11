@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: scan.R,v 1.11.2.7 2006/10/23 17:00:37 byandell Exp $
+## $Id: scan.R,v 1.11.2.9 2006/12/01 19:59:09 byandell Exp $
 ##
 ##     Copyright (C) 2005 Brian S. Yandell
 ##
@@ -319,7 +319,8 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
   ## Determine type of scan.
   types <- c("heritability","LPD","LR","deviance","detection",
              "variance","estimate","cellmean","count","log10",
-             "posterior","logposterior","2logBF","BF","nqtl")
+             "posterior","logposterior","2logBF","BF","nqtl",
+             "npar","rss")
   type <- types[pmatch(tolower(type), tolower(types), nomatch = 2)][1]
 
   is.count <- any(match(type,
@@ -328,7 +329,8 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                         nomatch = 0)) 
   is.var <- match(type, types[1:6], nomatch = 0)
   is.effect <- is.var | type == "estimate"
-  is.lod <- match(type, types[2:5], nomatch = 0)
+#  is.lod <- match(type, types[2:5], nomatch = 0)
+  is.lod <- match(type, types[c(2:5,16:17)], nomatch = 0)
 
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject)
@@ -792,7 +794,7 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                            inter, mean))
       
       ## Keep npar for detection probability.
-      if(type == "detection") {
+      if(type == "detection" | type == "npar") {
         ## Probability of detection given data.
         ## Number of parameters averages over MCMC runs.
         npar <- unlist(tapply(npar[match(mainloci[, "niter"], iterdiag[, "niter"])],
@@ -817,6 +819,12 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
           detect.prior = 1 / nrow(x)
           x[, i] <- p1 * detect.prior / (1 + (p1 - 1) * detect.prior)
           x[is.na(x[, i]), i] <- 0.5
+        }
+        else {
+          if(type == "rss")
+            x[, i] <- rss
+          else if(type == "npar")
+            x[, i] <- npar
         }
         x[is.na(x[, i]), i] <- min(x[, i], na.rm = TRUE)
       }
@@ -999,13 +1007,10 @@ print.qb.scanone <- function(x, digits = 3, ...)
 print.summary.qb.scanone <- function(x, digits = 3, ...)
 {
   z <- as.character(unlist(x[, 1]))
-  if (max(nchar(z)) == 1) 
-    rownames(x) <- apply(x[, 1:2], 1, function(a) {
-      paste("c", a, collapse = ":", sep = "")
-      })
-  else rownames(x) <- apply(x[, 1:2], 1, function(a) {
-    paste(sprintf("c%-2s", a), collapse = ":")
-    })
+  rownames(x) <- if (max(nchar(z)) == 1) 
+    paste("c", x[, 1], sep = "")
+  else
+    paste(sprintf("c%-2s", x[, 1]))
 
   cat(attr(x, "method"), "of", attr(x, "pheno.name"), "for",
       paste(attr(x, "scan"), collapse = ","), "\n")
@@ -1024,16 +1029,18 @@ print.summary.qb.scanone <- function(x, digits = 3, ...)
 }
 ###################################################################
 plot.qb.scanone <- function(x,
-                          chr = NULL,
-                          smooth = 3,
-                          scan = scan.plots,
-                          ylim = ylims,
-                          scan.name = scan.pretty,
-                          col = cols,
-                          main = paste(type, "of", pheno.name,
-                            "for", scan.name),
-                          verbose = FALSE,
-                          ...)
+                            chr = NULL,
+                            smooth = 3,
+                            scan = scan.plots,
+                            ylim = ylims,
+                            scan.name = scan.pretty,
+                            col = cols,
+                            main = paste(type, "of", pheno.name,
+                              "for", scan.name),
+                            sub = paste(names(col), col, sep = "=",
+                              collapse = ", "),
+                            verbose = FALSE,
+                            ...)
 {
   ## Now need this to pick up sum
   ## and also to get colors right
@@ -1227,9 +1234,8 @@ plot.qb.scanone <- function(x,
       xout[, type] <- qb.smoothone(x[chr.sub, varcomp], grid, smooth, niter)
       plot(xout, ..., add = TRUE, col = col[varcomp])
     }
-    if(length(col) < 5)
-      mtext(paste(names(col), col, sep = "=", collapse = ", "), 1, 2,
-            cex = 0.65)
+    if((length(col) < 5 | !missing(sub)) & sub != "")
+      mtext(sub, 1, 2, cex = 0.65)
   }
   invisible(col)
 }

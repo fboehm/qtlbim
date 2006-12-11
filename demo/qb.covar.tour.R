@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: qb.covar.tour.R,v 1.3.2.6 2006/10/23 17:11:54 byandell Exp $
+## $Id: qb.covar.tour.R,v 1.3.2.8 2006/12/06 15:14:39 byandell Exp $
 ##
 ##     Copyright (C) 2006 Brian S. Yandell
 ##
@@ -37,7 +37,7 @@ bwplot(pheno.normal~fix.cov,cross$pheno,
        horizontal = FALSE, jitter.data = TRUE)
 
 ## XY plot of random covariate.
-gbye.geno <- factor(pull.geno(cross)[, find.marker(cross, 12, 35)])
+gbye.geno <- factor(pull.geno(cross)[, find.marker(cross, 2, 12)])
 xyplot(pheno.normal~random.cov,cross$pheno, type = c("p","r"),
        group = gbye.geno,
        key = simpleKey(levels(gbye.geno), space = "right"))
@@ -53,7 +53,6 @@ plot(tmp)
 tmp <- qb.covar(qbExample)
 plot(tmp)
 summary(tmp)
-plot(qb.covar(qbExample, element = "dom"))
 
 ## Show correlation of covariate with markers.
 ## Default for covar is first covariate.
@@ -72,14 +71,15 @@ summary(tmp)
 plot(tmp)
 
 ## Cell mean scan for interacting covariates.
-tmpar <- par(mfrow=c(3,1))
+tmpar <- par(mfrow=c(2,1))
 tmp <- qb.scanone(qbExample, type = "cellmean")
 plot(tmp)
-abline(v=35,lty=2)
+title("\n\nfemales")
+## Lines at QTLs.
+abline(v=c(15,45,60+25+12,2*(60+25)+15),lty=2)
 tmp <- qb.scanone(qbExample, type = "cellmean", adjust.covar = 1)
 plot(tmp)
-abline(v=35,lty=2)
-tmp <- qb.scanone(qbExample, type = "cellmean", adjust.covar = 1)
-plot(tmp)
-abline(v=35,lty=2)
+title("\n\nmales")
+## Lines at QTLs.
+abline(v=c(15,45,60+25+12,2*(60+25)+15),lty=2)
 par(tmpar)

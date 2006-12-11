@@ -48,7 +48,7 @@ on HPD region. Create genome scans for \code{profile} and \code{effects}.
   \item{profile}{Peak of profile, identifed by the profile type.}
   \item{effects}{Columns for the effects, appropriately labeled.}
 }
-\references{http://www.ssg.uab.edu/qtlbim}
+\references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.scanone}}}
 \examples{

@@ -42,7 +42,7 @@ object and prepares data for \code{\link{qb.model}} and \code{\link{qb.mcmc}}
 It can also standardize or transform continuous data if specified.
 }
 \references{
-  \url{http://www.ssg.uab.edu/qtlbim}}
+  \url{http://www.qtlbim.org}}
 
 
 \note{ This function returns a list and hence should have a differenct name from
