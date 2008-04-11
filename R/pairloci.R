@@ -26,11 +26,10 @@ qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15,
     cat("no epistatic pairs\n")
     return(invisible(NULL))
   }
-  geno.names <- names(qb.cross(qbObject)$geno)
-  percent <- 100 *
-    rev(sort(table(interaction(geno.names[pairloci[, "chrom1"]],
-                               geno.names[pairloci[, "chrom2"]])))) /
-                                 nrow(qb.get(qbObject, "iterdiag"))
+  geno.names <- qb.geno.names(qbObject)
+  percent <- rev(sort(table(interaction(geno.names[pairloci[, "chrom1"]],
+                                        geno.names[pairloci[, "chrom2"]]))))
+  percent <- 100 * percent / qb.niter(qbObject)
   percent <- percent[ percent >  cutoff ]
   if(length(percent) > nmax)
     percent <- percent[seq(nmax)]
@@ -75,8 +74,8 @@ qb.pairloci <- function(qbObject, chr)
   
   class(d) <- c("qb.pairloci", "matrix")
   attr(d, "chr") <- chr
-  attr(d, "niter") <- nrow(qb.get(qbObject, "iterdiag"))
-  attr(d, "map") <- pull.map(qb.cross(qbObject))[chr]
+  attr(d, "niter") <- qb.niter(qbObject)
+  attr(d, "map") <- pull.map(qb.cross(qbObject, genoprob = FALSE))[chr]
   attr(d, "post") <-
     qb.pair.posterior(qbObject, pairloci = pairloci)[paste(chr, collapse = ".")]
   d
@@ -133,7 +132,7 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
   }
 
   ## Identify pairs of chromosomes with interacting QTL.
-  geno.names <- names(qb.cross(qbObject)$geno)
+  geno.names <- qb.geno.names(qbObject)
   inter <- interaction(geno.names[pairloci[, "chrom1"]],
                        geno.names[pairloci[, "chrom2"]])
   post <- qb.pair.posterior(qbObject, cutoff, pairloci = pairloci)
@@ -164,10 +163,7 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
 summary.qb.epistasis <- function(object, ...)
 {
   nc <- ncol(object)
-
-  tmp <- as.matrix(object[, -nc])
-  if(ncol(tmp) == 1)
-    dimnames(tmp) <- list(NULL, names(object)[-nc])
+  tmp <- object[, -nc, drop = FALSE]
   
   signif(cbind("%" =  attr(object, "post"),
                apply(tmp, 2,
@@ -214,11 +210,11 @@ plot.qb.epistasis <- function(x, effects = names(x)[-length(x)],
 ##############################################################################
 qb.chrom <- function(qbObject)
 {
-  geno.names <- names(qb.cross(qbObject)$geno)
-  chrom <- c(table(geno.names[qb.get(qbObject, "mainloci")$chrom]))
-  maplen <- unlist(lapply(pull.map(qb.cross(qbObject)),
+  geno.names <- qb.geno.names(qbObject)
+  chrom <- c(table(geno.names[qb.get(qbObject, "mainloci")$chrom]))[geno.names]
+  maplen <- unlist(lapply(pull.map(qb.cross(qbObject, genoprob = FALSE)),
                            function(x) diff(range(x))))
-  niter <- nrow(qb.get(qbObject, "iterdiag"))
+  niter <- qb.niter(qbObject)
   ## caution: posterior does not account for duplicate chromosomes
   assess <- data.frame(posterior = chrom / sum(chrom),
     prior = maplen[names(chrom)] / sum(maplen))
@@ -239,8 +235,8 @@ qb.pairs <- function(qbObject, cutoff = 1, nmax = 15)
     return(invisible(NULL))
   }
   npair <- qb.pair.nqtl(qbObject, cutoff, pairloci)
-  niter <- nrow(qb.get(qbObject, "iterdiag"))
-  geno.names <- names(qb.cross(qbObject)$geno)
+  niter <- qb.niter(qbObject)
+  geno.names <- qb.geno.names(qbObject)
   inter <- interaction(geno.names[pairloci[, "chrom1"]],
                        geno.names[pairloci[, "chrom2"]])
   posterior <- rev(sort(table(inter))) / niter
@@ -251,7 +247,7 @@ qb.pairs <- function(qbObject, cutoff = 1, nmax = 15)
   if(length(posterior) > nmax)
     posterior <- posterior[1:nmax]
 
-  maplen <- unlist(lapply(pull.map(qb.cross(qbObject)),
+  maplen <- unlist(lapply(pull.map(qb.cross(qbObject, genoprob = FALSE)),
                           function(x)diff(range(x))))
   i <- !duplicated(inter)
   prior <- maplen[pairloci$chrom1[i]] * maplen[pairloci$chrom2[i]]
@@ -272,23 +268,15 @@ plot.qb.pattern <- function (x, bars = seq(x$posterior),
   labels = c("model index", "model posterior", "pattern posterior"),
   barlabels = names(x$posterior), 
   threshold = c(weak = 3, moderate = 10, strong = 30), units = 2, 
-  rescale = TRUE, ...) 
+  rescale = TRUE, col.prior = "blue", ...) 
 {
   bar <- barplot(c(x$posterior), col = "white", names = bars, ...)
   tmp <- if (rescale) 
     x$prior * 0.99 * max(x$posterior) / max(x$prior)
   else x$prior
-  lines(bar, tmp, type = "b", col = "blue", lwd = 2)
+  lines(bar, tmp, type = "b", col = col.prior, lwd = 2)
   if (!is.null(barlabels)) {
     cex <- 1
-#    usr <- par("usr")
-#    tmp <- as.numeric(2 * (x$posterior - usr[3]) >= diff(usr[3:4]))
-#    for (i in 0:1) {
-#      ii <- i == tmp
-#      if (any(ii)) 
-#        text(bar[ii], x$posterior[ii], barlabels[ii], 
-#             srt = 90, adj = i, cex = cex)
-#    }
     text(bar, 0, barlabels, srt = 90, adj = 0, cex = cex)
     
   }
@@ -304,15 +292,10 @@ plot.qb.pattern <- function (x, bars = seq(x$posterior),
   axis(1, seq(bars), bars)
   if (!is.null(barlabels)) {
     cxy <- par("cxy")[1] * cex/2
-    nqtl <- strsplit(barlabels, "")
-    nqtl <- lapply(nqtl, function(x) {
-      colon <- seq(x)[x == ":" | x == "*"][1]
-      x <- if (is.na(colon)) 
-        "1"
-      else
-        x[seq(colon - 1)]
-      paste(x, collapse = "")
-    })
+
+    ## Count number of QTL terms separated by commas.
+    nqtl <- sapply(strsplit(barlabels, ","), length)
+    nqtl[barlabels == "NULL"] <- 0
     text(seq(barlabels) - cxy, x$bf, nqtl, srt = 90, cex = cex)
   }
   usr <- 10^par("usr")[3:4]
@@ -329,14 +312,14 @@ plot.qb.pattern <- function (x, bars = seq(x$posterior),
     bars <- floor(mean(seq(bars))/2) + 0.5
     maxusr <- usr[2]
     usr <- prod(usr^c(0.95, 0.05))
-    lines(bars + c(-0.25, 0.25), rep(usr, 2), lwd = 3, col = "blue")
+    lines(bars + c(-0.25, 0.25), rep(usr, 2), lwd = 3, col = col.prior)
     texusr <- usr
     for (i in seq(length(threshold))) {
       sigusr <- min(maxusr, usr * threshold[i])
       if (texusr < maxusr) 
         text(bars + 0.5, sqrt(texusr * sigusr), names(threshold)[i], 
-             col = "blue", adj = 0)
-      arrows(bars, usr, bars, sigusr, 0.1, lwd = 3, col = "blue")
+             col = col.prior, adj = 0)
+      arrows(bars, usr, bars, sigusr, 0.1, lwd = 3, col = col.prior)
       texusr <- sigusr
     }
   }

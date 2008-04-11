@@ -20,24 +20,26 @@
 
 
 ### NOTE: Depends on R/qtl 1.03.
-qb.genoprob <- function(cross, map.func = c("Haldane","Kosambi"), step = 2,
-                        tolerance = 1e-6, ...)
+qb.genoprob <- function(cross, map.function = map.functions, step = 2,
+                        tolerance = 1e-6, stepwidth = "variable", ...)
 {
-  ## This uses new variable-width create.map function
-  ## within call to calc.genoprob. That is, we no longer
-  ## need to call our internal C code.
-  map.functions <- c("haldane","kosambi","c-f","morgan")
-  map.func <- pmatch(tolower(map.func), map.functions, nomatch = 1)
-  map.func <- map.functions[map.func[1]]
-  
+  ## This uses calc.genoprob directly.
+  ## Call sequence maintained for legacy user code.
+  map.functions <- unlist(as.list(formals(calc.genoprob)$map.function)[-1])
+  map.function <- match.arg(tolower(map.function[1]), map.function)
+
   ## First make sure QTL are not too close.
   if(any(sapply(pull.map(cross), function(x) max(diff(x))) < tolerance))
     cross <- jittermap(cross, tolerance)
   
   ## Call R/qtl routine calc.genoprob for calculations.
-    cross <- calc.genoprob(cross, step, map.function = map.func,
-                           stepwidth = "variable",
-                           ...)
+  cross <- calc.genoprob(cross, step, map.function = map.function,
+                         stepwidth = stepwidth,
+                         ...)
+
+  ## Add tolerance as attribute.
+  attr(cross$geno[[1]]$prob, "tolerance") <- tolerance
+  
   return(cross)
 }
 

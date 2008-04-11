@@ -63,9 +63,10 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
   }
   scan <- scan[1]
   one <- qb.scanone(qbObject, ..., type = "posterior")
-  tmp <- dimnames(one)[[2]]
+  tmp <- names(one)[-(1:2)]
   if(is.na(match(scan, tmp)))
     scan <- tmp[1]
+
   grid[[scan]] <- qb.smoothone(one[, scan], grid, smooth, niter)
 
   ## Find HPD height and reduce grid to those at or above height.
@@ -98,6 +99,10 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
       grid <- matrix(grid, 1)
       dimnames(grid) <- list(chr.hpd, gridnames[[2]])
     }
+    geno.names <- qb.geno.names(qbObject)
+    grid <- data.frame(grid)
+    grid$chr <- ordered(geno.names[grid$chr], geno.names)
+    rownames(grid) <- as.character(grid$chr)
     out <- list(hpd.region = grid)
 
     out$profile <- qb.scanone(qbObject, type = profile, chr = chr, ...)
@@ -112,7 +117,9 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
     class(out) <- c("qb.hpdone", "matrix")
     attr(out, "profile") <- profile
     attr(out, "effects") <- effects
-    attr(out, "map.range") <- lapply(pull.map(qb.cross(qbObject)), range)
+    attr(out, "hpd.height") <- hpd
+    attr(out, "hpd.level") <- level
+    attr(out, "map.range") <- lapply(pull.map(qb.cross(qbObject, genoprob = FALSE)), range)
     out
 
     ## Might consider separate lines at epistasis and main?
@@ -131,44 +138,53 @@ summary.qb.hpdone <- function(object, chr = chrs, digits = 3, ...)
     stop("No HPD regions identified (level to small?)")
 
   ## The selected chr is subset of row.names of hpd.region.
-  chrs <- as.numeric(row.names(object$hpd.region))
+  chrs <- row.names(object$hpd.region)
   chr <- chr[!is.na(match(chr, row.names(object$hpd.region)))]
   chr.hpd <- as.character(chr)
 
-  tmp <- object$hpd.region[chr.hpd,]
+  tmp <- object$hpd.region[chr.hpd,, drop = FALSE]
 
   ## Add peak of profile.
   tmp2 <- summary(object$profile)
-  tmp2 <- tmp2[match(chr, tmp2[, "chr"]), "sum"]
+  tmp2 <- tmp2[match(chr, tmp2[, "chr"]), "sum", drop = FALSE]
 
   ## Add effects estimates.
   tmp3 <- summary(object$effects)
-  tmp3 <- tmp3[match(chr, tmp3[, "chr"]), -(1:4)]
-  if(length(chr.hpd) == 1) {
-    ## Kludge adjustment if only on chr.
-    tmp <- c(tmp, tmp2, unlist(tmp3))
-    tmp <- t(as.matrix(tmp))
-    tmprow <- names(tmp3)
-  }
-  else {
-    tmp <- cbind(tmp, tmp2, tmp3)
-    tmprow <- dimnames(tmp3)[[2]]
-  }
-  dimnames(tmp) <- list(attr(object$profile, "geno.names")[chr],
+  tmp3 <- tmp3[match(chr, tmp3[, "chr"]), -(1:4), drop = FALSE]
+
+  tmp <- cbind(tmp, tmp2, tmp3)
+  tmprow <- dimnames(tmp3)[[2]]
+  dimnames(tmp) <- list(chr,
                         c(dimnames(object$hpd.region)[[2]],
                           attr(object, "profile"),
                           tmprow))
-  round(tmp, digits)
+  class(tmp) <- c("summary.qb.hpdone", "data.frame")
+  attr(tmp, "digits") <- digits
+  tmp
 }
 ###################################################################
-plot.qb.hpdone <- function(x, chr = chrs, smooth = 3, ...)
+print.summary.qb.hpdone <- function(x, ...)
+{
+  x[, -1] <- round(x[, -1], attr(x, "digits"))
+  class(x) <- "data.frame"
+  NextMethod()
+}
+###################################################################
+plot.qb.hpdone <- function(x, chr = chrs, ...)
 {
   if(is.null(x))
     stop("No HPD regions identified (level to small?)")
 
   ## The selected chr is subset of row.names of hpd.region.
-  chrs <- as.numeric(row.names(x$hpd.region))
-  chr <- chr[!is.na(match(chr, row.names(x$hpd.region)))]
+  chrs <- x$hpd.region$chr
+  chr <- x$hpd.region$chr[match(chr,
+                                {
+                                  if(is.numeric(chr))
+                                    unclass(x$hpd.region$chr)
+                                  else
+                                    x$hpd.region$chr
+                                },
+                                nomatch = 0)]
   if(!length(chr))
     stop("no chromosomes to plot")
   chr.hpd <- as.character(chr)
@@ -188,7 +204,8 @@ plot.qb.hpdone <- function(x, chr = chrs, smooth = 3, ...)
   tmpar <- par(mfrow = c(2,1), mar = c(4.1,4.1,3.1,0.1))
   on.exit(par(tmpar))
 
-  plot(x$profile, smooth = smooth, chr = chr, ...)
+  ## NB: scan takes numeric chr for now.
+  plot(x$profile, chr = chr, ...)
   tmp <- pmatch(c("lo.","hi."), dimnames(x$hpd.region)[[2]])
   apply(cbind(x$hpd.region[chr.hpd, tmp[1]] + map,
               x$hpd.region[chr.hpd, tmp[2]] + map), 1,
@@ -198,8 +215,33 @@ plot.qb.hpdone <- function(x, chr = chrs, smooth = 3, ...)
   apply(as.matrix(map + x$hpd.region[chr.hpd,"pos"]), 1, function(x)
         abline(v = x, lty = 2, lwd = 2, col = "gray"))
 
-  plot(x$effects, smooth = smooth, chr = chr, ...)
+  plot(x$effects, chr = chr, ...)
   apply(as.matrix(map + x$hpd.region[chr.hpd,"pos"]), 1, function(x)
         abline(v = x, lty = 2, lwd = 2, col = "gray"))
   invisible()
+}
+#######################################################################################3
+qb.hpdchr <- function(qbObject, level = 0.5, height = hpd.height,
+                      hpd = qb.hpdone(qbObject, level = level, profile = "post"), 
+                      chr = hpd$hpd.region$chr,
+                      smooth = 3)
+{
+  if(!missing(height)) {
+    level <- 1
+  }
+  if(attr(hpd, "profile") != "post")
+    stop("qb.hpdone must be run with profile = \"post\"")
+  hpd.height <- attr(hpd,"hpd.height")
+  out <- array(NA, length(chr))
+  names(out) <- chr
+  grid <- pull.grid(subset(qbObject, chr = unclass(chr)))
+  for(i in seq(length(chr))) {
+    tmp <- hpd$profile[grid$chr == unclass(chr[i]), "sum"]
+    tmp <- qb.smoothchr(tmp, smooth, tmp)
+    tmp2 <- tmp > height
+    if(any(tmp2))
+      out[as.character(chr[i])] <- sum(tmp[tmp2]) / sum(tmp)
+  }
+  out <- 100 * out[!is.na(out)]
+  list(hpd.height = height, chr.posterior = out)
 }

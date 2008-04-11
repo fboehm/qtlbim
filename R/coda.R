@@ -19,11 +19,11 @@
 ####################################################################################
 
 
-qb.coda <- function(object,
+qb.coda <- function(qbObject,
                     element = c("iterdiag","mainloci","pairloci","covariates","gbye"),
                     variables = variable.list[[element]])
 {
-  qb.exists(object)
+  qb.exists(qbObject)
   
    require("coda")
    variable.list <- list(iterdiag = c("nqtl","mean","envvar","var"),
@@ -32,7 +32,7 @@ qb.coda <- function(object,
                          covariates = "cov1",
                          gbye = c("n.gbye","chrom","add","dom"))
    element <- match.arg(element)
-   tmp <- qb.get(object, element)
+   tmp <- qb.get(qbObject, element)
    variables <- names(tmp)[match(variables, names(tmp), nomatch = 0)]
    if(length(variables))
       mcmc(tmp[, variables])

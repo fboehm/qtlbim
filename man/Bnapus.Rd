@@ -1,6 +1,5 @@
 \name{Bnapus}
 \alias{Bnapus}
-\non_function{}
 \title{Cross structure for complete Brassica napus data}
 \description{
 Contains genotypes and phenotypes for Brassica napus study, including 0-

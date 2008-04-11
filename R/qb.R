@@ -50,11 +50,14 @@ summary.qb <- function(object, cutoff = 1, ...)
   cat("with",
       qb.get(object, "n.burnin"), "burn-in steps.\n")
 
-  cat("MCMC runs saved in temporary directory\n",
-      qb.get(object, "output.dir"),
-      "\n(use qb.remove to remove).\n")
+  if(!is.legacy(object))
+    cat("MCMC runs saved in qb object.\n")
+  else
+    cat("MCMC runs saved in temporary directory\n",
+        qb.get(object, "output.dir"),
+        "\n(use qb.remove to remove).\n")
 
-  cross <- qb.cross(object)
+  cross <- qb.cross(object, genoprob = FALSE)
   cat("Trait", names(cross$pheno)[qb.get(object, "pheno.col")],
       "(", qb.get(object, "pheno.col"), ") treated as",
       qb.get(object, "trait"), ".\n")
@@ -105,7 +108,7 @@ summary.qb <- function(object, cutoff = 1, ...)
   print(apply(iterdiag[ , -1], 2, summary))
 
   cat("\nPercentages for number of QTL detected:")
-  print(round(100 * table(iterdiag$nqtl) / nrow(iterdiag)))
+  print(round(100 * table(iterdiag$nqtl) / qb.niter(object)))
 
   if(qb.get(object, "epistasis")) {
     cat("\nPercentages for number of epistatic pairs detected:\n")
@@ -127,22 +130,17 @@ summary.qb <- function(object, cutoff = 1, ...)
 ## arguments
 ##     qbObject       An object of class qb.
 ##
-##     range           A vector of nonnegative intesters.  The entries must
-##                     be unique.
+##     range           A vector of nonnegative intesters.
 ##
 ## returns
 ##    Prior probabilities for each entry in the range argument arranged in
 ## the same order and with names corresonding to range entries.
 ##
 
-qb.prior <- function(qbObject, range)
+qb.prior <- function(qbObject, range, mean = qb.get(qbObject, "mean.nqtl"))
 {
-  ## Stop if range not unique.
-  stopifnot(range == unique(range))
-
   ## Extract prior distribution's name and mean.
   prior <- "poisson"
-  mean <- qbObject$mean.nqtl
 
   ## Compute values of prior distribution over the range.
   pr <- switch(prior,
@@ -170,87 +168,20 @@ qb.prior <- function(qbObject, range)
 ##                   produced by an MCMC run (either the reversible jump
 ##                   MCMC or Nengjun Yi's algorithm in bmapqtl.
 ##     pattern       A sequence of ????.  The "pattern" argument must be
-#                    suitable as an argument to the built-in table function.
+##                   suitable as an argument to the built-in table function.
 ## returns:
 ##     
 ##
 
-qb.match <- function(qb, pattern)
+qb.match <- function(qbObject, pattern)
 {
-  patfn <- function(x) {
-    tmp <- paste(ifelse(x > 1,
-                         paste(x, "*", sep=""),
-                         ""),
-                 names(x), collapse = ",", sep = "")
-    if(length(x) > 1)
-      tmp <- paste(sum(x), tmp, sep = ":")
-    tmp
-  }
-  mypat <- patfn(table(pattern))
-  mainloci <- qb.get(qb, "mainloci")
+  mypat <- paste(pattern, collapse = ",", sep = "")
+  mainloci <- qb.get(qbObject, "mainloci")
   counts <- tapply(mainloci$chrom, mainloci$niter, function(x) table(x),
                    simplify = FALSE)
+  patfn <- function(x) sum(x) ## Just a placeholder for now.
   patterns <- unlist(lapply(counts, patfn))
   as.numeric(names(counts)[!is.na(match(patterns, mypat))])
-}
-
-##############################################################################
-## qb.cross 
-##          This function is used to supply the default argument for
-##  a cross in the functions
-##                    "plot.qb"
-##                    "qb.pattern"
-##                    "qb.BayesFactor"
-##                    "subset.qb"
-##                    "qb.scanone"
-##                    "qb.scantwo"
-## The cross is extracted from the options stored in the qb argument.
-##                    
-## arguments
-##         qbObject         An object of class qb.
-##
-## returns
-##         An object of class "f2" (inheriting from class "cross").
-##
-## errors/exceptions:
-##         If the name "cross" is not found in the options object returned by
-## qb.get, then the "stop" function is called.
-##
-
-qb.cross <- function(qbObject)
-{
-  ## temporary reminder
-  cross.name <- qb.get(qbObject, "cross.name")
-  if(is.null(cross.name))
-    stop("need to have cross.name as character string in qb object")
-  get(cross.name)
-}
-
-##############################################################################
-## qb.cex
-##     This private function is used only once to set the default plotting
-## parameter cex in the function "plot.qb.effects".
-##
-## arguments
-##     qb         An object of class qb.
-##
-##     min.cex     A minimum (floating point) value by which symbols and
-##                 text should be scaled relative to the default.
-## returns
-##     The return value is used in "plot.qb.effects", to set the cex
-## parameter in the "plot" function.  This is a scale factor by which
-## symbols and text will be scaled relative to the default. Note: the
-## "par" function for setting plotting parameters also has an argument
-## called cex which behaves differently.
-## 
-
-qb.cex <- function(qb, min.cex = 3.85)
-{
-  tmp <- qb.get(qb, "iterdiag")
-  if(is.null(tmp))
-    1
-  else
-    2 ^ (2 - min(min.cex, max(2, (log10(nrow(tmp))))))
 }
 ##############################################################################
 
@@ -265,16 +196,11 @@ qb.cex <- function(qb, min.cex = 3.85)
 
 plot.qb <- function(x, ask = dev.interactive(), verbose = TRUE, ...)
 {
-  qb.exists(x)
+  nqtl <- qb.nqtl(x)
+  if(max(nqtl) == 0)
+    stop("no QTL found in MCMC runs")
   
-  ## ask before plot routines
-  tmpar <- par(ask = ask)
-  ## ask before lattice plots
-  tmpgrid <- grid::grid.prompt(ask)
-  on.exit({
-    par(tmpar)
-    grid::grid.prompt(tmpgrid)
-  })
+  qb.exists(x)
   
   ## Now get a series of plots after prompts.
 
@@ -384,15 +310,13 @@ qb.loci <- function(qbObject, loci = c("main", "epistasis", "GxE"),
                                                               "intcov"))]
              tmp <- !is.na(match(out$covar, covar))
              if(sum(tmp) > 0) {
-               out <- out[tmp, c("chrom", "locus")]
-               if(sum(tmp) == 1)
-                 out <- data.frame(chrom = out[1], locus = out[2])
+               out <- out[tmp, c("chrom", "locus"), drop = FALSE]
                out.list[[element]] <- out
              }
            })
   }
   class(out.list) <- c("qb.loci", "list")
-  attr(out.list, "map") <- pull.map(qb.cross(qbObject))
+  attr(out.list, "map") <- pull.map(qb.cross(qbObject, genoprob = FALSE))
 
   ## get mean spacing between grid points
   grid <- diff(pull.grid(qbObject)$pos)
@@ -491,20 +415,22 @@ summary.qb.loci <- function(object, digit = 1, ...)
          digit)
 }
 ##############################################################################
-print.qb.loci <- function(x, ...) print(summary(x, ...))
+print.qb.loci <- function(x, ...) invisible(print(summary(x, ...)))
 ##############################################################################
-qb.numqtl <- function(qb)
+qb.numqtl <- function(qbObject)
 {
-  ## posterior number of QTL
-  posterior <- table(qb.get(qb, "iterdiag")$nqtl)
-  rnames <- names(posterior)
-  posterior <- as.numeric(posterior)
-  ntrial <- sum(posterior)
-  posterior <- posterior / ntrial
-  ## prior number of QTL
-  prior <- qb.prior(qb, as.numeric(rnames))
+  iterdiag <- qb.get(qbObject, "iterdiag")
+  n.iter <- qb.niter(qbObject)
 
-  ## posterior/prior ratios for Bayes factor
+  ## Posterior number of QTL.
+  posterior <- table(iterdiag$nqtl)
+  rnames <- names(posterior)
+  posterior <- as.numeric(posterior) / n.iter
+  
+  ## Prior number of QTL.
+  prior <- qb.prior(qbObject, as.numeric(rnames))
+
+  ## Bayes factor ratios = posterior / prior.
   bf <- posterior / prior
   bf <- bf / min(bf, na.rm = TRUE)
   
@@ -512,27 +438,21 @@ qb.numqtl <- function(qb)
   ## (actually binomial error)
   ## note that this is rescaled since bf[1] forced to be 1
   tmp <- data.frame(posterior = posterior, prior = prior, bf = bf,
-       bfse = sqrt((1 - posterior) / (posterior * ntrial)) * bf)
+       bfse = sqrt((1 - posterior) / (posterior * n.iter)) * bf)
   row.names(tmp) <- rnames
   tmp
 }
 ##############################################################################
-qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
+qb.pattern <- function(qbObject, cutoff = 1, nmax = 15, epistasis = TRUE)
 {
+  iterdiag <- qb.get(qbObject, "iterdiag")
+  n.iter <- qb.niter(qbObject)
+
   mainloci <- qb.get(qbObject, "mainloci")
-  geno.names <- names(qb.cross(qbObject)$geno)
-  counts <- tapply(geno.names[mainloci$chrom], mainloci$niter,
-                   function(x) table(x),
-                   simplify = FALSE)
-  pattern <- unlist(lapply(counts, function(x) {
-    tmp <- paste(ifelse(x > 1,
-                         paste(x, "*", sep=""),
-                         ""),
-                 names(x), collapse = ",", sep = "")
-    if(length(x) > 1)
-      tmp <- paste(sum(x), tmp, sep = ":")
-    tmp
-  }))
+  pairloci <- qb.get(qbObject, "pairloci")
+  pattern <- qb.makepattern(qbObject, epistasis, iterdiag = iterdiag,
+                            mainloci = mainloci, pairloci = pairloci)
+                           
   posterior <- rev(sort(table(pattern)))
   posterior <- posterior / sum(posterior)
   tmp <- posterior >= cutoff / 100
@@ -548,11 +468,10 @@ qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
   ucount <- match(names(posterior), pattern)
 
   ## prior for pattern
-  iterdiag <- qb.get(qbObject, "iterdiag")
   rng <- max(iterdiag$nqtl)
   pr <- qb.prior(qbObject, 0:rng)
   bf <- posterior
-  map <- pull.map(qb.cross(qbObject))
+  map <- pull.map(qb.cross(qbObject, genoprob = FALSE))
   chrlen <- unlist(lapply(map, max))
   nchrom <- length(chrlen)
   chrlen <- chrlen / sum(chrlen)
@@ -560,15 +479,101 @@ qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
   fact <- rep(1, rng)
   for(i in 2:(rng+1)) 
     fact[i] <- fact[i-1] * i
-  for(i in seq(posterior)) {
-    ct <- counts[[ucount[i]]]
-    st <- sum(ct)
-    bf[i] <- pr[st] * prod(chrlen[names(ct)] ^ ct) *
-      fact[st] / prod(fact[ct])
+
+  ## New plan. Use only subset of mainloci matching ucount's.
+  ## bundle table and for loop into one.
+
+  ## Set up prior using null.
+  prior <- rep(pr[1], length(posterior))
+  names(prior) <- names(posterior)
+
+  ## Find prior proportional to qb.prior and lengths of chromosomes.
+  ## Use factorial adjustments for multiple linked QTL.
+  tmpfn <- function(x, chrlen, fact) {
+    ct <- c(table(x))
+    prod(chrlen[names(ct)] ^ ct) * fact[sum(ct)] / prod(fact[ct])
   }
 
-  ntrial <- length(pattern)
-  prior <- bf
+  ## Subset on non-null iterations corresponding to posterior.
+  sub.post <- iterdiag$niter[ucount]
+  is.depen <- qb.get(qbObject, "depen")
+  if(epistasis & is.depen)
+    tmp <- !is.na(match(pairloci$niter, sub.post))
+  sub.post <- !is.na(match(mainloci$niter, sub.post))
+
+  ## Adjust for epistatic effects.
+  ## For now only considering hierarchical model case.
+  ## That is epistasis only if main effects.
+  ## In order to handle epistasis with 1 or no main effect
+  ## we would need to compute probabilities for each iteration.
+  ## This will be a lot more work!
+  if(epistasis) {
+    if(is.depen) {
+      ## Epistatic priors depend on number of main loci.
+      ## Not correct yet when c1 or c0 > 0.
+      ## Find number of possible epistatic pairs of main loci.
+      tbl.main <- c(table(mainloci[sub.post, "niter"]))
+      tmp2 <- tbl.main * (tbl.main - 1) / 2
+      
+      tmp <- c(table(pairloci[tmp,"niter"]))
+      prop <- qb.get(qbObject, "prop")
+      if(sum(prop[-1]) > 0)
+        warning("Bayes factor computations assume all QTL are main (may not be correct)")
+
+      ## Epistasis with two main QTL.
+      tmp2[names(tmp)] <- (prop[1] ^ tmp) *
+        ((1 - prop[1]) ^ (tmp2[names(tmp)] - tmp))
+      tmp2[is.na(match(names(tmp2), names(tmp)))] <-
+        (1 - prop[1]) ^ tmp2[is.na(match(names(tmp2), names(tmp)))]
+      tbl.main <- pr[1 + tbl.main] * tmp2
+    }
+    else {
+      ## Independent prior for epistasis.
+      ## Product of prior for main QTL * prior for epis-only QTL.
+
+      ## Find mainloci entries matching patterns with high posterior.
+      ## Kludge to catch iterations with 0 QTL.
+      tmp <- rep(0, nrow(iterdiag))
+      names(tmp) <- iterdiag$niter
+      tmp2 <- c(table(mainloci[, "niter"]))
+      tmp[names(tmp2)] <- tmp2
+      tmp2 <- rep(!is.na(match(pattern, names(posterior))), tmp)
+
+      ## Sum up main loci variance components and tally those not zero.
+      tmp <- mainloci[tmp2, "varadd"]
+      is.bc <- (qb.cross.class(qbObject) == "bc")
+      if(!is.bc)
+        tmp <- tmp + mainloci[tmp2, "vardom"]
+      tmp <- tapply(tmp, mainloci[tmp2, "niter"], function(x) sum(x > 0))
+      ## Table number of total QTL per iteration.
+      tbl.main <- c(table(mainloci[tmp2, "niter"]))
+
+      ## Product of priors for main and epis-only QTL.
+      main.nqtl <- qb.get(qbObject, "main.nqtl")
+      mean.nqtl <- qb.get(qbObject, "mean.nqtl")
+      ## Average product of poisson probabilities by pattern.
+      pr.main <- qb.prior(qbObject, seq(0, max(tmp)), main.nqtl)
+      pr <- qb.prior(qbObject, seq(0, max(tbl.main - tmp)), mean.nqtl - main.nqtl)
+      tbl.main <- tapply(pr.main[1 + tmp] * pr[1 + tbl.main - tmp],
+                         pattern[names(tbl.main)], mean)
+      ## Rearrange in order to match calculations below.
+      tbl.main <- tbl.main[pattern[as.character(sort(iterdiag$niter[ucount]))]]
+      names(tbl.main) <- sort(iterdiag$niter[ucount])
+      tbl.main <- tbl.main[!is.na(tbl.main)]
+    }
+  }
+  else
+    tbl.main <- pr[1 + c(table(mainloci[sub.post, "niter"]))]
+
+  geno.names <- names(map)
+  tmp <- c(tapply(ordered(geno.names[mainloci[sub.post, "chrom"]], geno.names),
+                  mainloci[sub.post, "niter"],
+                  tmpfn, chrlen, fact))
+  tmp <- tmp * tbl.main
+       
+  prior[pattern[names(tmp)]] <- tmp
+
+  ## Bayes factor ratio = rescaled version of posterior / prior.
   bf <- posterior / prior
   ## rescale bf so smallest value is 1 (avoid NA, 0/0)
   minbf <- bf[!is.na(bf)]
@@ -578,13 +583,21 @@ qb.pattern <- function(qbObject, cutoff = 1, nmax = 15)
   ## bfse = approximate Monte Carlo standard error for bf
   ## (actually binomial error)
   ## note that this is rescaled since bf[1] forced to be 1
-  data.frame(posterior = posterior, prior = prior, bf = bf,
-       bfse = sqrt((1 - posterior) / (posterior * ntrial)) * bf)
+  tmp <- names(posterior)
+  nqtl <- sapply(strsplit(tmp, ","),length)
+  names(nqtl) <- tmp
+  data.frame(nqtl = nqtl,
+             posterior = posterior, prior = prior, bf = bf,
+             bfse = sqrt((1 - posterior) / (posterior * n.iter)) * bf)
 }
 ##############################################################################
+qb.bf <- function(...) qb.BayesFactor(...)
+##############################################################################
 qb.BayesFactor <- function(qbObject,
-                            items = c("nqtl","pattern","chrom","pairs"),
-                            cutoff.pattern = 0.2, cutoff.pairs = 1, nmax = 15)
+                           items = c("nqtl","pattern","chrom","pairs"),
+                           cutoff.pattern = ifelse(epistasis, 0.25, 0.5),
+                           cutoff.pairs = 1, nmax = 15,
+                           epistasis = TRUE)
 {
   qb.exists(qbObject)
   
@@ -594,7 +607,7 @@ qb.BayesFactor <- function(qbObject,
     assess$nqtl <- qb.numqtl(qbObject)
 
   if(any(pmatch(tolower(items), "pattern", nomatch = 0)))
-    assess$pattern <- qb.pattern(qbObject, cutoff.pattern, nmax)
+    assess$pattern <- qb.pattern(qbObject, cutoff.pattern, nmax, epistasis)
 
   if(any(pmatch(tolower(items), "chrom", nomatch = 0)))
     assess$chrom <- qb.chrom(qbObject)
@@ -651,7 +664,7 @@ qb.diag <- function(qbObject, items= c("mean","envvar","var","herit"), ...)
   
   iterdiag <- qb.get(qbObject, "iterdiag")
   nhist <- length(items)
-  diag <- matrix(NA, nrow(iterdiag), nhist + 1)
+  diag <- matrix(NA, qb.niter(qbObject), nhist + 1)
   dimnames(diag) <- list(NULL, c(items, "nqtl"))
 
   for(i in seq(nhist)) {

@@ -55,9 +55,8 @@ main chromosomes and epistatic pairs.
 \seealso{\code{\link{step.fitqtl}}, \code{\link{qb.sweave}}}
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 ## Run qb.scantwo and get summary to use in qb.arch
 temp <- summary(qb.scantwo(qbExample, type = "2logBF"),
   threshold = c(upper = 10))

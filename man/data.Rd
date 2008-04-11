@@ -6,8 +6,9 @@ This function selects trait(s) and covariates from a \code{cross} object to buil
 a model (\code{\link{qb.model}}) for MCMC (\code{\link{qb.mcmc}}).  
 }
 \usage{
-qb.data( cross, pheno.col = 1, trait = c("normal","binary","ordinal"), 
-  fixcov = c(0), rancov = c(0), boxcox = FALSE, standardize = FALSE, \dots) 
+qb.data(cross, pheno.col = 1, trait = c("normal","binary","ordinal"), 
+  censor = NULL, fixcov = c(0), rancov = c(0), boxcox = FALSE,
+  standardize = FALSE, \dots) 
 }
 \arguments{
   \item{cross}{ An object of class \code{cross}. See \code{\link[qtl]{read.cross}} for details. }
@@ -15,6 +16,8 @@ qb.data( cross, pheno.col = 1, trait = c("normal","binary","ordinal"),
                     Currently, only one phenotype can be analyzed at a time.}
   \item{trait}{Type of the quatitative trait or dependent variable: 
                 "normal" or "binary" or "ordinal".}
+  \item{censor}{Matrix of censor values with 2 columns and
+    \code{nind(cross)} rows. Details needed here.}
   \item{fixcov}{list of fixed covariates. The column number(s) in \code{cross$pheno}
                 which is(are) considered as fixed covariates.}
   \item{rancov}{list of random covariates.The column number(s) in \code{cross$pheno}

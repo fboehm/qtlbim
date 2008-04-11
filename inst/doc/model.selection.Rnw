@@ -1,0 +1,379 @@
+% \VignetteIndexEntry{QTLBIM Overview}
+% \VignetteDepends{qtlbim}
+% \VignetteKeywords{QTL}
+%\VignettePackage{qtlbim}
+\documentclass{article}
+\usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}
+
+\SweaveOpts{eps=FALSE,prefix.string=qtlbimPDF/FIG}
+
+\begin{document}
+
+\title{Model Selection of Genetic Architecture using \textbf{R/qtlbim}}
+\author{Brian S. Yandell, Jee Young Moon}
+\maketitle
+
+\SweaveOpts{engine=R,echo=TRUE}
+
+\abstract{
+R/qtlbim (www.qtlbim.org) provides a powerful suite of tools for model selection of
+genetic architecture. The Markov chain Monte Carlo (MCMC) sampling
+approach draws samples from the more probable genetic
+architectures. Subsequent visualization and summary of these MCMC
+samples can inform users about the most probable genetic
+architecture. The tools described herein were developed largely in
+2007 to augment or extend tools already in R/qtlbim.
+}
+
+
+\section{Overview}
+
+This vignette describes the model selection routines for MCMC samples
+already obtained. using previously described tools in the
+\texttt{R/qtlbim} package.  The purpose of these plots and summaries
+is to help users select the best or better models to explain the
+relationship between phenotype and genotype. We focus on the
+\texttt{hyper} data set, and more particularly on the MCMC samples
+already generated, \texttt{qbHyper}.
+
+<<label=LoadQtlBim>>=
+library(qtlbim)
+data(qbHyper)
+@
+<<echo=FALSE>>=
+# Make width of chunks 80.
+options(width=80)
+if(!file.exists("selectPDF")) {
+  dir.create("selectPDF")
+  warning(paste("Creating Sweave directory selectPDF"),
+    call. = FALSE, immediate. = TRUE)
+}
+@
+ 
+The R/qtlbim model selection tools do the following:
+\begin{enumerate}
+\item evaluate Bayes factor for number or chromosome pattern of QTL (\texttt{qb.bf});
+\item examine proximity of sampled architectures (\texttt{qb.best});
+\item measure closeness of sampled architectures to target (\texttt{qb.close}).
+\item one-dimensional (\texttt{qb.scanone}) or two-dimensional (\texttt{qb.scantwo}) genome scan;
+\item characterize genetic architecture (\texttt{qb.arch});
+\item stepwise regression on genetic architecture (\texttt{step.fitqtl});
+\end{enumerate}
+In addition, several new routines begin to examine linked QTL:
+\begin{enumerate}
+\item examine multiple loci (\texttt{qb.multloci});
+\item find main and epistatic modes (\texttt{qb.mainmodes}, \texttt{qb.epimodes});
+\item split chromosomes for linked QTL (\texttt{qb.split.chr});
+\end{enumerate}
+This document assumes familiarity with the \texttt{hyper} analysis
+using R/qtlbim, as well as with the basics of this package. Please see
+the other vignettes for further package details.
+
+\section{What is the Best Model?}
+
+It is well and good to be able to explore possible genetic
+architectures, but what is the best? Here we start by defining the
+best genetic architecture as the most probable combinations of QTLs
+across chromosomes and any epistatic pairs given the data. Formally,
+this is the pattern of QTL with the highest posterior probability. In
+fact, this document focuses on assessing the chromosome pattern of
+QTLs. 
+
+The routine \texttt{qb.bf} (or \texttt{qb.BayesFactor}) can compute
+the posterior and Bayes factor for the more probable patterns.
+
+<<label=qb.bf>>=
+bf <- qb.bf(qbHyper, item = "pattern")
+summary(bf)
+@
+<<echo=FALSE>>=
+bf.pat <- summary(bf)$pattern
+post.pat <- row.names(bf.pat)[which.max(bf.pat$posterior)]
+bf.pat <- row.names(bf.pat)[which.max(bf.pat$bf)]
+@
+
+The pattern with the highest posterior probability is
+\Sexpr{post.pat},
+ whereas the pattern with highest Bayes factor is
+\Sexpr{bf.pat}. Patterns are represented a chromosome identifiers
+separated by commas; epistatic pairs of chromosomes are joined by a colon.
+The \texttt{qb.bf} summary model-averages over all possible loci on each
+chromosome. That is, with MCMC sampling, we find the frequency of the
+chromosome pattern while ignoring the actual loci values.
+
+This might be enough. However, we can now ask for the most probable
+chromosome pattern, what are the best estimates of loci? These are the
+averages of loci positions for those models that include exactly these
+chromosome patterns. The routine \texttt{qb.best} can perform this
+task, and a few more.
+
+<<label=qb.best>>=
+best <- qb.best(qbHyper)
+summary(best)
+@
+
+The best pattern is by design the most probable, but we now have
+estimates of the \texttt{locus} and \texttt{variance} contribution for
+each QTL. We can view more pattern details, say the top 3 patterns,
+with the option \texttt{n.best = 3}. We can see how this pattern
+compares to other patterns in a few plots.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(best)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=bestplot>>=
+file <- paste("selectPDF", "/bestmds.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(best)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\ 
+
+The font size of a pattern is determined by its posterior
+probability. The 2-D multidimensional scaling (MDS) projection is 
+based on the \texttt{score.type} (see below). Notice that models that
+overlap with \Sexpr{post.pat} are plotted near that pattern. Other
+patterns with little overlay are some distance away.
+
+The default \texttt{score.type} is \texttt{sq.atten},
+the square of the attenuation. When comparing two models, consider a
+QTL locus estimated by each to be on the same chromosome. The
+attenuation is $(1-2r)$, with $r$ the genetic distance (in Morgans)
+between the estimates. If the loci agree exactly, there is no
+attenuation ($r$ = 0). Loci on different chromosomes for different
+models have a score contribution of 0. The scores are added up, trying
+in the process to match of QTL as best as possible between any two
+genetic architectures. Other \texttt{score.type}s are
+\texttt{attenuation} (signed or not),
+\texttt{recombination}, \texttt{distance}, and
+explained \texttt{variance}. The latter provides a one-dimensional
+ordering of models based on overall fit.
+
+It is possible to examine the patterns in another way, by plotting a
+dendrogram based on hierarchical clustering.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(best, type = "hclust")
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=besthcplot>>=
+file <- paste("selectPDF", "/besthc.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(best, type = "hclust")
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\ 
+
+The default for method of model averaging of the \texttt{locus} and
+\texttt{variance} for \texttt{qb.best} is to average over loci from
+all MCMC samples that include a particular pattern--that is, average
+over all patterns that have the target \texttt{nested} within
+them. Instead, we can model average over all MCMC samples, or only
+those with an exact match to the best pattern. The \texttt{all}
+average uses the most MCMC samples per locus, while the \texttt{exact}
+typically involves very few samples, those that exactly match a
+particular pattern. There is a tradeoff of bias and variance in the
+choice of these methods, although bias appears empirically to be small
+due to the way MCMC samples cluster around more probable loci. Below
+are the three choices for inclusion in model averaging. It is also
+possible to change the way the \texttt{center} is determined (default
+is \texttt{"median"}, but \texttt{"mean"} is an alternative). The plots
+and summaries (not shown) change slightly as well, as all better
+patterns are altered similarly.
+
+<<label=average>>=
+qb.best(qbHyper, include = "all")$model[[1]]
+qb.best(qbHyper, include = "nested")$model[[1]]
+qb.best(qbHyper, include = "exact")$model[[1]]
+@
+
+\section{Model Diagnostics}
+
+A number of diagnostic routines have been described in other vignettes
+for this package. For instance, \texttt{qb.scanone} and
+\texttt{qb.scantwo} can be used to identify the strength of main and
+epistatic QTL. In addition, 
+the routines \texttt{qb.arch} and \texttt{step.fitqtl} can be helpful
+to refine model selection for genetic architecture. They are
+illustrated in the document on a prototype QTL study of the hyper
+dataset. All these routines have some connection to R/qtl
+(www.rqtl.org) routines, such as \texttt{scanone}, \texttt{scantwo}
+and \texttt{fitqtl}.
+
+\section{How Close are Other Models to a Target?}
+
+A target model might arise from another study, or from another
+analysis of the same dataset. Right here, we will use the most
+probably model as target, but the target object is simply a data frame
+with columns for \texttt{chrom}, \texttt{locus} and \texttt{variance}.
+[If \texttt{variance} is omitted, it is filled in with 0s.] Here is
+the target we are using:
+
+<<label=target>>=
+target <- best$model[[1]]
+@
+
+The routine \texttt{qb.close} gives a score comparison for each MCMC
+realization. These are summarized over chromosome pattern, or over
+number of QTL using boxplots.
+
+<<label=qb.close>>=
+close <- qb.close(qbHyper, target)
+summary(close)
+@
+
+It is more intuitive to look at the boxplots. Notice how patterns
+that miss the 6:15 interaction have much lower attenuation scores.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(close)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=closeplot>>=
+file <- paste("selectPDF", "/closepat.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(close)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\  
+
+Now examine close-ness summarized by number of QTL in the sample. Notice
+that the samples with 6 or more QTL essentially pick up the four
+target QTL. It is common for Bayesian interval mapping to
+"overfit". This is not necessarily a bad thing. Some of the QTL will
+have small effects. Other tools such as \texttt{qb.scanone} can be
+used to investigate which QTL fit have weak evidence.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(close, category = "nqtl")
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=closenqtlplot>>=
+file <- paste("selectPDF", "/closenqtl.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(close, category = "nqtl")
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\section{Multiple Linked Loci}
+
+Sometimes there appear to be evidence for linked loci. While
+2-dimensional scans with \texttt{scantwo} or \texttt{qb.scantwo} can
+disambiguate such situations, it can be helpful to have tools to look
+finer, and even to break chromosomes apart.
+
+The routine \texttt{qb.multloci} allows a look at evidence for two or
+more linked QTL. The upper right panel shows the posterior for number
+of linked QTL. The lower right panel shows the density broken up by a
+reasonable guess at the number of QTL (the highest value with at least
+20\% of the samples). The suggested break is based on the valley
+between peaks, using discriminant analysis.
+The upper left panel shows the epistatic pairs, and the lower left
+panel shows a two way plot of singletons (diagonal), pairs, triplets
+(as three pairs), etc.
+
+<<label=qb.multloci>>=
+mult <- qb.multloci(qbHyper, chr = 1)
+@
+\begin{Schunk}
+\begin{Sinput}
+> plot(mult)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=multplot>>=
+file <- paste("selectPDF", "/mult.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(mult)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+<<>>=
+summary(mult)
+@
+
+\noindent
+It is helpful sometimes to separate out samples with different number
+of QTL. This can be done with the \texttt{merge} option.
+
+<<label=unmerge>>=
+summary(mult, merge = FALSE)
+@
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(mult, merge = FALSE)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=multmergeplot>>=
+file <- paste("selectPDF", "/multmerge.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(mult, merge = FALSE)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+ \ 
+
+The peaks and valleys are computed with \texttt{qb.mainmodes}. While
+this routine is visible to the user, it is seldom actually
+needed. \texttt{qb.epimodes} serves a similar function for epistatic
+pairs only.
+
+Once a logical split for a chromosome has been established, we can use
+\texttt{qb.split.chr} to formalize the split. By default, it uses the
+results from \texttt{qb.mainmodes}.
+
+<<label=qb.split>>=
+qbHyper <- qb.split.chr(qbHyper)
+qb.get(qbHyper, "split.chr")
+@
+
+\noindent
+The split can be negated by the argument \texttt{split = NULL}. A few
+routines now use this split, and more are planned. For now,
+\texttt{qb.scanone}, \texttt{qb.scantwo} and \texttt{qb.bf} take
+advantage of this. Chromosomes are recoded as chr.1, chr.2, etc.
+
+<<label=bf.split>>=
+qb.bf(qbHyper, item = "pattern") 
+@
+
+<<label=bf.split>>=
+qb.best(qbHyper)
+@
+
+<<label=bf.split>>=
+one <- qb.scanone(qbHyper, type = "LPD") 
+summary(one)
+@
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(one, chr = 1)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=oneplot>>=
+file <- paste("selectPDF", "/one.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(one, chr = 1)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\end{document}

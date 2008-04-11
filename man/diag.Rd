@@ -43,9 +43,8 @@ qb.diag(qbObject, items= c("mean","envvar","var","herit"), \dots)
   \code{\link[graphics]{boxplot}}, \code{\link{qb.BayesFactor}}}
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 temp <- qb.diag(qbExample)
 summary(temp)
 plot(temp)

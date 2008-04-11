@@ -1,6 +1,5 @@
 \name{fisch}
 \alias{fisch}
-\non_function{}
 \title{Eight QTL Stephens and Fisch simulated data}
 \description{
 Contains genotypes and phenotypes for data simulated using model in

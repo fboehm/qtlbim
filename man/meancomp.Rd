@@ -40,11 +40,8 @@ each fixed covariate. Summaries show mean and upper and lower percentiles.
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.meancomp(qbExample)
 summary(temp)
 plot(temp)

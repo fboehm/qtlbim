@@ -1,0 +1,411 @@
+%\VignetteIndexEntry{QTLBIM Prototype Paper Analyzing Hyper Data}
+%\VignetteDepends{qtlbim}
+%\VignetteKeywords{QTL}
+%\VignettePackage{qtlbim}
+\documentclass{article}
+\usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}
+
+\usepackage{Sweave}
+
+\begin{document}
+
+<<echo=FALSE,label=INITIALIZATION>>=
+## Default setup if calling Sweave directly.
+.qb.Package <- !exists(".qb.name")
+if(.qb.Package) { ## Called by Sweave directly or in R build.
+  .qb.name <- "hyper"
+  require(qtl, quietly = TRUE)
+  data(hyper)
+  hyper <- subset(clean(hyper),
+    chr = ("X" != unlist(lapply(hyper$geno, class))))
+  .qb.cross <- hyper
+  .qb.pheno <- 1
+  .qb.niter <- 3000
+  .qb.draws <- 8
+  .qb.scan.type <- "2logBF"
+  .qb.hpd.level <- 0.5
+  .qb.threshold <- c(upper=2)
+  .qb.remove <- TRUE
+  .qb.SweaveFile <- system.file("external", "prototype.qtl.hyper.paper.Rnw", package="qtlbim")
+  .qb.SweaveExtra <- system.file("external", "hyper.paper.extra.Rnw", package="qtlbim")
+  .qb.PDFDir <- paste(names(.qb.cross$pheno)[.qb.pheno], "PDF", sep = "")
+}
+.qb.pheno.name <- names(.qb.cross$pheno)[.qb.pheno]
+if(!file.exists(.qb.PDFDir)) {
+  dir.create(.qb.PDFDir)
+  warning(paste("Creating PDF directory", .qb.PDFDir),
+    call. = FALSE, immediate. = TRUE)
+}
+invisible(file.copy(system.file("../../share/texmf","Sweave.sty"),"."))
+
+## Assign visible names.
+cross <- .qb.cross
+pheno.col <- .qb.pheno
+threshold <- .qb.threshold
+scan.type <- .qb.scan.type
+hpd.level <- .qb.hpd.level
+n.iter <- .qb.niter
+n.draws <- .qb.draws
+remove.qb <- .qb.remove
+if(!is.null(.qb.SweaveExtra)) {
+  .qb.ExtraTex <- basename(.qb.SweaveExtra)
+  .qb.ExtraTex <- substring(.qb.ExtraTex,1,nchar(.qb.ExtraTex)-4)
+}
+@
+
+\SweaveOpts{eps=FALSE}
+
+\title{Prototype QTL Strategy: Phenotype
+\Sexpr{.qb.pheno.name}
+in Cross
+\Sexpr{.qb.name}}
+\author{Brian S. Yandell, W. Whipple Neely, Tapan Mehta, Daniel Schriner,
+Samprit Banerjee, and Nengjun Yi}
+\maketitle
+
+\section{Overview}
+This document analyzes trait
+\Sexpr{names(.qb.cross$pheno)[.qb.pheno]} for dataset
+\Sexpr{.qb.name} using the 1-D and 2-D Bayesian genome scan routines
+that build on Markov chain Monte Carlo (MCMC) samples from a posterior
+for the genetic architecture of a trait. Below the generic {\tt cross}
+is actually the cross passed by the user in a call to {\tt qb.sweave}.
+This entire document was created automatically by a function call in
+{\tt R}. The function is not yet part of {\tt R/qtlbim}. The actual call was
+
+<<echo=TRUE,label=LoadQtlbim>>=
+library(qtlbim)
+@
+\begin{Schunk}
+\begin{Sinput}
+> qb.sweave(\Sexpr{.qb.name}, pheno.col = \Sexpr{.qb.pheno},
++  n.iter = \Sexpr{.qb.niter}, n.draws = \Sexpr{.qb.draws},
++  scan.type = "\Sexpr{.qb.scan.type}", hpd.level = \Sexpr{.qb.hpd.level},
++  threshold = c(\Sexpr{paste(names(.qb.threshold), "=", .qb.threshold, collapse = ", ")}),
++  SweaveFile = "\Sexpr{.qb.SweaveFile}",
++  SweaveExtra = "\Sexpr{.qb.SweaveExtra}",
++  PDFDir = "\Sexpr{.qb.PDFDir}",
++  remove.qb = \Sexpr{.qb.remove})
+\end{Sinput}
+\end{Schunk}
+
+At present, the {\tt threshold} values are somewhat arbitrary, chosen
+for the \Sexpr{.qb.name} dataset to pick up apparently real QTL and
+previously detected epistasis.
+
+This document automates a search for main and epistatic QTL. The main
+QTL positions are reliably estimated using {\tt qb.scanone}. This pass
+also seems to capture the major chromosomes possibly involved in
+epistasis, although it does not provide very good estimates of
+positions of purely epistatic QTL within those chromosomes. Next we
+use {\tt qb.scantwo} and to identify which pairs of QTL are epistatic,
+and to get initial estimates of their positions. We refine there
+positions with {\tt qb.slice}. Along the way, we use generic {\tt
+summary} and {\tt plot} routines to view results.
+
+Once we have reasonable estimates of QTL postions and effects, we use
+confirmatory ANOVA tools to refine the model. That is, we use R/qtl's
+simulation-based {\tt fitqtl} followed by a stepwise backward fitting
+approach, using a new {\tt step.fitqtl}, to confirm key QTL. That
+completes this automated analysis. It would be possible to add other,
+user-supplied refined analysis at the end of this document if desired.
+
+\section{Generating Samples}
+
+
+Here is a summary of the {\tt cross} copy of the \Sexpr{.qb.name}
+object, followed by creation of \Sexpr{n.iter} MCMC samples.
+
+<<echo=TRUE,label=GenoProb>>=
+summary(cross)
+@
+\begin{Schunk}
+\begin{Sinput}
+> cross <- qb.genoprob(cross,step=2)
+> cross.qb <- qb.mcmc(cross, pheno.col = pheno.col
++   genoupdate=TRUE, n.iter = \Sexpr{n.iter}, mydir = "\Sexpr{.qb.PDFDir}")
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE,label=MCMCSamples>>=
+if(.qb.Package) {
+  data(qbHyper)
+  cross <- qb.cross(qbHyper)
+  cross.qb <- qbHyper
+  cross.qb$cross.name <- "cross"
+  rm(qbHyper)
+} else {
+  cross <- qb.genoprob(cross,step=2)
+}
+
+## Create cross.qb if it does not exist.
+if(exists("cross.qb")) {
+  remove.qb <- FALSE
+} else
+  cross.qb <- qb.mcmc(cross, pheno.col = pheno.col, genoupdate=TRUE,
+    n.iter = n.iter, mydir = .qb.PDFDir)
+@
+
+\section{1-D Scans}
+
+Now a 1-D scan picks out the major effects. We could uxe {\tt
+qb.scanone} directly. Instead, we use {\tt qb.hpdone}, which gives us a
+profile scan as well as a scan of genotypic means.
+
+<<echo=TRUE,label=HPDSummary>>=
+hpd.level
+cross.hpd <- qb.hpdone(cross.qb, hpd.level)
+sum.one <- summary(cross.hpd)
+sum.one
+@
+
+The {\tt qb.hpdone} routine mostly automates the selection of peaks. We are still
+working on how to set reasonable thresholds, but for now a HPD level
+of \Sexpr{hpd.level} for the overall ({\tt sum}) picks up the key
+features nicely for many phenotypes. The variable {\tt hpd.level} was
+set in the call to {\tt qb.sweave} that created this document. 
+
+\noindent
+The new variables {\tt chrs} and {\tt pos} capture the
+chromosome numbers and main QTL positions, respectively.
+
+<<echo=TRUE>>=
+chrs <- as.vector(sum.one[, "chr"])
+pos <- sum.one[, "pos"]
+pos ## main QTL
+@
+
+\noindent
+The following two figures highlight the selected chromosomes. In the
+top panel, the blue curve represents the {\tt 2logBF} (twice log of
+Bayes factor) score for the {\tt main} effect of a QTL at each locus,
+while the purple curve shows the score for any {\tt epistasis} between
+a locus and any other loci. The black curve shows the combination of 
+main and epistatic effects. The second panel shows the marginal means,
+which are roughly symmetric about the phenotype mean of
+\Sexpr{signif(summary(qb.meancomp(cross.qb))[1],3)}.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(cross.hpd)
+\end{Sinput}
+\end{Schunk}
+
+<<results=tex,echo=FALSE,label=HPDPlot>>=
+file <- paste(.qb.PDFDir, "/paper1hpd.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(cross.hpd)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\section{2-D Scan}
+
+Now a look at a 2-D scan reveals the strength of epistasis. The
+summary suggests some other epistases, but some of this may be
+spurious [i.e. we will want to look further!].
+We consider a subset of this summary above the {\tt upper}
+threshold of \Sexpr{threshold["upper"]}.
+
+<<echo=TRUE,label=ScantwoSummary>>=
+two <- qb.scantwo(cross.qb, chr = chrs, type = scan.type)
+sum.two <- summary(two, threshold = threshold, refine = TRUE)
+sum.two
+@
+
+\noindent
+Now let's extract the genetic architecture implied by this evidence for epistasis.
+The loci pairs thar show epistasis are indexed to the vector of main
+QTL. In addition we see the pairs of chromosomes involved in epistasis.
+Some effort is made to merge nearby QTL estimated positions in
+{\tt qb.arch}.
+
+<<echo=TRUE,label=InitialArchitecture>>=
+cross.arch <- qb.arch(sum.two, chrs, pos)
+cross.arch
+@
+
+\section{ANOVA Model Fit}
+
+Here we want to merge the 1-D {\tt chrs} and {\tt pos} with the 2-D
+epistatic pairs to determine the chromosomes and positions to include
+in an ANOVA fit. We equate QTL that are within, say 10cM of
+each other. After fitting a (very) full model, we use
+{\tt step.fitqtl}, a newly written routine, to step-by-step
+reduce the model to key main effects and interactions, preserving
+hierarchy.
+
+The following uses R/qtl tools {\tt calc.genoprob}, {\tt sim.geno} and
+{\tt makeqtl}, plus the new {\tt step.fitqtl}, which
+calls {\tt fitqtl} multiple times.
+
+<<echo=TRUE,label=InitializeFitQTL>>=
+cross.sub <- subset(cross, chr = cross.arch$qtl$chr)
+n.draws
+cross.sub <- sim.geno(cross.sub, n.draws=n.draws, step=2, error=0.01)
+qtl <- makeqtl(cross.sub, as.character(cross.arch$qtl$chr), cross.arch$qtl$pos)
+@
+
+Now we run stepwise backward elimination, preserving hierarchy.
+
+<<echo=TRUE,label=StepwiseFitQTL>>=
+cross.step <- step.fitqtl(cross.sub, qtl, pheno.col, cross.arch)
+@
+\begin{Schunk}
+\begin{Sinput}
+> summary(cross.step$fit)
+\end{Sinput}
+\begin{Soutput}
+Full model result
+----------------------------------
+\end{Soutput}
+\end{Schunk}
+<<echo=FALSE,label=SummaryFitQTL>>=
+sum.fit <- summary(cross.step$fit)
+print(sum.fit$result.full, quote = FALSE, na.print = "")
+@
+<<results=tex,echo=FALSE>>=
+if(!is.null(sum.fit$result.drop)) {
+  cat("\\begin{Schunk}\n")
+  cat("\\begin{Soutput}\n")
+  cat("\nDrop one QTL at a time ANOVA table:\n")
+  cat("----------------------------------\n")
+  printCoefmat(sum.fit$result.drop[,-6], digits = 4, cs.ind = 1, P.values = TRUE, 
+               has.Pvalue = TRUE, signif.legend = FALSE)
+  cat("\\end{Soutput}\n\n")
+  cat("\\end{Schunk}\n")
+}
+@
+
+\noindent
+The final model may be more complicated than a model found
+`by hand' using standard R/qtl tools. Hopefully that model is a subset
+of the automatically found model.
+
+\section{2-D Epistasis Plots}
+
+Should there be any evidence for epistasis that is confirmed by ANOVA,
+it can be useful to view 2-D plots similar to {\tt scantwo}, but now
+using the marginal \Sexpr{scan.type}. Here is the reduced, final
+genetic architecture: 
+
+<<echo=TRUE,label=FinalArchitecture>>=
+cross.arch <- cross.step$arch
+cross.arch
+@
+
+\noindent
+Here are the plots by clique (if any).
+
+\begin{Schunk}
+\begin{Sinput}
+> for(i in names(cross.arch$chr.by.set))
++   plot(two, chr = cross.arch$chr.by.set[[i]], smooth = 3,
++     col = "gray", contour = 3)
+\end{Sinput}
+\end{Schunk}
+
+<<results=tex,echo=FALSE,label=ScanTwoPlotByGroup>>=
+## Note extra R overhead to produce an arbitrary number of plots.
+if(!is.null(cross.arch$chr.by.set)) {
+  for(i in names(cross.arch$chr.by.set)) {
+    file <- paste(.qb.PDFDir, "/paper2LOD-", i, ".pdf", sep = "")
+    pdf(file = file, paper = "special", width = 7, height = 7)
+    plot(two, chr = cross.arch$chr.by.set[[i]], smooth = 3,
+      col = "gray", contour = 3)
+    invisible(dev.off())
+      cat("\\includegraphics{", file, "}\n\n", sep = "")
+  }
+  cat("\n\n")
+}
+@
+
+\section{1-D Epistasis Slices}
+
+We then examine 1-D slices through the 2-D surface for epistatic pairs
+in the reduced model, to focus on epistasis for those identified pairs. 
+We show 1-D slices of the LOD and the epistatic effects. In addition,
+we show interaction plots at the nearest markers.
+
+\begin{Schunk}
+\begin{Sinput}
+> if(!is.null(cross.arch$pair.by.chr)) {
++  for(i in seq(nrow(cross.arch$pair.by.chr$chr))) {
++    chri <- cross.arch$pair.by.chr$chr[i,]
++    posi <- cross.arch$pair.by.chr$pos[i,]
++    plot(qb.slicetwo(cross.qb, chri, posi, scan.type), byrow = FALSE)
++  }
++}
+\end{Sinput}
+\end{Schunk}
+
+<<echo=FALSE>>=
+if(!is.null(cross.arch$pair.by.chr))
+  warning(paste("creating", nrow(cross.arch$pair.by.chr$chr), "epistatic pair plots"),
+    call. = FALSE, immediate. = TRUE)
+@
+
+<<results=tex,echo=FALSE,label=PairPlots>>=
+## Note extra R overhead to produce an arbitrary number of plots.
+if(!is.null(cross.arch$pair.by.chr)) {
+  for(i in seq(nrow(cross.arch$pair.by.chr$chr))) {
+    chri <- cross.arch$pair.by.chr$chr[i,]
+    posi <- cross.arch$pair.by.chr$pos[i,]
+    file <- paste(.qb.PDFDir, "/paper-", chri[[1]], "-", chri[[2]], ".pdf",
+      sep = "")
+    pdf(file = file, paper = "special", width = 6, height = 9)
+    plot(qb.slicetwo(cross.qb, chri, posi, scan.type), byrow = FALSE)
+    invisible(dev.off())
+    cat("\\includegraphics{", file, "}\n\n", sep = "")
+  }
+  cat("\n\n")
+}
+@
+
+<<results=tex,echo=FALSE>>=
+if(!is.null(.qb.SweaveExtra)) {
+  warning(paste("Running Sweave on Extra to create ",
+          .qb.ExtraTex, ".tex", sep = ""),
+    call. = FALSE, immediate. = TRUE)
+  Sweave(.qb.SweaveExtra, quiet = TRUE)
+  cat("\n\\input{", .qb.ExtraTex, "}\n\n", sep = "")
+}
+@
+
+\section{Cleaning Up}
+
+That completes the template. Now the penultimate task is to remove the
+objects created by {\tt R/qtlbim}, if this is desired by the user.
+
+<<echo=TRUE>>=
+remove.qb
+if(remove.qb) {
+  qb.remove(cross.qb)
+  rm(cross, cross.sub, pheno.col, threshold, n.iter, n.draws, remove.qb)
+}
+@
+<<echo=FALSE>>=
+.qb.sweave.tex <- basename(.qb.SweaveFile)
+.qb.sweave.tex <- paste(substring(.qb.sweave.tex, 1,
+   nchar(.qb.sweave.tex) - 4), "tex", sep = ".")
+.qb.pheno.tex <- paste(.qb.pheno.name, "tex", sep = ".")
+@
+
+Finally, externally rename file \Sexpr{.qb.sweave.tex} to
+\Sexpr{.qb.pheno.tex} and run pdflatex twice on it.
+Use a free Acrobat reader to view.
+
+\begin{Schunk}
+\begin{Sinput}
+> file.rename("\Sexpr{.qb.sweave.tex}", "\Sexpr{.qb.pheno.tex}")
+> invisible(system("pdflatex \Sexpr{.qb.pheno.tex}",intern=TRUE))
+>  invisible(system("pdflatex \Sexpr{.qb.pheno.tex}",intern=TRUE))
+
+\end{Sinput}
+\end{Schunk}
+
+<<echo=FALSE>>=
+remove(list=objects(all.names = TRUE, pattern="^\\.qb\\..*"),
+  pos=".GlobalEnv")
+@
+
+\end{document}

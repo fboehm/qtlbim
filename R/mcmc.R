@@ -1,6 +1,6 @@
 #####################################################################
 ##
-## $Id: mcmc.R,v 1.4.2.5 2006/12/07 21:37:02 banerjee-s Exp $
+## $Id: mcmc.R,v 1.8 2006/12/15 19:05:40 dshriner Exp $
 ##
 ##     Copyright (C) 2006 Nengjun Yi and Tapan Mehta
 ##
@@ -24,20 +24,15 @@ qb.mcmc <- function(cross,
                      data = qb.data(cross, ...),
                      model = qb.model(cross, ...),
                      mydir = ".", 
-                     n.iter = 3000, n.thin = 40, n.burnin = 0.01*n.iter*n.thin,
-                     algorithm = c("M-H","Gibbs"), genoupdate = TRUE,
+                     n.iter = 3000, n.thin = 20, n.burnin = 0.01*n.iter*n.thin,
+                     genoupdate = TRUE,
                      seed = 0, verbose = TRUE,
                      ... )
 {
   if(class(cross)[2] != "cross")
      stop("The first input variable is not an object of class cross",call.= FALSE)
 
-  algorithm <- algorithm[1]
-  
-  n.ind = nind(cross)           # number of individuals
-  n.chr = nchr(cross)           # number of chromsomes
-  n.gen = 2                     # number of genotypes
-  if(class(cross)[1]=="f2") n.gen = 3
+  algorithm <- "M-H"
 
   cross.name <- deparse(substitute(cross))
   
@@ -46,6 +41,10 @@ qb.mcmc <- function(cross,
             call. = FALSE, immediate. = TRUE)
     cross <- qb.genoprob(cross)
   }
+  
+  n.ind = nind(cross)                   # number of individuals
+  n.chr = nchr(cross)                   # number of chromsomes
+  n.gen = dim(cross$geno[[1]]$prob)[3]  # number of genotypes
 
   ## loci on the genome
   loci <- pull.loci(cross)
@@ -60,9 +59,6 @@ qb.mcmc <- function(cross,
   ## probabilities at all loci
   prob <- unlist(lapply(cross$geno, function(x) x$prob))
 
-  if( algorithm == "M-H" ) algorithm = 0
-  else algorithm = 1
-
   ## data 
   pheno = data$pheno.col
   yvalue = data$yvalue
@@ -75,7 +71,20 @@ qb.mcmc <- function(cross,
   envi = data$envi                                                      
   fixcoef = data$fixcoef
   rancoef = data$rancoef
-  nran = data$nran	
+  nran = data$nran
+
+  if(is.null(data$censor)) {
+     censor.lo = rep(-10000000,n.ind)
+     censor.hi = rep(10000000,n.ind)
+  }
+  if(!is.null(data$censor)) {
+     censor.lo = data$censor[,1]
+     censor.lo[censor.lo==-Inf] = -10000000
+     censor.lo[is.na(censor.lo)] = 999
+     censor.hi = data$censor[,2]
+     censor.hi[censor.hi==Inf] = 10000000
+     censor.hi[is.na(censor.hi)] = 999
+  }	
 
   ## model
   epis = model$epistasis
@@ -88,18 +97,23 @@ qb.mcmc <- function(cross,
   intcov = model$intcov
   depen = model$depen
   prop = model$prop
+  contrast = model$contrast
+  
 
   totaliter = n.iter*n.thin + n.burnin
+
+  ## Check that intcov is of length nfixcov.
+  intcov <- check.intcov(intcov, nfixcov)
   
   if(verbose) {
-cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The current iterations are saved: \n",sep=" "))     
+    cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The current iterations are saved: \n",sep=" "))     
     start.walltime = Sys.time()
   }
 
   allTraits = colnames(cross$pheno)
   output = output.dir( qbDir = mydir, traitName = allTraits[pheno] )	# set up a directory to save outputs
 
-  z<-.C("R_AnalysisEngine",
+  z<-.C("RSingleTraitMCMCSetup",
 
         as.integer(n.ind),           # number of individuals
         as.integer(n.chr),           # number of chromosomes
@@ -114,7 +128,6 @@ cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The c
         as.integer(n.iter),          # number of iterations
 	as.integer(n.thin),          # number of thin
         as.integer(n.burnin),        # number of burnin
-        as.integer(algorithm),       # MCMC method (1: GIBBS, 0: MH sampler)
 	as.integer(genoupdate),      # 1: update QTL genotypes; 0: don't update QTL genotypes
         as.integer(epis),            # epistatic model(epis=1) or nonepistatic model (epis=0)
 	as.integer(emainqtl),        # prior number of main-effect QTL
@@ -132,6 +145,10 @@ cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The c
         as.integer(nran),            # numbers of levels for random covariates 
 	as.integer(depen),           # depen=1: use dependent prior for epistatic effects
 	as.double(prop),             # prior prob for three types of epistatic effects
+        as.integer(contrast),        # 1: Cockerham model, 0: estimate genotypic values
+        as.double(censor.lo),
+        as.double(censor.hi),
+    
         as.integer(seed),	     # Seed specification for the pseudo-random number generator srand
         as.integer(verbose),
         PACKAGE="qtlbim")
@@ -142,6 +159,13 @@ cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The c
     cat(".\n")
   }
 
+  ## calculate pD and DIC for model comparison
+  deviances = read.table( file = paste(output,"/deviance.dat",sep="") )
+  pD1 = mean(deviances[1:n.iter,1],na.rm=TRUE) - deviances[n.iter+1,1]
+  pD2 = 0.5*var(deviances[1:n.iter,1],na.rm=TRUE)
+  DIC1 = mean(deviances[1:n.iter,1],na.rm=TRUE) + pD1
+  DIC2 = mean(deviances[1:n.iter,1],na.rm=TRUE) + pD2
+
   ## create an object qb
   qb = c(cross.name = cross.name,
     cross = class(cross)[1],
@@ -151,11 +175,21 @@ cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The c
     n.burnin = n.burnin,
     algorithm = algorithm, 
     genoupdate = genoupdate,
+    pD1 = pD1,
+    pD2 = pD2,
+    DIC1 = DIC1,
+    DIC2 = DIC2,
     step = attr(cross$geno[[1]]$prob, "step"),
     seed = seed,
     verbose = verbose,
     data,
     model ) 
+
+  ## Assign qb.genoprob attributes to args list if not there.
+  defaults <- qb.genoprob.defaults(cross)
+  for(i in names(defaults))
+    if(is.null(qb[[i]]))
+       qb[[i]] <- defaults[[i]]
 
   if(verbose) {
     stop.walltime = Sys.time()
@@ -171,104 +205,17 @@ cat(paste("qb.mcmc is running",format(totaliter,big.mark=","),"iterations. The c
 
   class(qb) = "qb"
 
+  ## Reorganize as new qb object. For now do this at the end. Later do as created.
+  qb <- qb.legacy(qb, remove = TRUE)
+  
   qb
 }
-
-###############################################################################################################
-
-qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"), 
-                      fixcov = c(0),rancov = c(0), 
-                      boxcox = FALSE, standardize = FALSE, ... )                   
-{
-  if(class(cross)[2] != "cross")
-     stop("The first input variable is not an object of class cross",call.= FALSE)
-  
-
-  ## Make sure trait has only one value.
-  trait <- trait[1]	
-  
-  yvalue = cross$pheno[,pheno.col]
-
-  lamda = NULL
-  if( boxcox & ( length(yvalue[yvalue>0])!=length(yvalue) | trait!="normal" ) )
-    stop("The boxcox transformation cannot be used for this data")
-  if(boxcox & trait=="normal") {
-     require("MASS")
-     if( length(yvalue[yvalue>0])==length(yvalue) ) {   
-         BC = boxcox(yvalue ~ 1)
-         lamda = BC$x[ which.max(BC$y) ] 
-         if(lamda != 0) yvalue = (yvalue^lamda - 1)/lamda
-         else
-             yvalue = log10(yvalue)
-     }
-  }
-  if(standardize & trait=="normal")
-    yvalue = (yvalue - mean(yvalue, na.rm=T))/sd(yvalue, na.rm=T)
-  ## Change missing to 999.
-  yvalue[is.na(yvalue)] = 999
-  ## Change infinite to 999
-  yvalue[yvalue == Inf | yvalue == -Inf] = 999
-
-  if(trait=="normal") ncategory = 0	
-  if(trait!="normal") {
-     yvalue[yvalue==999] = NA
-     yvalue = factor(yvalue)
-     levels(yvalue) = c( 1:length(unique(yvalue)) )
-     yvalue = as.numeric(yvalue) - 1        # recode the phenotype to 0,1,2,...
-     yvalue[is.na(yvalue)] = 999
-     ncategory = max(yvalue[yvalue!=999]) + 1  # the number of categories of ordinal traits 
-  }   
-
-  nrancov = 0; nfixcov = 0                                
-  if(rancov[1]!=0) nrancov = length(rancov)   # number of covariates can be calculated from rancov and fixcov
-  if(fixcov[1]!=0) nfixcov = length(fixcov)
-  envi = FALSE                                        
-  if((nrancov+nfixcov)!=0) envi = TRUE              
-
-               
-  fixcoef = as.matrix(cross$pheno[,fixcov]) # input fixed covariates   
-  fixcoef[is.na(fixcoef)] = 999
-  ## Change infinite to 999
-  fixcoef[fixcoef == Inf | fixcoef == -Inf] = 999
-
-  rancoef = as.matrix(cross$pheno[,rancov])  # input random covariates 
-  ## Change infinite to 999
-  rancoef[rancoef == Inf | rancoef == -Inf] = 999
-  if(nrancov!=0) {
-    rancoef[rancoef==999] = NA
-    for(i in 1:nrancov)          # recode the random covariates to 0,1,2,...
-    {
-       rancoef[ ,i] = factor(rancoef[ ,i])
-       levels( rancoef[ ,i] ) = c(1:length(unique(rancoef[ ,i])))
-       rancoef[ ,i] = as.numeric(rancoef[ ,i])-1
-    }
-    rancoef[is.na(rancoef)] = 999
-  }
-
-  nran = rep(0, nrancov)
-  if(nrancov!=0) {
-    for(i in 1:nrancov)       # calculate the number of each random effects
-    {
-       x = rancoef[ ,i]
-       x = x[x!=999]
-       nran[i] = max(x) + 1  
-    } 
-  }
-
-  data = list( pheno.col=pheno.col, yvalue=yvalue, trait=trait, ncategory=ncategory, 
-               envi=envi, nfixcov=nfixcov, nrancov=nrancov, fixcoef=fixcoef, rancoef=rancoef, nran=nran, 
-               boxcox=boxcox, lamda=lamda, standardize=standardize,
-               covar = c(fixcov, rancov) ) 
-  gc()
-  data
-}
-
-#############################################################################################################
 
 qb.model <- function( cross, epistasis = TRUE, 
                        main.nqtl = 3, mean.nqtl = main.nqtl + 3, max.nqtl = NULL, 
                        interval = NULL, chr.nqtl = NULL, 
-                       intcov = c(0), depen = FALSE, prop = c(0.5, 0.1, 0.05), 
+                       intcov = c(0), depen = FALSE, prop = c(0.5, 0.1, 0.05),
+                       contrast = TRUE, 
                        ... )	   
                      
 {
@@ -285,7 +232,10 @@ qb.model <- function( cross, epistasis = TRUE,
   max.nqtl = as.integer(max.nqtl) 
   
   if(is.null(interval)) interval = unlist( lapply(cross$geno, function(x) mean(diff(x$map))) ) 
-  if(length(interval)<nchr(cross) & !is.null(interval))
+  n.chr = nchr(cross)                   # number of chromsomes
+  if(length(interval) == 1)
+    interval <- rep(interval, n.chr)
+  if(length(interval)<n.chr & !is.null(interval))
      stop("You should specify interval for each chromosome") 
   
   if(length(chr.nqtl)<nchr(cross) & !is.null(chr.nqtl))
@@ -314,7 +264,7 @@ qb.model <- function( cross, epistasis = TRUE,
 
   model = list( epistasis=epistasis, main.nqtl=main.nqtl, mean.nqtl=mean.nqtl, max.nqtl=max.nqtl,                                                 
                 interval=interval, chr.nqtl=chr.nqtl, qtl_envi=qtl_envi, intcov=intcov, 
-                depen=depen, prop=prop )
+                depen=depen, prop=prop, contrast=contrast )
 
   gc()
   model
@@ -349,13 +299,15 @@ output.dir <- function( qbDir = getwd(), traitName = "trait1" )
    mainFile = file.path(traitDir,"mainloci.dat")
    pairFile = file.path(traitDir,"pairloci.dat")
    gbyeFile = file.path(traitDir,"gbye.dat")
+   devFile = file.path(traitDir,"deviance.dat")
      
-   z <- .C("R_OutputManager",
+   z <- .C("ROutputManager",
            as.character(iterFile),
            as.character(covFile),
            as.character(mainFile),
            as.character(pairFile),
            as.character(gbyeFile),
+           as.character(devFile),
            PACKAGE="qtlbim")
   
    return(traitDir) 

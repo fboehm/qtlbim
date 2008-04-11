@@ -46,11 +46,8 @@ correlation and p-value. Summaries are done by chromosome.
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.covar(qbExample)
 summary(temp)
 plot(temp)

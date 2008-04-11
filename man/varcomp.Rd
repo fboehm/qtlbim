@@ -42,11 +42,8 @@ averaged over loci.
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.varcomp(qbExample)
 summary(temp)
 plot(temp)

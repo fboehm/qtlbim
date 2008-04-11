@@ -1,8 +1,8 @@
 #####################################################################
 ##
-## $Id: scan.R,v 1.11.2.9 2006/12/01 19:59:09 byandell Exp $
+## $Id: scan.R,v 1.11.2.10 2006/12/12 19:23:28 byandell Exp $
 ##
-##     Copyright (C) 2005 Brian S. Yandell
+##     Copyright (C) 2007 Brian S. Yandell
 ##
 ## This program is free software; you can redistribute it and/or modify it
 ## under the terms of the GNU General Public License as published by the
@@ -19,120 +19,15 @@
 ## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ##
 ##############################################################################
-pull.loci <- function(cross, step = attr(cross$geno[[1]]$prob, "step"))
-{
-  if(is.null(step)) {
-    warning("First running qb.genoprob with default step size",
-            call. = FALSE, immediate. = TRUE)
-    cross <- qb.genoprob(cross)
-    step <- attr(cross$geno[[1]]$prob, "step")
-  }
-
-  ## Assume no off.end and stepwidth is variable if no prob provided.
-  if(is.null(cross$geno[[1]]$prob)) {
-    off.end <- 0
-    stepwidth <- "variable"
-  }
-  else {
-    off.end <- attr(cross$geno[[1]]$prob, "off.end")
-    if(is.null(off.end))
-      off.end <- 0
-    stepwidth <- attr(cross$geno[[1]]$prob, "stepwidth")
-    if(is.null(stepwidth))
-      stepwidth <- "variable"
-  }
-  
-  tmpfn <- function(x, step, off.end, stepwidth) {
-    create.map(x$map, step, off.end, stepwidth)
-  }
-  loci <- lapply(cross$geno, tmpfn, step, off.end, stepwidth)
-  class(loci) <- "map"
-  loci
-}
-##############################################################################
-pull.grid <- function (qbObject, offset = FALSE, spacing = FALSE,
-                       mask.region = TRUE) 
-{
-  cross <- qb.cross(qbObject)
-  step <- qb.get(qbObject, "step")
-  if(is.null(step))
-    step <- attr(cross$geno[[1]]$prob, "step")
-  grid.map <- pull.loci(cross, step)
-
-  ## Subset by region.
-  cross.map <- pull.map(cross)
-  if(mask.region) {
-    region <- qb.get(qbObject, "subset")$region
-    for(i in region$chr) {
-      grid.map[[i]] <-
-        grid.map[[i]][grid.map[[i]] >= region$start[i] - 0.1 &
-                      grid.map[[i]] <= region$end[i] + 0.1]
-    }
-  }
-  ## Construct map position with optional offset from 0 start.
-  pos <- unlist(grid.map)
-  len <- sapply(grid.map, length)
-  if(!offset) {
-    m <- sapply(cross.map, function(x) x[1])
-    pos <- pos - rep(m, len)
-  }
-
-  ## Construct grid object with chr as first column.
-  grid <- data.frame(chr = rep(seq(grid.map), len),
-    row.names = paste("c", names(pos), sep = ""))
-
-  if(spacing) {
-    ## If spacing, add columns for map (=pos), eq.spacing, xchr.
-    ## This is used only to create scantwo object in qb.scantwo, plot.qb.scantwo.
-    grid$map <- pos
-    nmap <- length(pos)
-    grid$eq.spacing <- unlist(lapply(grid.map, function(x) {
-      lx <- length(x)
-      if(lx) {
-        ## kludge to determine equal spacing
-        d <- diff(x)
-        tbl <- table(d)
-        maxtbl <- max(tbl)
-        dmode <- as.numeric(names(tbl)[tbl == maxtbl])
-        if(maxtbl * 2 > lx)
-          c(1, d == dmode)
-        else
-          rep(0, lx)
-      }
-      else
-        integer()
-    }))
-    xclass <- sapply(cross.map, attr, "class")
-    grid$xchr <- rep(xclass == "X", len)
-  }
-  else {
-    ## Otherwise second column is pos.
-    grid$pos <- pos
-  }
-  grid
-}
-##############################################################################
-qb.nqtl <- function(qbObject,
-                     iterdiag = qb.get(qbObject, "iterdiag"),
+qb.inter <- function(qbObject, x = pull.grid(qbObject, offset = TRUE),
                      mainloci = qb.get(qbObject, "mainloci"))
 {
-  ## Fix nqtl in samples:
-  ## iterdiag[, "nqtl"] may be wrong due to subsetting earlier.
-  iterdiag.nqtl <- rep(0,nrow(iterdiag))
-  tmp <- table(mainloci[, "niter"])
-  iterdiag.nqtl[match(names(tmp), iterdiag[, "niter"])] <- tmp
-  iterdiag.nqtl
-}
-##############################################################################
-qb.inter <- function(qbObject, x = pull.grid(qbObject, offset = TRUE))
-{
   ## Create identifier of chrom.locus from mainloci into pseudomarker grid.
-  mainloci <- qb.get(qbObject, "mainloci")
   inter <- ordered(paste(mainloci[, "chrom"], mainloci[, "locus"], sep = ":"),
                    paste(x[, 1], x[, 2], sep = ":"))
   tmp <- is.na(inter)
   if(any(tmp)) {
-    stop(paste("qb.scanone mismatch with grid:\n", sum(tmp),
+    stop(paste("qb.scanone or qb.sliceone mismatch with grid:\n", sum(tmp),
                "missing values generated\n"))
   }
   inter
@@ -147,65 +42,46 @@ qb.threshold <- function(out, threshold, pos = 1)
     if(is.null(names(threshold)))
       names(threshold) <- dimnames(out)[[2]][pos + seq(length(threshold))]
     threshold <- threshold[!is.na(match(names(threshold), dimnames(out)[[2]]))]
+    
     if(is.null(threshold) | !length(threshold))
       return(out)
-#    if(any(is.na(match(names(threshold), dimnames(out)[[2]]))))
-#      stop(paste("threshold labels should be from",
-#                 dimnames(out)[[2]][-seq(pos)], collapse = ", "))
     
     use <- threshold >= 0
     if(any(use)) {
-      if(length(threshold[use]) == 1)
-        keep <- out[, names(threshold[use])] >= threshold[use]
-      else
-        keep <- apply(out[, names(threshold[use])], 1,
-                      function(x) any(x >= threshold[use]))
+      keep <- apply(out[, names(threshold[use]), drop = FALSE], 1,
+                    function(x) any(x >= threshold[use]))
     }
     else
       keep <- rep(FALSE, nrow(out))
     use <- threshold <= 0
     if(any(use)) {
-      if(length(threshold[use]) == 1) {
-        maxout <- max(out[, names(threshold[use])])
-        keep <- keep | out[, names(threshold[use])] >=
-          maxout + threshold[use]
-      }
-      else {
-        maxout <- apply(out[, names(threshold[use])], 2, max)
-        keep <- keep | apply(out[, names(threshold[use])],
-                             1,
-                             function(x)
-                             any(x >= maxout + threshold[use]))
-      }
+      maxout <- apply(out[, names(threshold[use]), drop = FALSE],
+                      2, max)
+      keep <- keep | apply(out[, names(threshold[use]), drop = FALSE],
+                           1,
+                           function(x)
+                           any(x >= maxout + threshold[use]))
     }
-    if(sum(keep) > 1)
-      out[keep,]
-    else if(sum(keep) == 1) {
-      dim.out <- dimnames(out)
-      dim.out[[1]] <- dim.out[[1]][keep]
-      matrix(out[keep,], 1, dimnames = dim.out)
-    }
-    else
-      NULL
+    out[keep, , drop = FALSE]
   }
   else
     out
 }
 ##############################################################################
-qb.count <- function(qbObject, stat, type, n.iter, bf.prior)
+qb.count <- function(stat, type.scan, n.iter, bf.prior)
 {
-  if(type == "log10")
+  if(type.scan == "log10")
     stat <- log10(1 + stat)
-  else if(type != "count" & type != "nqtl") {
-    ## Else type is posterior or BF.
+  else if(type.scan != "count" & type.scan != "nqtl") {
+    ## Else type.scan is posterior or BF.
     stat <- (1 + stat) / (2 + n.iter)
-    if(type == "logposterior") {
+    if(type.scan == "logposterior") {
       stat <- log10(stat)
     }
     else {
-      if(match(type, c("2logBF","BF"), nomatch = 0)) {
+      if(match(type.scan, c("2logBF","BF"), nomatch = 0)) {
         stat <- stat * (1 - bf.prior) / ((1 - stat) * bf.prior)
-        if(type == "2logBF")
+        if(type.scan == "2logBF")
           stat <- 2 * log(pmax(1, stat))
       }
     }
@@ -213,21 +89,21 @@ qb.count <- function(qbObject, stat, type, n.iter, bf.prior)
   stat
 }
 ##############################################################################
-qb.nind.pheno <- function(qbObject, pheno.name, nfixcov, cross)
+qb.nind.pheno <- function(qbObject,
+                          pheno.name = names(cross$pheno)[qb.get(qbObject, "pheno.col")],
+                          nfixcov, cross,
+                          covar.name = names(cross$pheno)[qb.get(qbObject, "covar")])
 {
-  tmp <- cross$pheno[[qb.get(qbObject, "pheno.col")]]
-  tmp <- !is.na(tmp) & abs(tmp) != Inf
+  not.missing <- apply(cross$pheno[, pheno.name, drop = FALSE], 1,
+               function(x) all(!is.na(x) & abs(x) != Inf))
   if(nfixcov) {
     ## Reduce pheno count by missing covariate values.
-    covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
-    tmp2 <- cross$pheno[, covar.name]
-    if(nfixcov == 1)
-      tmp <- tmp & !is.na(tmp2) & abs(tmp2) != Inf
-    else
-      tmp <- tmp & apply(tmp2, 1, function(x) !is.na(x) & abs(x) != Inf)
-    rm(tmp2)
+    not.missing <- not.missing & {
+      apply(cross$pheno[, covar.name, drop = FALSE], 1,
+            function(x) all(!is.na(x) & abs(x) != Inf))
+    }
   }
-  sum(tmp)
+  sum(not.missing)
 }
 ##############################################################################
 qb.npar <- function(var1, var2, nfixcov, nrancov, intcov, iterdiag.nqtl,
@@ -249,7 +125,8 @@ qb.npar <- function(var1, var2, nfixcov, nrancov, intcov, iterdiag.nqtl,
   ## Get GxE degrees of freedom.
   if(sum(intcov)) {
     if(length(gbye)) {
-      same <- match(paste(gbye[, "niter"], gbye[, "chrom"], gbye[, "locus"], sep = ":"),
+      same <- match(paste(gbye[, "niter"], gbye[, "chrom"],
+                          gbye[, "locus"], sep = ":"),
                     paste(mainloci[, "niter"], mainloci[, "chrom"],
                           mainloci[, "locus"], sep = ":"))
       
@@ -271,34 +148,383 @@ qb.npar <- function(var1, var2, nfixcov, nrancov, intcov, iterdiag.nqtl,
   npar
 }
 ##############################################################################
+qb.reference <- function(qbObject, mainloci, iterdiag, inter, type.scan)
+{
+  if(any(type.scan == "cellmean")) {
+    reference <- unlist(tapply(qb.meancomp(qbObject)[match(mainloci[, "niter"],
+                                                     iterdiag[, "niter"]),
+                                               "grand.mean"],
+                         inter, mean))
+    reference[is.na(reference)] <- mean(reference, na.rm = TRUE)
+    is.bc <- (qb.cross.class(qbObject) == "bc")
+    attr(reference, "genos") <- c("A","H", if (!is.bc) "B")
+    reference
+  }
+  else
+    0
+}
+##############################################################################
+qb.scanmain <- function(x, type.scan, is.bc, scans, scan.save, n.iter, bf.prior,
+                        reference, covar, covar.means, inter, mainloci,
+                        gbye, intcov, nfixcov, sum.scan, qb.coef)
+{
+  totvar <- 0
+  is.count <- type.scan %in% c("count", "log10", "posterior", "logposterior",
+                          "2logBF", "BF", "nqtl")
+
+  ## Get non-epistatic components: additive and dominance.
+  vars <- c("add", if(!is.bc) "dom")
+  if(type.scan != "heritability")
+    vars <- vars[match(scans, vars, nomatch = 0)]
+  
+  if(length(vars)) {
+    ## Number of main effect samples per locus.
+    if(is.count & any(scan.save == "main")) {
+      tmp <- apply(as.matrix(mainloci[, paste("var", vars, sep = "")]), 1,
+                   function(x) any(x > 0))
+      if(type.scan == "nqtl") {
+        nqtl.main <- paste(mainloci[, "niter"], mainloci[, "chrom"], sep = ":")
+        tmp <- tapply(tmp, nqtl.main, sum)[nqtl.main]
+        tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+      }
+      else
+        tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+      tmp[is.na(tmp)] <- 0
+      x[, "main"] <- qb.count(tmp, type.scan, n.iter, bf.prior)
+    }
+    else if(type.scan == "cellmean") {
+      for(i in attr(reference, "genos"))
+        x[, i] <- reference
+    }
+    for(i in vars) {
+      if(type.scan == "estimate" | type.scan == "cellmean")
+        ## Parameter estimates of main effects.
+        element <- i
+      else
+        ## Variance components.
+        element <- paste("var", i, sep = "")
+      
+      ## Get samples for this component.
+      main.val <- mainloci[, element]
+
+      ## Get GxE samples if any intcov selected.
+      if(sum(intcov)) {
+        ## Get GxE samples.
+        if(any(scan.save == "GxE"))
+          tmp2 <- rep(0, nrow(mainloci))
+        
+        ## Loop over all covariates.
+        covars <- seq(nfixcov)[intcov]
+        for(j in covars) {
+          gbyej <- gbye[gbye[, "covar"] == j, ]
+          if(length(gbyej)) {
+            same <- match(paste(gbyej[, "niter"], gbyej[, "chrom"],
+                                gbyej[, "locus"], sep = ":"),
+                          paste(mainloci[, "niter"], mainloci[, "chrom"],
+                                mainloci[, "locus"], sep = ":"))
+            
+            ## Parameter estimates of GxE fixed effects.
+            if(match(j, covar, nomatch = 0) | type.scan == "heritability") {
+              cname <- paste(paste(i, names(covar.means)[j], sep = "."))
+              tmp <- rep(0, length(main.val))
+              tmp[same] <- gbyej[[element]]
+              ## Include the covariate?
+              if(is.count) {
+                ## Count times GxE effect is present.
+                tmp <- tmp > 0
+                if(any(scan.save == "GxE"))
+                  tmp2 <- pmax(tmp2, tmp)
+                if(any(scan.save == cname)) {
+                  if(type.scan == "nqtl") {
+                    tmp <- tapply(tmp, nqtl.main, sum)[nqtl.main]
+                    tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+                  }
+                  else
+                    tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+                  tmp[is.na(tmp)] <- 0
+                  x[, cname] <- qb.count(tmp, type.scan, n.iter, bf.prior)
+                }
+              }
+              else { ## is.effect
+                tmp <- unlist(tapply(tmp, inter, mean))
+                tmp[is.na(tmp)] <- 0
+                if(type.scan == "heritability")
+                  totvar <- totvar + tmp
+                if(match(cname, scan.save, nomatch = 0))
+                  x[,cname] <- tmp
+                if(any(scan.save == "GxE"))
+                  x[,"GxE"] <- x[,"GxE"] + tmp
+                if(sum.scan != "no")
+                  x[,"sum"] <- x[,"sum"] + tmp
+              }
+            }
+            
+            if(type.scan == "estimate" | type.scan == "cellmean") {
+              ## Offset parameter estimate by covariates.
+              if(covar.means[j] != 0)
+                main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
+            }
+          }
+        }
+        if(is.count & any(scan.save == "GxE")) {
+          if(type.scan == "nqtl") {
+            tmp2 <- tapply(tmp2, nqtl.main, sum)[nqtl.main]
+            tmp2 <- unlist(tapply(tmp2, inter, mean, na.rm = TRUE))
+          }
+          else
+            tmp2 <- unlist(tapply(tmp2, inter, sum, na.rm = TRUE))
+          tmp2[is.na(tmp2)] <- 0
+          x[, "GxE"] <- qb.count(tmp2, type.scan, n.iter, bf.prior)
+        }
+      }
+
+      ## Now include the main effect components.
+      if(is.count) {
+        if(any(scan.save == i)) {
+          ## Count times main effect is present.
+          if(type.scan == "nqtl") {
+            tmp <- tapply(main.val > 0, nqtl.main, sum)[nqtl.main]
+            tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+          }
+          else
+            tmp <- unlist(tapply(main.val > 0, inter, sum, na.rm = TRUE))
+          tmp[is.na(tmp)] <- 0
+          x[, i] <- qb.count(tmp, type.scan, n.iter, bf.prior)
+        }
+      }
+      else { ## is.effect
+        ## Get main effect element and average.
+        tmp <- unlist(tapply(main.val, inter, mean, na.rm = TRUE))
+        tmp[is.na(tmp)] <- 0
+
+        if(type.scan == "cellmean") {
+          ## Add contribution of element to cell mean.
+          if(any(names(qb.coef) == i))
+            x <- x + outer(tmp, qb.coef[[i]])
+        }
+        else {
+          if(type.scan == "heritability")
+            totvar <- totvar + tmp
+          if(match(i, scan.save, nomatch = 0))
+            x[,i] <- tmp
+          if(any(scan.save == "main"))
+            x[,"main"] <- x[,"main"] + tmp
+          if(sum.scan != "no")
+            x[,"sum"] <- x[,"sum"] + tmp
+        }
+      }
+    }
+  }
+  list(totvar = totvar, x = x)
+}
+##############################################################################
+qb.scanepis <- function(x, type.scan, is.bc, scans, scan.save, n.iter, bf.prior,
+                        inter, mainloci, pairloci, sum.scan, qb.coef,
+                        half = FALSE, is.slice = FALSE)
+{
+  totvar <- 0
+  is.count <- type.scan %in% c("count", "log10", "posterior", "logposterior",
+                          "2logBF", "BF", "nqtl")
+
+  ## Index for epistasis.
+  epinter <- c(paste(pairloci[, "niter"],
+                     pairloci[, "chrom1"], pairloci[, "locus1"], sep = ":"),
+               paste(pairloci[, "niter"],
+                     pairloci[, "chrom2"], pairloci[, "locus2"], sep = ":"))
+  if(type.scan == "nqtl") {
+    nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"], sep = ":"),
+                   paste(pairloci[, "niter"], pairloci[, "chrom2"], sep = ":"))
+  }
+  tmp <- !duplicated(epinter)
+  epinter <- ordered(epinter, epinter[tmp])
+  ## epii identifies mainloci with epistatic pairs.
+  epii <- match(epinter[tmp],
+                paste(mainloci[, "niter"], inter, sep = ":"),
+                nomatch = 0)
+
+  ## Epistatic components.
+  vars <- c("aa", if(!is.bc) c("ad","da","dd"))
+  if(type.scan != "heritability")
+    vars <- vars[match(scans, vars, nomatch = 0)]
+  if(length(vars)) {
+    tmp <- rep(0, length(inter))
+    
+    ## Number of epistatic samples per locus.
+    if(is.count & any(scan.save == "epistasis")) {
+      if(type.scan == "nqtl") {
+        tmp2 <- table(nqtl.pair)[nqtl.pair]
+        tmp[epii] <- unlist(tapply(tmp2, epinter, mean))[epii > 0]
+        tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+      }
+      else {
+        tmp[epii] <- 1
+        tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+      }
+      tmp[is.na(tmp)] <- 0
+      x[, "epistasis"] <- qb.count(tmp, type.scan, n.iter, bf.prior)
+    }
+    
+    for(i in vars) {
+      if(type.scan == "estimate" | (type.scan == "cellmean" & is.slice))
+        ## Parameter estimates of epistasis.
+        element <- i
+      else
+        ## Variance components for epistasis.
+        element <- paste("var", i, sep = "")
+      
+      tmp2 <- pairloci[, element]
+      if(is.count) {
+        if(any(scan.save == i)) {
+          ## Count times epistatic element is present.
+          if(type.scan == "nqtl") {
+            ## NB: This multiply counts locus used in several pairs.
+            tmp2 <- unlist(tapply(rep(tmp2 > 0, 2),
+                                  nqtl.pair, sum))[nqtl.pair]
+            tmp[epii] <- unlist(tapply(tmp2, epinter, mean))[epii > 0]
+            tmp2 <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+          }
+          else {
+            tmp[epii] <- unlist(tapply(rep(tmp2 > 0, 2), epinter,
+                                       sum))[epii > 0]
+            tmp2 <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+          }
+          tmp2[is.na(tmp2)] <- 0
+          ## Compute count diagnostic.
+          x[, i] <- qb.count(tmp2, type.scan, n.iter, bf.prior)
+          
+        }
+      }
+      else { ## is.effect
+        ## Get epistatic element and average.
+        tmp[epii] <- unlist(tapply(rep(tmp2, 2), epinter, sum))[epii > 0]
+        tmp2 <- unlist(tapply(tmp, inter, mean))
+        
+        if(type.scan == "cellmean" & is.slice) {
+          ## Add contribution of element to cell mean.
+          if(any(names(qb.coef) == i))
+            x <- x + outer(tmp2, qb.coef[[i]])
+        }
+        else {
+          ## Reduce epistatic value by half.
+          if(half)
+            tmp2 <- tmp2 / 2
+          tmp2[is.na(tmp2)] <- 0
+          if(type.scan == "heritability")
+            totvar <- totvar + tmp2
+          if(match(i, scan.save, nomatch = 0))
+            x[,i] <- tmp2
+          if(any(scan.save == "epistasis"))
+            x[,"epistasis"] <- x[,"epistasis"] + tmp2
+          if(sum.scan != "no")
+            x[,"sum"] <- x[,"sum"] + tmp2
+        }
+      }
+    }
+  }
+  list(totvar = totvar, x = x)
+}
+##############################################################################
 qb.scanone <- function(qbObject, epistasis = TRUE,
                        scan = c("main", "GxE", "epistasis"),
-                       type = types,
+                       type.scan = type.scans,
                        covar = if(nfixcov) seq(nfixcov) else 0,
                        adjust.covar = NA,
                        chr = NULL,
                        sum.scan = "yes",
                        min.iter = 1,
                        aggregate = TRUE,
+                       smooth = 3,
+                       weight = c("sqrt","count","none"),
+                       split.chr = qb.get(qbObject, "split.chr"),
+                       center.type = c("mode","mean","scan"),
                        half = FALSE,
                        verbose = FALSE)
 {
+  type.scans <- c("heritability","LPD","LR","deviance","detection",
+             "variance","estimate","cellmean","count","log10",
+             "posterior","logposterior","2logBF","BF","nqtl",
+             "npar","rss")
+  nfixcov <- qb.get(qbObject, "nfixcov")
+
+  qb.commonone(qbObject, "scanone",, epistasis, scan, type.scan, covar,
+               adjust.covar, chr, sum.scan, min.iter, aggregate,
+               smooth, weight, split.chr, center.type, half, verbose)
+}
+###################################################################
+check.intcov <- function(intcov, nfixcov)
+{
+  tmp <- length(intcov)
+  if(tmp > nfixcov) {
+    if(nfixcov == 0)
+      intcov <- NULL
+    else
+      intcov <- intcov[seq(nfixcov)]
+  }
+  else if(tmp < nfixcov)
+    intcov <- c(intcov, rep(FALSE, nfixcov - tmp))
+
+  ## Check that intcov is of length nfixcov.
+  if(length(intcov) != nfixcov)
+    stop(paste("mismatch in qb object: intcov length (", sum(intcov),
+               ") via qb.model must match fixcov length(",
+               nfixcov, ") via qb.data", sep = ""))
+  intcov
+}
+###################################################################
+qb.commonone <- function(qbObject,
+                         call = "scanone",
+                         slice,
+                         epistasis = TRUE,
+                         scan = c("main", "GxE", "epistasis"),
+                         type.scan = type.scans,
+                         covar = if(nfixcov) seq(nfixcov) else 0,
+                         adjust.covar = NA,
+                         chr = NULL,
+                         sum.scan = "yes",
+                         min.iter = 1,
+                         aggregate = TRUE,
+                         smooth = 3,
+                         weight = c("sqrt","count","none"),
+                         split.chr = qb.get(qbObject, "split.chr"),
+                         center.type = c("mode","mean","scan"),
+                         half = FALSE,
+                         verbose = FALSE)
+{
   qb.exists(qbObject)
   
-  ## WARNING: Check covariates for npar and rss computations.
-  ## Rethink qb.scan for nqtl. [Could use count already in place to do this
-  ## readily, but not worth it for this freeze.]
-
   qb.name <- deparse(substitute(qbObject))
   
-  is.bc <- (qb.get(qbObject, "cross") == "bc")
+  is.bc <- (qb.cross.class(qbObject) == "bc")
+
+
+  ## Force chr and slice["chr"] to index chromosomes used in qbObject.
+  chr <- qb.find.chr(qbObject, chr)
+
+  is.slice <- (call == "sliceone")
+  if(is.slice) {
+    ## Restrict attention to selected chromosomes
+    if(missing(slice))
+      stop("must specify chromosome to slice upon")
+    
+    ## Set up slice vector.
+    ## slice = c(chr=, upper=TRUE, start=, end=, weight=c(0,1,2))
+    ## NB: slice could be list, with first element logical or character.
+    if(is.null(names(slice)))
+      names(slice) <- c("chr","start","end")[seq(length(slice))]
+    slice["chr"] <- qb.find.chr(qbObject, unlist(slice["chr"]))
+    slice <- unlist(slice)
+    if(is.na(slice["start"]))
+      slice["start"] <- 0
+    if(is.na(slice["end"]))
+      slice["end"] <- max(pull.grid(qbObject)$pos)
+    tmp <- names(slice)
+    slice <- as.numeric(slice)
+    names(slice) <- tmp
+  }
 
   ## Determine variance components.
   var1 <- "add"
-  if(epistasis)
-    var2 <- "aa"
-  else
-    var2 <- character(0)
+  var2 <- ifelse(epistasis, "aa", character(0))
   if(!is.bc) {
     var1 <- c(var1,"dom")
     if(epistasis)
@@ -306,72 +532,116 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
   }
 
   ## Determine coefficients used in cellmean and ideal heritability.
-  qb.coef <- if(is.bc)
-    list(add = c(-0.5,0.5))
-  else
-    list(add = c(-1,0,1), dom = c(-0.5,0.5,-0.5))
-
+  if(is.slice) {
+    qb.coef <- if(is.bc)
+      list(add = rep(c(-0.5,0.5), 2),
+           aa = c(0.25,-0.25,-0.25,0.25))
+    else
+      list(add = rep(c(-1,0,1), 3), dom = rep(c(-0.5,0.5,-0.5), 3),
+           aa = c(1,0,-1,0,0,0,-1,0,1),
+           ad = c(0.5,0,-0.5,-0.5,0,0.5,0.5,0,-0.5),
+           da = c(0.5,-0.5,0.5,0,0,0,-0.5,0.5,-0.5),
+           dd = c(0.25,-0.25,0.25,-0.25,0.25,-0.25,0.25,-0.25,0.25))
+  }
+  else {
+    qb.coef <- if(is.bc)
+      list(add = c(-0.5,0.5))
+    else
+      list(add = c(-1,0,1), dom = c(-0.5,0.5,-0.5))
+  }
+  
   ## Number of fixed covariates
   nfixcov <- qb.get(qbObject, "nfixcov")
   nrancov <- qb.get(qbObject, "nrancov")
-  intcov <- qb.get(qbObject, "intcov")
+  intcov <- as.logical(qb.get(qbObject, "intcov"))
+  intcov <- check.intcov(intcov, nfixcov)
   
   ## Determine type of scan.
-  types <- c("heritability","LPD","LR","deviance","detection",
+  type.scans <- c("heritability","LPD","LR","deviance","detection",
              "variance","estimate","cellmean","count","log10",
              "posterior","logposterior","2logBF","BF","nqtl",
              "npar","rss")
-  type <- types[pmatch(tolower(type), tolower(types), nomatch = 2)][1]
+  type.scan <- type.scans[pmatch(tolower(type.scan), tolower(type.scans), nomatch = 2)][1]
 
-  is.count <- any(match(type,
-                        c("count", "log10", "posterior", "logposterior",
-                          "2logBF", "BF", "nqtl"),
-                        nomatch = 0)) 
-  is.var <- match(type, types[1:6], nomatch = 0)
-  is.effect <- is.var | type == "estimate"
-#  is.lod <- match(type, types[2:5], nomatch = 0)
-  is.lod <- match(type, types[c(2:5,16:17)], nomatch = 0)
+  is.count <- type.scan %in% c("count", "log10", "posterior", "logposterior",
+                          "2logBF", "BF", "nqtl")
+  is.var <- type.scan %in% type.scans[1:6]
+  is.effect <- is.var | type.scan == "estimate"
+  is.lod <- type.scan %in% type.scans[c(2:5,16:17)]
 
   ## Number of individuals for phenotype.
-  cross <- qb.cross(qbObject)
+  cross <- qb.cross(qbObject, genoprob = FALSE)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
   nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
 
   ## Genotype names.
-  geno.names <- names(cross$geno)
+  geno.names <- qb.geno.names(qbObject, cross)
 
   ## Following prior used for Bayes factors.
-  bf.prior <- qb.get(qbObject, "mean.nqtl") / length(unlist(pull.loci(cross)))
+  bf.prior <- qb.get(qbObject, "mean.nqtl") / qb.nloci(qbObject, cross)
+  if(is.slice)
+    bf.prior <- bf.prior * bf.prior
 
   rm(cross)
   gc()
-  
-  if(!is.null(chr))
-    qbObject <- subset(qbObject, chr = chr, restrict.pair = FALSE)
+
+  ## Subset on chromosomes.
+  qbObject <- subset(qbObject,
+                     chr = {
+                       if(is.slice)
+                         sort(unique(c(chr, slice["chr"])))
+                       else
+                         chr},
+                     restrict.pair = FALSE)
+
+  ## Pull grid of loci.
+  grid <- pull.grid(qbObject, offset = TRUE)
+
+  if(is.slice) {
+    ## Restrict attention to samples including slice.
+    qbObject <- subset(qbObject, region = list(chr=slice["chr"],
+                                   start=slice["start"], end=slice["end"]),
+                       restrict.pair = FALSE)
+  }
   
   ## Get MCMC samples.
   iterdiag <- qb.get(qbObject, "iterdiag")
   mainloci <- qb.get(qbObject, "mainloci")
+
+  ## No QTL at all.
+  if(is.null(mainloci))
+    return(NULL)
+    
   iterdiag.nqtl <- qb.nqtl(qbObject, iterdiag, mainloci)
+
+  ## Need pairloci earlier for slice?
   pairloci <- qb.get(qbObject, "pairloci")
   if(is.null(pairloci))
     epistasis <- FALSE
+  else if(is.slice) {
+    ## Restrict pairloci to pairs with slice.
+    tmp <- pairloci$chrom1 == slice["chr"] | pairloci$chrom2 == slice["chr"]
+    if(sum(tmp))
+      pairloci <- pairloci[tmp,]
+    else
+      epistasis <- FALSE
+  }
   
   ## Find interaction pattern.
   if(verbose)
     cat("finding loci ...\n")
-  inter <- qb.inter(qbObject)
+  inter <- qb.inter(qbObject, grid, mainloci)
 
   ## Covariate adjustment calculations.
-  if(type == "heritability")
+  if(type.scan == "heritability")
     totvar <- rep(0, length(levels(inter)))
   if(nfixcov) {
     ## Covariate means.
     covar.means <- covar.mean(qbObject, adjust.covar,
-                              verbose = verbose & (type == "estimate"))
+                              verbose = verbose & (type.scan == "estimate"))
     
     ## Explained covariance for heritability.
-    if(type == "heritability") {
+    if(type.scan == "heritability") {
       tmp <- apply(qb.varcomp(qbObject, c("fixcov","rancov")), 1, sum)
       tmp <- unlist(tapply(tmp[match(mainloci[, "niter"], iterdiag[, "niter"])],
                            inter, mean))
@@ -387,13 +657,20 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
   ## scans = all terms needed for analysis (var1, var2, and var1.covar=GxE).
   ## scan.save = scan names to save in returned object.
   ## sum.scan = indicator whether "sum" name is returned ("yes", "no", "only").
-  if(type == "cellmean") {
-    scans <- var1
-    scan <- scan.save <- c("A","H","B")[seq(3 - is.bc)]
+  if(type.scan == "cellmean") {
+    scan <- c("A","H","B")[seq(3 - is.bc)]
+    if(is.slice) {
+      scans <- c(var1, var2)
+      scan <- c(outer(scan, scan, paste, sep = ""))
+    }
+    else {
+      scans <- var1
+    }
+    scan.save <- scan
     sum.scan <- "no"
   }
   else {
-    if(type == "estimate" & sum.scan == "yes")
+    if(type.scan == "estimate" & sum.scan == "yes")
       sum.scan <- "no"
     aggregs <- c("main","epistasis","GxE","gbye")
     tmp <- pmatch(tolower(scan), tolower(aggregs), nomatch = 0)
@@ -418,15 +695,20 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
         scans <- c(scans, var2)
         scans.save <- c(scans.save, var2)
       }
-      if(any(scan == aggregs[3]) & sum(intcov)) {
-        if(length(covar.means)) {
-          tmp <- seq(nfixcov)[intcov]
-          tmp <- names(covar.means)[covar[match(tmp, covar, nomatch = 0)]]
-          if(length(tmp)) {
-             scans <- c(scans, outer(var1, tmp, paste, sep = "."))
-             scans.save <- c(scans.save, outer(var1, tmp, paste, sep = "."))
-           }
+      if(any(scan == aggregs[3])) {
+        if(sum(intcov)) {
+          if(length(covar.means)) {
+            tmp <- seq(nfixcov)[intcov]
+            tmp <- names(covar.means)[covar[match(tmp, covar, nomatch = 0)]]
+            n.var1.covar <- length(tmp)
+            if(n.var1.covar) {
+              scans <- c(scans, outer(var1, tmp, paste, sep = "."))
+              scans.save <- c(scans.save, outer(var1, tmp, paste, sep = "."))
+            }
+          }
         }
+        else
+          n.var1.covar <- 0
       }
     }
     else {
@@ -454,12 +736,12 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
             tmp <- seq(nfixcov)[intcov]
             tmp <- names(covar.means)[covar[match(tmp, covar, nomatch = 0)]]
             if(length(tmp))
-               scans <- unique(c(scans, outer(vars, tmp, paste, sep = ".")))
+              scans <- unique(c(scans, outer(vars, tmp, paste, sep = ".")))
           }
         }
       }
     }
-    if(sum.scan != "no" & (length(scans) == 1))
+    if(sum.scan %in% c("yes","only") & (length(scans) == 1))
       sum.scan <- "no"
     ## The vector scans contains elements to scan,
     ## either to show directly or to combine in sum.
@@ -468,11 +750,11 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
     scan.save <- switch(sum.scan,
                         no = scan.save,
                         yes = c(scan.save, "sum"),
-                        only = "sum")
+                        two =, only = "sum")
   }
 
   if(verbose) {
-    cat("\n", type, "of", pheno.name, "for",
+    cat("\n", type.scan, "of", pheno.name, "for",
         paste(scan.save, collapse = ","), "\n")
     if(min.iter > 1)
       cat("Including only loci pairs with at least", min.iter, "samples.\n")
@@ -484,15 +766,15 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
   dimnames(x) <- list(NULL, scan.save)
 
   ## Extract environmental variance.
-  if(type == "heritability" | is.lod |
-     (type == "variance" & any(scan.save == "env"))) {
+  if(type.scan == "heritability" | is.lod |
+     (type.scan == "variance" & any(scan.save == "env"))) {
     if(verbose)
       cat("environmental variance ...\n")
     tmp <- unlist(tapply(iterdiag[match(mainloci[, "niter"], iterdiag[, "niter"]),
                                   "envvar"],
                          inter, mean))
     tmp[is.na(tmp)] <- 0
-    if(type == "heritability")
+    if(type.scan == "heritability")
       totvar <- totvar + tmp
     else {
       if(is.lod)
@@ -505,259 +787,39 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
 
   ## Need n.iter for counts.
   if(is.count)
-    n.iter <- nrow(iterdiag)
+    n.iter <- qb.niter(qbObject)
 
-  if(type == "nqtl")
-    nqtl.main <- paste(mainloci[, "niter"], mainloci[, "chrom"], sep = ":")
-
+  if(verbose)
+    cat("non-epistatic components ...\n")
   ## Get non-epistatic components: additive and dominance.
-  if(type == "heritability")
-    vars <- var1
+  gbye <- if(sum(intcov))
+    qb.get(qbObject, "gbye")
   else
-    vars <- var1[match(scans, var1, nomatch = 0)]
-  if(length(vars)) {
-    if(verbose)
-      cat("non-epistatic components ...\n")
+    NULL
+  reference <- qb.reference(qbObject, mainloci, iterdiag, inter, type.scan)
 
-    ## Number of main effect samples per locus.
-    if(is.count & any(scan.save == "main")) {
-      tmp <- apply(as.matrix(mainloci[, paste("var", vars, sep = "")]), 1,
-                   function(x) any(x > 0))
-      if(type == "nqtl") {
-        tmp <- tapply(tmp, nqtl.main, sum)[nqtl.main]
-        tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
-      }
-      else
-        tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-      tmp[is.na(tmp)] <- 0
-      x[, "main"] <- qb.count(qbObject, tmp, type, n.iter, bf.prior)
-    }
-    else if(type == "cellmean") {
-      tmp <- unlist(tapply(qb.meancomp(qbObject)[match(mainloci[, "niter"],
-                                                   iterdiag[, "niter"]),
-                                             "grand.mean"],
-                           inter, mean))
-      tmp[is.na(tmp)] <- mean(tmp, na.rm = TRUE)
-      x[, "A"] <- x[, "H"] <- tmp
-      if(!is.bc)
-        x[, "B"] <- tmp
-    }
-    for(i in vars) {
-      if(type == "estimate" | type == "cellmean")
-        ## Parameter estimates of main effects.
-        element <- i
-      else
-        ## Variance components.
-        element <- paste("var", i, sep = "")
-      
-      ## Get samples for this component.
-      main.val <- mainloci[, element]
-
-      ## Get GxE samples if any intcov selected.
-      if(sum(intcov)) {
-        if(any(scan.save == "GxE"))
-          tmp2 <- rep(0, nrow(mainloci))
-
-        if(sum(intcov)) {
-          ## Get GxE samples.
-          gbye <- qb.get(qbObject, "gbye")
-
-          ## Loop over all covariates.
-          covars <- seq(nfixcov)[intcov]
-          for(j in covars) {
-            gbyej <- gbye[gbye[, "covar"] == j, ]
-            if(length(gbyej)) {
-              same <- match(paste(gbyej[, "niter"], gbyej[, "chrom"],
-                                  gbyej[, "locus"], sep = ":"),
-                            paste(mainloci[, "niter"], mainloci[, "chrom"],
-                                  mainloci[, "locus"], sep = ":"))
-              
-              ## Parameter estimates of GxE fixed effects.
-              if(match(j, covar, nomatch = 0) | type == "heritability") {
-                cname <- paste(paste(i, names(covar.means)[j], sep = "."))
-                tmp <- rep(0, length(main.val))
-                tmp[same] <- gbyej[[element]]
-                ## Include the covariate?
-                if(is.count) {
-                  ## Count times GxE effect is present.
-                  tmp <- tmp > 0
-                  if(any(scan.save == "GxE"))
-                    tmp2 <- pmax(tmp2, tmp)
-                  if(any(scan.save == cname)) {
-                    if(type == "nqtl") {
-                      tmp <- tapply(tmp, nqtl.main, sum)[nqtl.main]
-                      tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
-                    }
-                    else
-                      tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-                    tmp[is.na(tmp)] <- 0
-                    x[, cname] <- qb.count(qbObject, tmp, type, n.iter,
-                                           bf.prior)
-                  }
-                }
-                else { ## is.effect
-                  tmp <- unlist(tapply(tmp, inter, mean))
-                  tmp[is.na(tmp)] <- 0
-                  if(type == "heritability")
-                    totvar <- totvar + tmp
-                  if(match(cname, scan.save, nomatch = 0))
-                    x[,cname] <- tmp
-                  if(any(scan.save == "GxE"))
-                    x[,"GxE"] <- x[,"GxE"] + tmp
-                  if(sum.scan != "no")
-                    x[,"sum"] <- x[,"sum"] + tmp
-                }
-              }
-              
-              if(type == "estimate" | type == "cellmean") {
-                ## Offset parameter estimate by covariates.
-                if(covar.means[j] != 0)
-                  main.val[same] <- main.val[same] + covar.means[j] * gbyej[[i]]
-              }
-            }
-            if(is.count & any(scan.save == "GxE")) {
-              if(type == "nqtl") {
-                tmp2 <- tapply(tmp2, nqtl.main, sum)[nqtl.main]
-                tmp2 <- unlist(tapply(tmp2, inter, mean, na.rm = TRUE))
-              }
-              else
-                tmp2 <- unlist(tapply(tmp2, inter, sum, na.rm = TRUE))
-              tmp2[is.na(tmp2)] <- 0
-              x[, "GxE"] <- qb.count(qbObject, tmp2, type, n.iter, bf.prior)
-            }
-          }
-        }
-      }
-      
-      ## Now include the main effect components.
-      if(is.count) {
-        if(any(scan.save == i)) {
-          ## Count times main effect is present.
-          if(type == "nqtl") {
-            tmp <- tapply(main.val > 0, nqtl.main, sum)[nqtl.main]
-            tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
-          }
-          else
-            tmp <- unlist(tapply(main.val > 0, inter, sum, na.rm = TRUE))
-          tmp[is.na(tmp)] <- 0
-          x[, i] <- qb.count(qbObject, tmp, type, n.iter, bf.prior)
-        }
-      }
-      else { ## is.effect
-        tmp <- unlist(tapply(main.val, inter, mean, na.rm = TRUE))
-        tmp[is.na(tmp)] <- 0
-        if(type == "cellmean") {
-          if(any(names(qb.coef) == i))
-            x <- x + outer(tmp, qb.coef[[i]])
-        }
-        else {
-          if(type == "heritability")
-            totvar <- totvar + tmp
-          if(match(i, scan.save, nomatch = 0))
-            x[,i] <- tmp
-          if(any(scan.save == "main"))
-            x[,"main"] <- x[,"main"] + tmp
-          if(sum.scan != "no")
-            x[,"sum"] <- x[,"sum"] + tmp
-        }
-      }
-    }
+  if(is.slice) {
+    ## Adjustment for slice: genos considers pairs.
+    tmp2 <- attr(reference, "genos")
+    attr(reference, "genos") <- c(outer(tmp2, tmp2, paste, sep = ""))
   }
+    
+  tmp <- qb.scanmain(x, type.scan, is.bc, scans, scan.save, n.iter, bf.prior,
+                     reference, covar, covar.means, inter, mainloci,
+                     gbye, intcov, nfixcov, sum.scan, qb.coef)
+  x <- tmp$x
+  if(type.scan == "heritability")
+    totvar <- totvar + tmp$totvar
+  reference <- mean(reference)
 
-  ## Index for epistasis.
   if(epistasis) {
-    epinter <- c(paste(pairloci[, "niter"],
-                       pairloci[, "chrom1"], pairloci[, "locus1"], sep = ":"),
-                 paste(pairloci[, "niter"],
-                       pairloci[, "chrom2"], pairloci[, "locus2"], sep = ":"))
-    if(type == "nqtl") {
-      nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"], sep = ":"),
-                     paste(pairloci[, "niter"], pairloci[, "chrom2"], sep = ":"))
-    }
-    tmp <- !duplicated(epinter)
-    epinter <- ordered(epinter, epinter[tmp])
-    ## epii identifies mainloci with epistatic pairs.
-    epii <- match(epinter[tmp],
-                  paste(mainloci[, "niter"], inter, sep = ":"),
-                  nomatch = 0)
-  }
-
-  ## Epistatic components.
-  if(epistasis & type != "cellmean") {
-    if(type == "heritability")
-      vars <- var2
-    else
-      vars <- var2[match(scans, var2, nomatch = 0)]
-    if(length(vars)) {
-      if(verbose)
-        cat("epistatic components ...\n")
-      tmp <- rep(0, length(inter))
-
-      ## Number of epistatic samples per locus.
-      if(is.count & any(scan.save == "epistasis")) {
-        if(type == "nqtl") {
-          tmp2 <- table(nqtl.pair)[nqtl.pair]
-          tmp[epii] <- unlist(tapply(tmp2, epinter, mean))[epii > 0]
-          tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
-        }
-        else {
-          tmp[epii] <- 1
-          tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-        }
-        tmp[is.na(tmp)] <- 0
-        x[, "epistasis"] <- qb.count(qbObject, tmp, type, n.iter, bf.prior)
-      }
-
-      for(i in vars) {
-        if(type == "estimate")
-          ## Parameter estimates of epistasis.
-          element <- i
-        else
-          ## Variance components for epistasis.
-          element <- paste("var", i, sep = "")
-
-        tmp2 <- pairloci[, element]
-        if(is.count) {
-          if(any(scan.save == i)) {
-            ## Count times epistatic element is present.
-            if(type == "nqtl") {
-              ## NB: This multiply counts locus used in several pairs.
-              tmp2 <- unlist(tapply(rep(tmp2 > 0, 2),
-                                    nqtl.pair, sum))[nqtl.pair]
-              tmp[epii] <- unlist(tapply(tmp2, epinter, mean))[epii > 0]
-              tmp2 <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
-            }
-            else {
-              tmp[epii] <- unlist(tapply(rep(tmp2 > 0, 2), epinter,
-                                         sum))[epii > 0]
-              tmp2 <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-            }
-            tmp2[is.na(tmp2)] <- 0
-            ## Compute count diagnostic.
-            x[, i] <- qb.count(qbObject, tmp2, type, n.iter, bf.prior)
-            
-          }
-        }
-        else { ## is.effect
-          ## Get epistatic element and average.
-          tmp[epii] <- unlist(tapply(rep(tmp2, 2), epinter, sum))[epii > 0]
-          tmp2 <- unlist(tapply(tmp, inter, mean))
-          
-          ## Reduce epistatic value by half.
-          if(half)
-            tmp2 <- tmp2 / 2
-          tmp2[is.na(tmp2)] <- 0
-          if(type == "heritability")
-            totvar <- totvar + tmp2
-          if(match(i, scan.save, nomatch = 0))
-            x[,i] <- tmp2
-          if(any(scan.save == "epistasis"))
-            x[,"epistasis"] <- x[,"epistasis"] + tmp2
-          if(sum.scan != "no")
-            x[,"sum"] <- x[,"sum"] + tmp2
-        }
-      }
-    }
+    if(verbose)
+      cat("epistatic components ...\n")
+    tmp <- qb.scanepis(x, type.scan, is.bc, scans, scan.save, n.iter, bf.prior,
+                       inter, mainloci, pairloci, sum.scan, qb.coef, half, is.slice)
+    x <- tmp$x
+    if(type.scan == "heritability")
+      totvar <- totvar + tmp$totvar
   }
 
   ## Extract counts averaged over MCMC runs.
@@ -766,18 +828,26 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
       cat("counts ...\n")
     if(sum.scan != "no") {
       ## Number of iterations per locus.
-      if(type == "nqtl") {
+      if(type.scan == "nqtl") {
+        nqtl.main <- paste(mainloci[, "niter"], mainloci[, "chrom"], sep = ":")
         tmp <- table(nqtl.main)[nqtl.main]
         tmp <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
         tmp[is.na(tmp)] <- 0
       }
       else
         tmp <- unclass(table(inter))
-      x[, "sum"] <- qb.count(qbObject, tmp, type, n.iter, bf.prior)
+      x[, "sum"] <- qb.count(tmp, type.scan, n.iter, bf.prior)
+    }
+    if(any(scans == "nqtl")) {
+      ## Number of QTL averaged over MCMC runs.
+      tmp <- iterdiag.nqtl[match(mainloci$niter, iterdiag$niter)]
+      tmp <- unlist(tapply(tmp[match(mainloci$niter, iterdiag$niter)],
+                           inter, mean))
+      x[, "nqtl"] <- if(type.scan == "count") tmp else log10(tmp)
     }
   }
-  else if(type != "cellmean") {
-    if(type == "heritability") {
+  else if(type.scan != "cellmean") {
+    if(type.scan == "heritability") {
       for(i in scan.save) {
         x[, i] <- 100 * x[,i] / totvar
         x[is.na(x[, i]), i] <- 0
@@ -792,9 +862,10 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
       tmp <- (nind.pheno - npar - 1) * iterdiag[, "envvar"]
       rss <- unlist(tapply(tmp[match(mainloci[, "niter"], iterdiag[, "niter"])],
                            inter, mean))
+      rss[is.na(rss)] <- 0
       
       ## Keep npar for detection probability.
-      if(type == "detection" | type == "npar") {
+      if(type.scan == "detection" | type.scan == "npar") {
         ## Probability of detection given data.
         ## Number of parameters averages over MCMC runs.
         npar <- unlist(tapply(npar[match(mainloci[, "niter"], iterdiag[, "niter"])],
@@ -804,165 +875,197 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
       ## Calculate LPD, LR or deviance.
       ## mostly correct for LPD, but does it get LPD?
       ## also see ideas in Gaffney code
-      nscan <- 1
       for(i in scan.save) {
-        if(i == "sum")
-          nscan <- length(scans) - 1
-        x[, i] <- nind.pheno * log((rss + env * nscan +
-                                   nind.pheno * x[,i]) / rss)
-        if(type == "LPD")
-          x[, i] <- x[, i] / (2 * log(10))
-        else if(type == "LR")
-          x[, i] <- x[, i] / 2
-        else if(type == "detection") {
-          p1 <- exp(x[, i] / 2)
-          detect.prior = 1 / nrow(x)
-          x[, i] <- p1 * detect.prior / (1 + (p1 - 1) * detect.prior)
-          x[is.na(x[, i]), i] <- 0.5
-        }
-        else {
-          if(type == "rss")
-            x[, i] <- rss
-          else if(type == "npar")
-            x[, i] <- npar
-        }
-        x[is.na(x[, i]), i] <- min(x[, i], na.rm = TRUE)
+        ## This counts model df.
+        ## It only counts epistasis once, even though loci may
+        ## interact with multiple other loci.
+        nscan <- switch(i, sum = length(scans) - 1,
+                        main = length(var1),
+                        epistasis = length(var2),
+                        GxE = n.var1.covar,
+                        1)
+        x[, i] <- calc.objective(x[, i], rss, env, nind.pheno,
+                                 nscan, npar, type.scan)
       }
     }
   }
 
-  ## Assign attributes passed to plot.qb.scanone.
-  attr(x, "class") <- c("qb.scanone", "matrix")
-  attr(x, "method") <- type
-  attr(x, "scan") <- scan.save
-  attr(x, "type") <- qbObject$cross
-  attr(x, "chr") <- chr
-  attr(x, "min.iter") <- min.iter
-  attr(x, "pheno.name") <- pheno.name
-  attr(x, "geno.names") <- geno.names
-  attr(x, "qb") <- qb.name
+  if(is.slice) {
+    ## Add column for slice as mean of locus in slice.
+    tmp <- (mainloci$chrom == slice["chr"] &
+            mainloci[, "locus"] >= slice["start"] &
+            mainloci[, "locus"] <= slice["end"])
+    tmp <- tapply(mainloci[tmp, "locus"], mainloci[tmp, "niter"],
+                  mean, na.rm = TRUE)
+    tmp <- rep(tmp, c(table(mainloci[, "niter"])))
+    tmp2 <- unlist(tapply(tmp, inter, mean, na.rm = TRUE))
+    tmp2[is.na(tmp2)] <- mean(tmp2, na.rm = TRUE)
+    tmp <- (grid$chr == slice["chr"] &
+            grid$pos >= slice["start"] & grid$pos <= slice["end"])
+    if(any(tmp))
+      tmp2[tmp] <- NA
+    x <- cbind(x, slice = tmp2)
+    scan.save <- c(scan.save, "slice")
+    
+    ## Drop slice chromosome if not in chr list.
+    if(is.na(match(slice["chr"], chr))) {
+      tmp <- dimnames(x)
+      x <- as.matrix(x[grid$chr != slice["chr"], ])
+      dimnames(x) <- list(NULL, tmp[[2]])
+      grid <- grid[grid$chr != slice["chr"], ]
+      mainloci <- mainloci[mainloci$chrom != slice["chr"], ]
+      pairloci <- pairloci[!(pairloci$chrom1 == slice["chr"] &
+                             pairloci$chrom2 == slice["chr"]), ]
+    }
+  }
+
+  ## Add objects used by plot or summary methods.
+  if(sum.scan == "two")
+    x
+  else {
+    vars <- if(is.bc) "varadd" else c("varadd","vardom")
+    x <- list(one = x, grid = grid,
+              mainloci = mainloci[, c("niter","chrom","locus",vars)],
+              pairloci = pairloci[, c("niter","chrom1","locus1","chrom2","locus2")])
+
+    ## Assign attributes passed to plot.qb.scanone.
+    attr(x, "class") <- c("qb.scanone", "list")
+    attr(x, "type.scan") <- type.scan
+    attr(x, "scan") <- scan.save
+    attr(x, "cross.class") <- qb.cross.class(qbObject)
+    attr(x, "chr") <- chr
+    attr(x, "min.iter") <- min.iter
+    attr(x, "pheno.name") <- pheno.name
+    attr(x, "geno.names") <- geno.names
+    attr(x, "reference") <- mean(reference)
+    attr(x, "step") <- qb.get(qbObject, "step")
+    attr(x, "niter") <- qb.niter(qbObject)
+    attr(x, "split.chr") <- split.chr
+
+    ## We are not really using all the above. This can be simplified.
+    if(is.slice)
+      scan <- dimnames(x$one)[[2]]
+
+    x <- qb.to.scanone(x, chr, smooth, scan.save, weight, split.chr,
+                       center.type)
+    if(is.slice)
+      attr(x, "slice") <- slice
+    class(x)[1] <- "qb.scanone"
+    x
+  }
+}
+###################################################################
+calc.objective <- function(x, rss, env, nind.pheno, nscan, npar, type.scan)
+{
+  ## Empirical approximation to LPD.
+  ## Watch for negative values.
+  
+  tmp <- rss + env * nscan + nind.pheno * x
+  tmp[rss == 0] <- 0
+  tmp2 <- tmp <= 0
+  if(any(!tmp2))
+    tmp[!tmp2] <- nind.pheno * log(tmp[!tmp2] / rss[!tmp2])
+  if(any(tmp2))
+    tmp[tmp2] <- 0
+  x <- tmp
+  
+  if(type.scan == "LPD")
+    x <- x / (2 * log(10))
+  else if(type.scan == "LR")
+    x <- x / 2
+  else if(type.scan == "detection") {
+    p1 <- exp(x / 2)
+    detect.prior = 1 / length(x)
+    x <- p1 * detect.prior / (1 + (p1 - 1) * detect.prior)
+    x[is.na(x)] <- 0.5
+  }
+  else {
+    if(type.scan == "rss")
+      x <- rss
+    else if(type.scan == "npar")
+      x <- npar
+  }
+  x[is.na(x)] <- min(x, na.rm = TRUE)
   x
 }
 ###################################################################
 summary.qb.scanone <- function(object,
-                             chr, ## Must be integer for now.
-                             threshold = 0,
-                             sort = "no",
-                             smooth = 3,
-                             n.qtl = 0.05,
-                             min.iter = attr(object, "min.iter"),
-                             ...)
+                               chr = NULL,
+                               threshold = 0,
+                               sort = "no",
+                               n.qtl = 0.05,
+                               ...)
 {
-  qbObject <- get(attr(object, "qb"))
-  chr.qb <- attr(object, "chr")
-  if(!is.null(chr.qb))
-    qbObject <- subset(qbObject, chr = chr.qb)
-  type <- attr(object, "method")
-  
-  pheno.name <- attr(object, "pheno.name")
+  summary.qb.to.scanone(object, chr, threshold, sort, n.qtl, ...)
+}
+###################################################################
+summary.qb.to.scanone <- function(object,
+                               chr = NULL,
+                               threshold = 0,
+                               sort = "no",
+                               n.qtl = 0.05,
+                               ...)
+{
+  scan <- names(object)[-(1:2)]
+  chrs <- attr(object, "chr")
+#  count <- attr(object, "count")
+  n.iter <- attr(object, "niter")
+  centers <- attr(object, "centers")
+  nqtl <- attr(object, "nqtl")
 
-  scan <- attr(object, "scan")
+  geno.names <- levels(object$chr)
+  chr.sub <- unclass(chrs)[match(object$chr, geno.names)] %in%
+    qb.find.chr(chr = chr, geno.names = levels(chrs))
+  object <- object[chr.sub, ]
+  tmp <- table(object$chr) > 0
+  geno.names <- names(tmp)[tmp]
+  chrs <- chrs[tmp]
+  nqtl <- nqtl[tmp]
 
-  ## Get chr and pos.
-  x <- pull.grid(qbObject, offset = TRUE)
-
-  ## Get interaction pattern.
-  inter <- qb.inter(qbObject, x)
-
-  ## Get number of samples per pos.
-  niter <- unclass(table(inter))
-  n.iter <- nrow(qb.get(qbObject, "iterdiag"))
-
-  mainloci <- qb.get(qbObject, "mainloci")
-
+  ## Set up out object; check for epistasis first.
   main.scan <- c("main","add","dom")
-  ## Epistasis counter.
-  epi.scan <- c("epistasis","aa","ad","da","dd")
+
+  ## qb.slicetwo uses type.scan as label for epistasis.
+  type.scans <- c("heritability","LPD","LR","deviance","detection",
+             "variance","estimate","cellmean","count","log10",
+             "posterior","logposterior","2logBF","BF","nqtl",
+             "npar","rss")
+  ## qb.slicetwo also uses genotype.
+  epi.scan <- c("epistasis","aa","ad","da","dd",
+                "AA","AH","AB","HA","HH","HB","BA","BH","BB",
+                type.scans)
+
   epistasis <- any(match(scan, epi.scan, nomatch = 0))
-  if(epistasis) {
-    qb.get.epis <- function(qbObject, inter, mainloci)
-    {
-      pairloci <- qb.get(qbObject, "pairloci")
-      epinter <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"],
-                         pairloci[, "locus1"], sep = ":"),
-                   paste(pairloci[, "niter"], pairloci[, "chrom2"],
-                         pairloci[, "locus2"], sep = ":"))
-      rm(pairloci)
-      gc()
-      tmp <- !duplicated(epinter)
-      epinter <- ordered(epinter, epinter[tmp])
-      ## epii identifies mainloci with epistatic pairs.
-      epii <- match(epinter[tmp],
-                    paste(mainloci[, "niter"], inter, sep = ":"),
-                    nomatch = 0)
-      tmp <- rep(0, length(inter))
-      tmp[epii] <- 1
-      tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-      tmp[is.na(tmp)] <- 0
-      tmp
-    }    
-    nepis <- qb.get.epis(qbObject, inter, mainloci)
-  }
-  qb.get.main <- function(qbObject, inter, mainloci)
-  {
-    vars <- c("varadd","vardom")
-    vars <- vars[!is.na(match(vars, names(mainloci)))]
-    tmp <- apply(as.matrix(mainloci[, vars]), 1,
-                   function(x) any(x > 0))
-    tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
-    tmp[is.na(tmp)] <- 0
-    tmp
-  }
-  x.main <- qb.get.main(qbObject, inter, mainloci)
-  rm(mainloci)
-  gc()
-  
-  ## Get chromosome names and set up matrix.
-  chrs = unique(x$chr)
-  if(!missing(chr))
-    chrs <- chrs[match(chr, chrs, nomatch = 0)]
-  
-  out <- matrix(0, length(chrs), 4 + ncol(object) + epistasis)
-  object.names <- dimnames(object)[[2]]
-  dimnames(out) <- list(attr(object, "geno.names")[chrs],
+  out <- matrix(0, length(geno.names), 2 + ncol(object) + epistasis)
+  object.names <- names(object)[-(1:2)]
+  dimnames(out) <- list(geno.names,
                         c("chr", "n.qtl", "pos", "m.pos", "e.pos"[epistasis],
                           object.names))
+  out <- as.data.frame(out)
   out[, "chr"] <- chrs
 
-  ## Values at maximum number of smoothed iterations.
-  x.iter <- qb.smoothone(niter, x, smooth, niter)
-  x.main <- qb.smoothone(x.main, x, smooth, niter)
-  if(epistasis)
-    x.epis <- qb.smoothone(nepis, x, smooth, nepis)
+  ## Number of QTL per chr or split chr.
+  out[, "n.qtl"] <- nqtl[geno.names]
 
-  for(i in seq(ncol(object))) {
-    if(match(object.names[i], epi.scan, nomatch = 0))
-      object[,i] <- qb.smoothone(object[,i], x, smooth, nepis)
-    else
-      object[,i] <- qb.smoothone(object[,i], x, smooth, niter)
-  }
-  for(i in seq(length(chrs))) {
-    ii <- (x$chr == chrs[i] & niter >= min.iter)
+  ## Positions of centers
+  out[, "pos"] <- centers[geno.names, "pos"]
+  out[, "m.pos"] <- centers[geno.names, "m.pos"]
+  if(epistasis)
+    out[, "e.pos"] <- centers[geno.names, "e.pos"]
+
+  ## Use positions to find maximium value.
+  for(i in seq(length(geno.names))) {
+    ii <- (object$chr == geno.names[i] &
+           !is.na(object$chr))
     if(any(ii)) {
-      wh <- which.max(x.iter[ii])
-      out[i, "n.qtl"] <- sum(niter[ii]) / n.iter
-      out[i, "pos"] <- x$pos[ii][wh]
-      m.wh <- which.max(x.main[ii])
-      out[i, "m.pos"] <- x$pos[ii][m.wh]
-      if(epistasis) {
-        e.wh <- which.max(x.epis[ii])
-        out[i, "e.pos"] <- x$pos[ii][e.wh]
-      }
       for(j in object.names) {
-        out[i, j] <-
-          if(match(j, epi.scan, nomatch = 0))
-            object[ii, j][e.wh]
-          else {
-            if(match(j, main.scan, nomatch = 0))
-              object[ii, j][m.wh]
-            else
-              object[ii, j][wh]
-          }               
+        wh.pos <- "pos"
+        if(j %in% epi.scan)
+          wh.pos <- "e.pos"
+        else if(j %in% main.scan)
+          wh.pos <- "m.pos"
+        wh <- which.min(abs(object$pos[ii] - out[i, wh.pos]))[1]
+        out[i, j] <- object[ii, j][wh]
       }
     }
   }
@@ -978,20 +1081,13 @@ summary.qb.scanone <- function(object,
     ## Restrict to pairs with at least n.qtl estimated QTL.
     tmp <- out[, "n.qtl"] >= n.qtl
     if(sum(tmp)) {
-      if(sum(tmp) == 1) {
-        outn <- dimnames(out)
-        out <- matrix(out[tmp,], 1)
-        dimnames(out) <- list(outn[[1]][tmp], outn[[2]])
-      }
-      else
-        out <- out[tmp, ]
+      out <- out[tmp,, drop = FALSE]
       if (match(sort, dimnames(out)[[2]], nomatch = 0) & nrow(out) > 1)
         out <- out[order(- out[, sort]), ]
-      out <- as.data.frame(out)
       class(out) <- c("summary.qb.scanone", "data.frame")
-      attr(out, "method") <- type
-      attr(out, "pheno.name") <- pheno.name
-      attr(out, "min.iter") <- min.iter
+      attr(out, "type.scan") <- attr(object, "type.scan")
+      attr(out, "pheno.name") <- attr(object, "pheno.name")
+      attr(out, "min.iter") <- attr(object, "min.iter")
       attr(out, "scan") <- scan
       attr(out, "threshold") <- threshold
     }
@@ -1006,13 +1102,7 @@ print.qb.scanone <- function(x, digits = 3, ...)
 ###################################################################
 print.summary.qb.scanone <- function(x, digits = 3, ...)
 {
-  z <- as.character(unlist(x[, 1]))
-  rownames(x) <- if (max(nchar(z)) == 1) 
-    paste("c", x[, 1], sep = "")
-  else
-    paste(sprintf("c%-2s", x[, 1]))
-
-  cat(attr(x, "method"), "of", attr(x, "pheno.name"), "for",
+  cat(attr(x, "type.scan"), "of", attr(x, "pheno.name"), "for",
       paste(attr(x, "scan"), collapse = ","), "\n")
   min.iter <- attr(x, "min.iter")
   if(min.iter > 1)
@@ -1028,93 +1118,30 @@ print.summary.qb.scanone <- function(x, digits = 3, ...)
   print.data.frame(x[, -1], digits = digits)
 }
 ###################################################################
-plot.qb.scanone <- function(x,
-                            chr = NULL,
-                            smooth = 3,
-                            scan = scan.plots,
-                            ylim = ylims,
-                            scan.name = scan.pretty,
-                            col = cols,
-                            main = paste(type, "of", pheno.name,
-                              "for", scan.name),
-                            sub = paste(names(col), col, sep = "=",
-                              collapse = ", "),
-                            verbose = FALSE,
-                            ...)
+plot.qb.scanone <- function(x, chr = NULL,
+                            scan = scan.plots, ylim = ylims,
+                            scan.name = scan.pretty, ...)
 {
-  ## Now need this to pick up sum
-  ## and also to get colors right
-  ## and to get ylim right when type is estimate
-
-  type <- attr(x, "method")
   geno.names <- attr(x, "geno.names")
 
-  ## Set up output grid.
-  qbObject <- get(attr(x, "qb"))
-  chr.qb <- attr(x, "chr")
-  if(!is.null(chr.qb))
-    qbObject <- subset(qbObject, chr = chr.qb)
-  
-  grid <- pull.grid(qbObject, offset = TRUE)
-
-  ## Subset index for selected chromosomes.
-  if(!is.null(chr)) {
-    ## chr      = selected chromosome index.
-    ## chr.char = names of selected chromosomes.
-    ## chr.sub  = logical flag to select from grid.
-    ## grid     = grid of chr and pos.
-    if(!is.logical(chr))
-      chr <- seq(geno.names)[chr]
-    if(is.character(chr)) {
-      chr.char <- chr
-      chr <- match(chr, geno.names)
-    }
-    else {
-      chr.char <- geno.names[chr]
-    }
-    chr.sub <- match(grid$chr, chr)
-    chr <- chr[sort(unique(chr.sub))]
-    chr.sub <- !is.na(chr.sub)
-    if(!sum(chr.sub))
-      stop(paste("no samples for chromosomes", chr, collapse = ","))
-    qbObject <- subset(qbObject, chr = chr)
-    grid <- pull.grid(qbObject, offset = TRUE)
-  }
-  else
-    chr.sub <- rep(TRUE, nrow(grid))
-  
   ## Figure out how to organize scans.
-  scan.names <- dimnames(x)[[2]]
+  scan.names <- names(x)[-(1:2)]
   scan.plots <-
     if(length(scan.names) < 5)
-      scan.names
+      rev(scan.names)
     else
       c("sum","main","epistasis")
   is.sum <- match("sum", scan.names, nomatch = 0)
-  ## Colors for plots (does not allow for covariates yet.
-  scan.col <- function(x, allscan) {
-    if(!allscan)
-      return("black")
-    col <- c(sum = "black",
-             add = "blue", dom = "red",
-             aa = "purple",
-             ad = "green", da = "darkgreen",
-             dd = "orange",
-             main = "blue", epistasis = "purple", GxE = "darkred",
-             A = "blue", H = "purple", B = "red")
-    cols <- col[x]
-    cols[grep(".add", x)] <- "darkblue"
-    cols[grep(".dom", x)] <- "darkred"
-    name.col <- names(cols)
-    cols[is.na(cols)] <- "black"
-    name.col[is.na(name.col)] <- x[is.na(name.col)]
-    names(cols) <- name.col
-    cols
-  }
+
+  ## Fine subset that matches chr.
+  ## Need to be tricky in case of split.chr not NULL.
+  chr.sub <- unclass(attr(x, "chr"))[match(x$chr, geno.names)] %in%
+    qb.find.chr(chr = chr, geno.names = levels(attr(x,"chr")))
 
   ## Automate separate plots by main, epistasis, sum.
-  if(any(match(c("main","epistasis"), scan, nomatch = 0)) &
-     length(scan.names) > 5) {
+  split.plots <- any(match(c("main","epistasis"), scan, nomatch = 0)) &
+     length(scan.names) > 5
+  if(split.plots) {
     scan.main <- scan.names[c(grep("add", scan.names),
                               grep("dom", scan.names))]
     scan.epis <- scan.names[match(c("aa","ad","da","dd"),
@@ -1130,74 +1157,138 @@ plot.qb.scanone <- function(x,
       scans <- c(scans,scan.main)
     if(is.epis)
       scans <- c(scans,scan.epis)
-    cols <- scan.col(scans, length(scans) > 1)
     scans <- scan.names[is.sum]
     if(is.main)
       scans <- c(scans, scan.main)
     if(is.epis)
       scans <- c(scans, scan.epis)
+
+    ## Set limits to be the same for all scans.
     ylims <- range( c(x[chr.sub, scans]), na.rm = TRUE)
-    if(is.sum)
-      plot.qb.scanone(x, chr, smooth, scan.names[is.sum], ylim, "all effects",
-                    col = col, ...)
-    if(is.main)
-      plot.qb.scanone(x, chr, smooth, scan.main, ylim, "main effects",
-                    col = col, ...)
-    if(is.epis)
-      plot.qb.scanone(x, chr, smooth, scan.epis, ylim, "epistatic effects",
-                    col = col, ...)
+
+    ret <- NULL
+    if(is.sum) {
+      ret <- plot.qb.to.scanone(x, chr, scan.names[is.sum], ylim, "all effects", ...)
+    }
+    if(is.main) {
+      tmp <- plot.qb.to.scanone(x, chr, scan.main, ylim, "main effects", ...)
+      if(is.null(ret))
+        ret <- tmp
+      else {
+        rnames <- c(row.names(ret), row.names(tmp))
+        ret <- data.frame(color = c(as.character(ret$color),
+                            as.character(tmp$color)),
+                          linetype = c(ret$linetype, tmp$linetype))
+        row.names(ret) <- rnames
+      }
+    }
+    if(is.epis) {
+      tmp <- plot.qb.to.scanone(x, chr, scan.epis, ylim, "epistatic effects", ...)
+      if(is.null(ret))
+        ret <- tmp
+      else {
+        rnames <- c(row.names(ret), row.names(tmp))
+        ret <- data.frame(color = c(as.character(ret$color),
+                            as.character(tmp$color)),
+                          linetype = c(ret$linetype, tmp$linetype))
+        row.names(ret) <- rnames
+      }
+    }
     par(tmpar)
-    return(invisible(col))
+    ret$color <- factor(ret$color)
+  }
+  else {
+    ylims <- range( c(x[chr.sub, scan]), na.rm = TRUE)
+
+    ## Work on pretty title.
+    if(length(scan) < 4)
+      scan.pretty <- paste(scan, collapse="+")
+    else
+      scan.pretty <- "effects"
+    ret <- plot.qb.to.scanone(x, chr, scan, ylim, scan.pretty, ...)
   }
 
-  min.iter <- attr(x, "min.iter")
-  if(min.iter > 1) {
-    ## Get number of samples per pos.
-    niter <- unclass(table(qb.inter(qbObject, grid)))
-
-    ## Reduce x to loci with at least min.iter samples.
-    x[chr.sub & niter < min.iter, scan] <- 0
-  }
-
-  ## Process the selected scan terms.
-  ylims <- range( c(x[chr.sub, scan]), na.rm = TRUE)
-      
+  invisible(ret)
+}
+###################################################################
+plot.qb.to.scanone <- function(x,
+                               chr = NULL,
+                               scan = names(x)[-(1:2)],
+                               ylim = ylims,
+                               scan.name = scan.pretty,
+                               col = NULL, lty = 1,
+                               main = paste(type.scan, "of", pheno.name,
+                                 "for", scan.name),
+                               sub = subs,
+                               verbose = FALSE,
+                               add = FALSE,
+                               ...)
+{
   ## Work on pretty title.
   if(length(scan) < 4)
     scan.pretty <- paste(scan, collapse="+")
   else
     scan.pretty <- "effects"
 
-  ## Figure out phenotype name indirectly.
-  pheno.name <- attr(x, "pheno.name")
-
   ## Print message about plot.
   if(verbose) {
-    cat("\n", attr(x, "method"), "of", pheno.name, "for",
+    cat("\n", attr(x, "type.scan"), "of", pheno.name, "for",
         paste(scan, collapse = ","), "\n")
   }
 
-  ## Set up xout with scanone object attributes.
-  xout <- grid
-  xout$chr <- ordered(geno.names[xout$chr], geno.names)
-  class(xout) <- c("scanone", "data.frame")
-  attr(xout, "method") <- type
-  attr(xout, "type") <- attr(x, "type")
-  attr(xout, "model") <- "normal"
+  ## Process the selected scan terms.
+  ylims <- range( c(x[, scan]), na.rm = TRUE)
+
+  ## Figure out phenotype name indirectly.
+  pheno.name <- attr(x, "pheno.name")
+  type.scan <- attr(x, "type.scan")
 
   ## Find sum, if more than one scan, and color scheme.
-  is.sum <- match("sum", scan, nomatch = 1)
   allscan <- length(scan) > 1
 
   ## Set up color scheme.
-  cols <- scan.col(scan, allscan)
-  names(cols) <- scan
+  scan.col <- function(x, allscan, supplied.col = NULL) {
+    ## Default colors.
+    if(!allscan) {
+      cols <- "black"
+      names(cols) <- x
+    }
+    else {
+      col <- c(sum = "black",
+               add = "blue", dom = "red",
+               aa = "purple",
+               ad = "green", da = "darkgreen",
+               dd = "orange",
+               main = "blue", epistasis = "purple", GxE = "darkred",
+               A = "blue", H = "purple", B = "red",
+               AA = "blue", AH = "purple", HA = "green", HH = "red")
+      cols <- col[x]
+      cols[grep(".add", x)] <- "darkblue"
+      cols[grep(".dom", x)] <- "darkred"
+      name.col <- names(cols)
+      cols[is.na(cols)] <- "black"
+      name.col[is.na(name.col)] <- x[is.na(name.col)]
+      names(cols) <- name.col
+    }
+    if(!is.null(supplied.col)) {
+      tmp <- match(names(supplied.col), names(cols), nomatch = 0)
+      if(any(tmp > 0))
+        cols[tmp] <- supplied.col[tmp > 0]
+    }
+    cols
+  }
+
+  col <- scan.col(scan, allscan, col)
+  
   ## Set any missing colors to "black".
   tmp <- length(scan) - length(col)
   tmp2 <- names(col)
   if(tmp > 0) {
     if(is.null(tmp2)) {
-      col <- c(col, rep("black", tmp))
+      if(is.character(col))
+        col <- c(col, rep("black", tmp))
+      else
+        col <- c(col, rep(1, tmp))
       names(col) <- scan
     }
     else {
@@ -1205,79 +1296,400 @@ plot.qb.scanone <- function(x,
       col <- cols
     }
   }
-  else {
+  else { ## length(col) <= length(scan)
     if(is.null(tmp2)) {
       col <- col[seq(length(scan))]
       names(col) <- scan
     }
-    else
-      col <- col[match(scan, tmp2, nomatch = 0)]
-  }
-    
-  ## Smooth over points?
-  ## This should be done by chr, possibly using smooth.spline.
-  ## Need to start plotting with first scan object.
-  niter <- unclass(table(qb.inter(qbObject, grid)))
-  xout[ ,type] <- qb.smoothone(x[chr.sub, scan[is.sum]], grid,
-                               smooth, niter)
-  plot(xout, ..., ylim = ylim, main = main, col = col[is.sum])
-  if(type == "log10") {
-    tmp <- c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000)
-    axis(4,log10(tmp),tmp)
-  }
-  if(type == "estimate")
-    abline(h = 0, col = "grey", lty = 3, lwd = 2)
-
-  ## All other scan objects added to plot.
-  if(allscan) {
-    for(varcomp in rev(scan[-is.sum])) {
-      xout[, type] <- qb.smoothone(x[chr.sub, varcomp], grid, smooth, niter)
-      plot(xout, ..., add = TRUE, col = col[varcomp])
+    else {
+      tmp <- match(scan, tmp2, nomatch = 0)
+      col <- col[tmp]
+      tmp <- tmp == 0
+      if(any(tmp)) {
+        tmp2 <- names(col)
+        if(is.character(col))
+          col <- c(col, rep("black", sum(tmp)))
+        else
+          col <- c(col, rep(1, sum(tmp)))
+        names(col) <- c(tmp2, scan[tmp])
+      }
     }
+  }
+  subs <- NULL
+  if(length(col) > 1 & !all(col == col[1]))
+    subs <- paste(names(col), col, sep = "=")
+
+  ## Set up line type.scans.
+  if(is.numeric(lty)) {
+    lty <- 1 + pmin(6, pmax(0, lty))
+    lty <- c("blank", "solid", "dashed", "dotted", "dotdash",
+             "longdash", "twodash")[lty]
+  }
+  if(length(lty) >= length(col))
+    lty <- lty[seq(length(col))]
+  else
+    lty <- c(lty, rep("solid", length(col) - length(lty)))
+  names(lty) <- names(col)
+  if(length(lty) > 1 & !all(lty == lty[1])) {
+    if(is.null(subs))
+      subs <- paste(names(lty), lty, sep = "=")
+    else
+      subs <- paste(subs, lty)
+  }
+  subs <- paste(subs, collapse = ", ")
+  
+  ## Plot object after converting to scanone format.
+  class(x) <- c("scanone", "data.frame")
+
+  ## Add in breaks for split chromosomes.
+  orig.chr <- attr(x, "chr")
+  x$chr <- orig.chr[unclass(x$chr)]
+  geno.names <- levels(orig.chr)
+  geno.names <- geno.names[geno.names %in% x$chr]
+  x$chr <- ordered(x$chr, geno.names)
+
+  chr <- match(chr, geno.names)
+  chrs <- geno.names[chr]
+
+  split.chr <- attr(x, "split.chr")
+  split.chr <- split.chr[names(split.chr) %in% chrs]
+  if(length(split.chr)) { ## Some chr to be plotted are split.
+    split.x <-
+      data.frame(chr = ordered(rep(names(split.chr), sapply(split.chr, length)),
+                   geno.names),
+                 pos = unlist(split.chr))
+    for(i in names(x)[-(1:2)])
+      split.x[[i]] <- rep(NA, nrow(split.x))
+    ## Make sure row names look like pseudomarkers, not markers.
+    row.names(split.x) <- paste("c", as.character(split.x$chr), ".loc0",
+                                seq(nrow(split.x)), sep = "")
+
+    x <- rbind(x, split.x)
+    x <- x[order(x$chr, x$pos), ]
+  }
+
+  for(i in seq(scan)) {
+    scani <- scan[i]
+    lodcolumn <- match(scani, names(x)) - 2
+    if(i == 1)
+      dimnames(x)[[2]][lodcolumn + 2] <- type.scan
+    plot(x, lodcolumn = lodcolumn, chr = chrs, ..., add = (i > 1) | add,
+         ylim = ylim, main = main,
+         col = col[scani], lty = lty[scani])
+    if(i == 1) {
+      if(type.scan == "log10") {
+        tmp <- c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000)
+        axis(4,log10(tmp),tmp)
+      }
+      if(type.scan == "estimate")
+        abline(h = 0, col = "grey", lty = 3, lwd = 2)
+    }
+  }
+  if(allscan)
     if((length(col) < 5 | !missing(sub)) & sub != "")
       mtext(sub, 1, 2, cex = 0.65)
+
+  ## Annotate axis and add vertical split if one chr and it is split.
+  if(length(chrs) == 1) {
+    if(length(split.chr))
+      abline(v = split.chr[[1]], col = "gray", lty = 2)
   }
-  invisible(col)
+
+  invisible(data.frame(color = col, linetype = lty))
 }
-############################################################################## 
-qb.smoothone <- function(x, xout, smooth, niter)
+###################################################################
+qb.get.epis <- function(mainloci, pairloci, inter)
 {
-  if(smooth) {
-    qb.smoothchr <- function(x, smooth, niter) {
-      nmap <- length(x)
-      if(nmap > 3) {
-        o <- (x != 0)
-        for(i in seq(smooth)) {
-          wtlod <- niter * x
-          x <- wtlod[c(1, seq(nmap - 1))] + wtlod[c(seq(2, nmap), nmap)]
-          if(any(o))
-            x[o] <- x[o] + 2 * wtlod[o]
-          wtlod <- niter[c(1, seq(nmap - 1))] + niter[c(seq(2, nmap), nmap)]
-          if(any(o))
-            wtlod[o] <- wtlod[o] + 2 * niter[o]
-          x <- x / wtlod
-          x[is.na(x)] <- 0
+  if(is.null(pairloci))
+    return(NULL)
+  
+  ## Epistasis counter.
+  epinter <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"],
+                     pairloci[, "locus1"], sep = ":"),
+               paste(pairloci[, "niter"], pairloci[, "chrom2"],
+                     pairloci[, "locus2"], sep = ":"))
+  tmp <- !duplicated(epinter)
+  epinter <- ordered(epinter, epinter[tmp])
+  ## epii identifies mainloci with epistatic pairs.
+  epii <- match(epinter[tmp],
+                paste(mainloci[, "niter"], inter, sep = ":"),
+                nomatch = 0)
+  tmp <- rep(0, length(inter))
+  tmp[epii] <- 1
+  tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+  tmp[is.na(tmp)] <- 0
+  tmp
+}    
+###################################################################
+qb.get.main <- function(mainloci, inter)
+{
+  ## Main effects counter.
+  vars <- c("varadd","vardom")
+  vars <- vars[!is.na(match(vars, names(mainloci)))]
+  tmp <- apply(as.matrix(mainloci[, vars]), 1,
+               function(x) any(x > 0))
+  tmp <- unlist(tapply(tmp, inter, sum, na.rm = TRUE))
+  tmp[is.na(tmp)] <- 0
+  tmp
+}
+###################################################################
+qb.centers <- function(object, center.type = c("mode","mean","scan"),
+                       mainloci, pairloci, smooth = 3,
+                       weight = "sqrt",
+                       geno.names = levels(ordered(object$chr)),
+                       inter, niter = unclass(table(inter)),
+                       nepis = qb.get.epis(mainloci, pairloci, inter),
+                       type.scan = attr(object, "type.scan"))
+{
+  ## Caution: inter must be constructed with object from the un-split chr
+  ## so that it matches with mainloci. See call sequence in qb.to.scanone().
+
+  center.type <- match.arg(center.type)
+  if(type.scan %in% c("estimate","cellmean","nqtl","rss","npar") &
+     center.type == "scan") {
+    warning(paste("center.type reset to mode for", type.scan, "scans"))
+    center.type <- "mode"
+  }
+  centers <- list()
+  
+  main.scan <- c("main","add","dom")
+  epi.scan <- c("epistasis","aa","ad","da","dd")
+  epistasis <- !is.null(nepis)
+
+  if(center.type == "scan" & !missing(object)) {
+    e.wh <- 0
+    object.names <- names(object)[-(1:2)]
+    epistasis <- epistasis & any(match(object.names, epi.scan, nomatch = 0))
+
+    for(i in seq(length(geno.names))) {
+      ii <- (object$chr == geno.names[i] &
+             !is.na(object$chr))
+      if(any(ii)) {
+        tmp <- object.names %in% main.scan
+        if(any(tmp)) {
+          if("main" %in% object.names)
+            m.wh <- which.max(object[ii, "main"])
+          else {
+            tmp <- object.names[tmp]
+            m.wh <- which.max(apply(object[ii, tmp], 1, sum))
+          }
+        }
+        else
+          m.wh <- 0
+        if(epistasis) {
+          if("epistasis" %in% object.names)
+            e.wh <- which.max(object[ii, "epistasis"])
+          else {
+            tmp <- object.names[object.names %in% epi.scan]
+            e.wh <- which.max(apply(object[ii, tmp], 1, sum))
+          }
+          centers$e.pos[geno.names[i]] <- e.wh
+        }
+        wh <- {
+          if("sum" %in% object.names)
+            which.max(object[ii, "sum"])
+          else ## Otherwise set pos to main or epistasis.
+            ifelse(m.wh, m.wh, e.wh)
         }
       }
-      x
+      centers$pos[geno.names[i]] <- wh
+      centers$m.pos[geno.names[i]] <- m.wh
     }
-    for(chr in unique(xout$chr)) {
-      rows <- chr == xout$chr
+  }
+  else {
+    nmain <- qb.get.main(mainloci, inter)
+    
+    if(center.type == "mean") {
+      for(i in seq(length(geno.names))) {
+        ii <- object$chr == geno.names[i]
+        if(any(ii)) {
+          pos <- weighted.mean(object$pos[ii], niter[ii])
+          centers$pos[geno.names[i]] <- which.min(abs(object$pos[ii] - pos))
+
+          tmp <- nmain[ii] > 0
+          if(any(tmp)) {
+            m.pos <- weighted.mean(object$pos[ii][tmp], nmain[ii][tmp])
+            m.wh <- which.min(abs(object$pos[ii][tmp] - m.pos))
+          }
+          else
+            m.wh <- wh
+          centers$m.pos[geno.names[i]] <- m.wh
+          
+          if(epistasis) {
+            tmp <- nepis[ii] > 0
+            if(any(tmp)) {
+              e.pos <- weighted.mean(object$pos[ii][tmp], nepis[ii][tmp])
+              e.wh <- which.min(abs(object$pos[ii][tmp] - e.pos))
+            }
+            else
+              e.wh <- wh
+            centers$e.pos[geno.names[i]] <- e.wh
+          }
+        }
+      }
+    }
+    else { ## default: center.type == "mode" or is.null(object) 
+      tmp <- qb.smoothone(niter, object, smooth, niter, weight = weight)
+      centers$pos <- unlist(tapply(tmp, object$chr, which.max))
+      tmp <- qb.smoothone(nmain, object, smooth, niter, weight = weight)
+      centers$m.pos <- unlist(tapply(tmp, object$chr, which.max))
+      if(epistasis) {
+        tmp <- qb.smoothone(nepis, object, smooth, nepis)
+        centers$e.pos <- unlist(tapply(tmp, object$chr, which.max))
+      }
+    }
+  }
+
+  ## Now turn indices into chr positions.
+  offset <- cumsum(c(0, unclass(table(object$chr))))
+  offset <- offset[-length(offset)]
+  names(offset) <- levels(object$chr)
+  centers$pos <- object$pos[centers$pos + offset]
+  centers$m.pos <- object$pos[centers$m.pos + offset]
+  if(epistasis)
+    centers$e.pos <- object$pos[centers$e.pos + offset]
+  
+  centers <- data.frame(centers)
+  row.names(centers) <- geno.names
+  centers
+}
+###################################################################
+qb.to.scanone <- function(x,
+                          chr = NULL,
+                          smooth = 3,
+                          scan = dimnames(x$one)[[2]],
+                          weight = c("sqrt","count","none"),
+                          split.chr = attr(x, "split.chr"),
+                          center.type = c("mode","mean","scan"),
+                          ...)
+{
+  if(is.null(x))
+    return(NULL)
+  
+  ## Prepare qb.scanone object as a scanone object.
+
+  weight <- match.arg(weight)
+  geno.names <- attr(x, "geno.names")
+  reference <- attr(x, "reference")
+  n.iter <- attr(x, "niter")
+  center.type <- match.arg(center.type)
+
+  ## Set up output grid.
+  grid <- x$grid
+  mainloci <- x$mainloci
+
+  ## Subset to selected chromosomes.
+#  chr <- qb.find.chr(chr = chr, geno.names = geno.names)
+  chr.sub <- grid$chr %in% chr
+  grid <- grid[chr.sub, ]
+  mainloci <- mainloci[mainloci$chrom %in% chr, ]
+  one <- as.matrix(x$one[chr.sub, scan])
+  dimnames(one) <- list(NULL, scan)
+
+  ## Get interaction pattern.
+  inter <- qb.inter(, grid, mainloci)
+
+  ## Get number of samples per pos.
+  niter <- unclass(table(inter))
+
+  ## Reduce x$one to loci with at least min.iter samples.
+  min.iter <- attr(x, "min.iter")
+  if(min.iter > 1)
+    one[niter < min.iter, ] <- 0
+
+  ## Split chromosomes according to split.chr.
+  xout <- qb.chrsplit(grid, mainloci, chr, n.iter, geno.names, split.chr)
+  geno.names <- levels(xout$chr)
+  chr <- attr(xout, "unsplit")
+
+  ## Values at maximum number of smoothed iterations.
+  epi.scan <- c("epistasis","aa","ad","da","dd")
+  epistasis <- any(match(scan, epi.scan, nomatch = 0))
+  nepis <- qb.get.epis(mainloci, x$pairloci, inter)
+
+  n.qtl <- tapply(niter, xout$chr, sum) / n.iter
+
+  ## Set up xout with scanone object attributes.
+  scan <- dimnames(one)[[2]]
+  ## Smooth over points and create scanone object scans.
+  for(varcomp in scan) {
+    tmp <- match(varcomp, epi.scan, nomatch = 0)
+    xout[, varcomp] <- qb.smoothone(one[, varcomp], grid,
+                                    smooth, if(tmp) nepis else niter,
+                                    reference, weight = weight)
+  }
+
+  ## Find centers.
+  centers <- qb.centers(xout, center.type, mainloci, x$pairloci,
+                        smooth, weight, geno.names, inter, niter, nepis,
+                        attr(x, "type.scan"))
+
+  class(xout) <- c("qb.to.scanone", "scanone", "data.frame")
+  attr(xout, "type.scan") <- attr(x, "type.scan")
+  attr(xout, "model") <- "normal"
+  attr(xout, "weight") <- weight
+  attr(xout, "center.type") <- center.type
+  attr(xout, "centers") <- centers
+  attr(xout, "chr") <- ordered(attr(x, "geno.names")[chr], attr(x, "geno.names"))
+  attr(xout, "min.iter") <- min.iter
+  attr(xout, "niter") <- n.iter
+  attr(xout, "nqtl") <- n.qtl
+  attr(xout, "pheno.name") <- attr(x, "pheno.name")
+  attr(xout, "geno.names") <- geno.names
+  attr(xout, "split.chr") <- split.chr
+  attr(xout, "cross.class") <- attr(x, "cross.class")
+
+  xout
+}
+############################################################################## 
+qb.smoothchr <- function(x, smooth, niter, reference = 0, weight = "sqrt")
+{
+  ## Weighted average of x.
+  switch(weight,
+         count = {w <- niter},
+         none = {w <- rep(1, length(x))},
+         sqrt =, {w <- sqrt(niter)})
+
+  nmap <- length(x)
+  re.na <- is.na(x)
+  x[re.na] <- reference
+  if(nmap > 3) {
+    o <- (x != reference & !is.na(x))
+    for(i in seq(smooth)) {
+      wtlod <- w * x
+      x <- wtlod[c(1, seq(nmap - 1))] + wtlod[c(seq(2, nmap), nmap)]
+
+      ## Double weight at observation if not zero.
+      if(any(o))
+        x[o] <- x[o] + 2 * wtlod[o]
+      wtlod <- w[c(1, seq(nmap - 1))] + w[c(seq(2, nmap), nmap)]
+      if(any(o))
+        wtlod[o] <- wtlod[o] + 2 * w[o]
+      x <- x / wtlod
+    }
+    x[is.na(x)] <- reference
+  }
+  x[re.na] <- NA
+  x
+}
+##############################################################################
+qb.smoothone <- function(x, grid, smooth, niter, reference = 0, weight = "sqrt")
+{
+  if(smooth) {
+    for(chr in unique(grid$chr)) {
+      rows <- chr == grid$chr
       if(sum(rows))
-        x[rows] <- qb.smoothchr(x[rows], smooth, niter[rows])
+        x[rows] <- qb.smoothchr(x[rows], smooth, niter[rows], reference,
+                                weight)
     }
   }
   x
 }
 ##############################################################################
-##############################################################################
-## need iterdiag.nqtl as well as mainloci!
-qb.indextwo <- function(qbObject,
-                         iterdiag = qb.get(qbObject, "iterdiag"),
-                         mainloci = qb.get(qbObject, "mainloci"),
-                         nqtl = qb.nqtl(qbObject, iterdiag, mainloci))
+qb.indextwo <- function(iterdiag, mainloci, nqtl = qb.nqtl(, iterdiag, mainloci))
 {
   ## index of pairs of loci for each iteration
+  ## need iterdiag.nqtl as well as mainloci!
   unlist(apply(as.matrix(seq(nrow(mainloci))[!duplicated(mainloci[, "niter"])]),
                1,
                function(x,y) {
@@ -1293,31 +1705,25 @@ qb.indextwo <- function(qbObject,
                    matrix(0, 2, 0)
                },
                nqtl[match(mainloci[, "niter"], iterdiag[, "niter"])]))
-}  
+}
 ##############################################################################
-qb.intertwo <- function(qbObject,
-                         min.iter = 1,
-                         mainloci = qb.get(qbObject, "mainloci"),
-                         index = qb.indextwo(qbObject, iterdiag, mainloci,
-                           nqtl),
-                         iterdiag = qb.get(qbObject, "iterdiag"),
-                         pairloci = qb.get(qbObject, "pairloci"),
-                         nqtl = qb.nqtl(qbObject, iterdiag, mainloci))
+qb.intertwo <- function(min.iter = 1, mainloci, iterdiag, pairloci)
 {
+  nqtl <- qb.nqtl(, iterdiag, mainloci)
+  index <- qb.indextwo(iterdiag, mainloci, nqtl)
   gridtwo <- matrix(t(mainloci[index, c("chrom","locus")]), 4)
   inter <- paste(gridtwo[1, ], gridtwo[2, ],
                  gridtwo[3, ], gridtwo[4, ], sep = ":")
   inter <- ordered(inter, inter[!duplicated(inter)])
   
   ## Set up epistatic count, which requires several other things.
-  npair <- qb.nqtl(qbObject, iterdiag, mainloci)
-  npair <- npair * (npair - 1) / 2
+  nqtl <- nqtl * (nqtl - 1) / 2
   epi <- rep(0, length(inter))
   epi[match(paste(pairloci[, "niter"],
                   pairloci[, "chrom1"], pairloci[, "locus1"],
                   pairloci[, "chrom2"], pairloci[, "locus2"],
                   sep = ":"), 
-            paste(rep(iterdiag[, "niter"], npair),
+            paste(rep(iterdiag[, "niter"], nqtl),
                   as.character(inter),
                   sep = ":"))] <- 1
 
@@ -1330,12 +1736,14 @@ qb.intertwo <- function(qbObject,
 ###################################################################
 qb.scantwo <- function(qbObject, epistasis = TRUE,
                        scan = list(upper = upper.scan, lower = lower.scan),
-                       type = c(
+                       type.scan = c(
                          upper = "heritability",
                          lower = "heritability"),
                        upper.scan = "epistasis",
                        lower.scan = "full",
-                       covar = if(nfixcov) seq(qbObject$nfixcov) else 0,
+                       covar = {
+                         if(nfixcov) seq(qb.get(qbObject, "nfixcov"))
+                         else 0},
                        adjust.covar = NA,
                        chr = NULL,
                        min.iter = 1,
@@ -1347,67 +1755,70 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
 
   ## Following prior used for Bayes factors.
   ## Need to do this before subsetting on chr.
-  bf.prior <- qb.get(qbObject, "mean.nqtl") /
-    length(unlist(pull.loci(qb.cross(qbObject))))
+  bf.prior <- qb.get(qbObject, "mean.nqtl") / qb.nloci(qbObject)
   bf.prior <- bf.prior * bf.prior
   
   qb.name <- deparse(substitute(qbObject))
-  if(!is.null(chr))
-    qbObject <- subset(qbObject, chr = chr, restrict.pair = FALSE)
+  chr <- qb.find.chr(qbObject, chr)
+  qbObject <- subset(qbObject, chr = chr, restrict.pair = FALSE)
   
   nfixcov <- qb.get(qbObject, "nfixcov")
   nrancov <- qb.get(qbObject, "nrancov")
-  intcov <- qb.get(qbObject, "intcov")
+  intcov <- as.logical(qb.get(qbObject, "intcov"))
+  intcov <- check.intcov(intcov, nfixcov)
 
   pairloci <- qb.get(qbObject, "pairloci")
   if(is.null(pairloci))
     epistasis <- FALSE
 
   ## Determine type of qb.scan.
-  types <- c("heritability","LPD","LR","deviance","detection",
+  type.scans <- c("heritability","LPD","LR","deviance","detection",
              "variance","estimate","cellmean","count","log10",
              "posterior","logposterior","BF","2logBF","nqtl")
-  tmp <- names(type)
-  type <- types[pmatch(tolower(type), tolower(types), nomatch = 2,
+  tmp <- names(type.scan)
+  type.scan <- type.scans[pmatch(tolower(type.scan), tolower(type.scans), nomatch = 2,
                        duplicates.ok = TRUE)]
-  type <- array(type, 2)
+  type.scan <- array(type.scan, 2)
   if(is.null(tmp))
     tmp <- c("upper","lower")
-  names(type) <- tmp
+  names(type.scan) <- tmp
 
-  if(any(type == "cellmean"))
+  if(any(type.scan == "cellmean"))
     stop("cellmean type not implemented: use qb.slice")
-  is.count <- match(type,
+  is.count <- match(type.scan,
                     c("count", "log10", "posterior", "logposterior",
                       "BF", "2logBF", "nqtl"),
                     nomatch = 0)
-  names(is.count) <- names(type)
+  names(is.count) <- names(type.scan)
 
-  is.var <- match(type, types[1:6], nomatch = 0)
-  is.effect <- is.var | type == "estimate"
-  is.lod <- match(type, types[2:5], nomatch = 0)
-  names(is.var) <- names(is.effect) <- names(is.lod) <- names(type)
+  is.var <- match(type.scan, type.scans[1:6], nomatch = 0)
+  is.effect <- is.var | type.scan == "estimate"
+  is.lod <- match(type.scan, type.scans[2:5], nomatch = 0)
+  names(is.var) <- names(is.effect) <- names(is.lod) <- names(type.scan)
   
   ## Number of individuals for phenotype.
-  cross <- qb.cross(qbObject)
+  cross <- qb.cross(qbObject, genoprob = FALSE)
   pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
   nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
 
   ## Genotype names.
   map <- pull.map(cross)
-  geno.names <- names(map)
+  geno.names <- qb.geno.names(qbObject, cross)
   rm(cross)
   gc()
   
   ## Get MCMC samples.
   iterdiag <- qb.get(qbObject, "iterdiag")
   mainloci <- qb.get(qbObject, "mainloci")
+  if(is.null(mainloci))
+    return(NULL)
+  
   iterdiag.nqtl <- qb.nqtl(qbObject, iterdiag, mainloci)
   npair <- iterdiag.nqtl
   npair <- npair * (npair - 1) / 2
 
   ## Determine variance components.
-  is.bc <- (qb.get(qbObject, "cross") == "bc")
+  is.bc <- (qb.cross.class(qbObject) == "bc")
   var1 <- "add"
   if(epistasis) {
     var2 <- "aa"
@@ -1420,7 +1831,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     var2 <- character()
 
   ## Set up index into mainloci for pairs.
-  index <- qb.indextwo(qbObject, iterdiag, mainloci, iterdiag.nqtl)
+  index <- qb.indextwo(iterdiag, mainloci, iterdiag.nqtl)
   nindex <- length(index) / 2
 
   ## Find all pairs of loci.
@@ -1432,22 +1843,22 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   inter <- ordered(inter, inter[!duplicated(inter)])
 
   ## Set up index for number of linked qtl.
-  if(any(type == "nqtl")) {
-#    nqtl.main <- paste(mainloci[index[seq(by = 2, length = nindex)], "niter"],
-#                       tmp[1, ], tmp[3, ], sep = ":")
+  if(any(type.scan == "nqtl")) {
+                                        #    nqtl.main <- paste(mainloci[index[seq(by = 2, length = nindex)], "niter"],
+                                        #                       tmp[1, ], tmp[3, ], sep = ":")
     nqtl.main <- paste(mainloci[, "niter"], mainloci[, "chrom"], sep = ":")
   }
 
   ## Covariate adjustment calculations.
-  if(any(type == "heritability"))
+  if(any(type.scan == "heritability"))
     totvar <- rep(0, length(inter))
   if(nfixcov) {
     ## Covariate means.
     covar.means <- covar.mean(qbObject, adjust.covar,
-                              verbose = verbose & (any(type == "estimate")))
+                              verbose = verbose & (any(type.scan == "estimate")))
 
     ## Explained covariance for heritability.
-    if(any(type == "heritability"))
+    if(any(type.scan == "heritability"))
       totvar <- rep(apply(qb.varcomp(qbObject, c("fixcov","rancov")),
                           1, sum),
                     npair)
@@ -1482,37 +1893,37 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
       scan[["upper"]] <- "main"
   }
   ## Save scan names for later plot.
-  if(any(type == "estimate")) {
-    if(missing(scan) & missing(upper.scan) & type["upper"] == "estimate")
+  if(any(type.scan == "estimate")) {
+    if(missing(scan) & missing(upper.scan) & type.scan["upper"] == "estimate")
       scan$upper <- "aa"
-    if(missing(scan) & missing(lower.scan) & type["lower"] == "estimate")
+    if(missing(scan) & missing(lower.scan) & type.scan["lower"] == "estimate")
       scan$lower <- "add"
   }
   scan.names <- scan
   ## Now convert scan to the terms needed for analysis.
   for(tri in c("lower","upper")) {
     scan[[tri]] <- switch(scan[[tri]],
-                        main = {
-                          var1
-                        },
-                        epistasis = {
-                          if(epistasis)
-                            var2
-                          else
+                          main = {
                             var1
-                        },
-                        full = {
-                          c(var1, var2)
-                        },
-                        scan[[tri]])
+                          },
+                          epistasis = {
+                            if(epistasis)
+                              var2
+                            else
+                              var1
+                          },
+                          full = {
+                            c(var1, var2)
+                          },
+                          scan[[tri]])
     vars <- var1[match(scan[[tri]], var1, nomatch = 0)]
     if(sum(intcov)) {
       if(length(covar.means) & length(vars)) {
         tmp <- seq(nfixcov)[intcov]
         tmp <- names(covar.means)[covar[match(tmp, covar, nomatch = 0)]]
         if(length(tmp))
-           scan[[tri]] <- unique(c(scan[[tri]],
-                                   outer(vars, tmp, paste, sep = ".")))
+          scan[[tri]] <- unique(c(scan[[tri]],
+                                  outer(vars, tmp, paste, sep = ".")))
       }
     }
   }
@@ -1529,7 +1940,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   }
 
   if(verbose) {
-    cat(paste(c("\nupper:","lower:"), type[c("upper","lower")], "of",
+    cat(paste(c("\nupper:","lower:"), type.scan[c("upper","lower")], "of",
               pheno.name, "for",
               sapply(scan, paste, collapse = "+")[c("upper","lower")],
               collapse = "\n"),
@@ -1540,18 +1951,18 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   }
 
   ## Extract environmental variance.
-  if(any(type == "heritability") | any(is.lod)) {
+  if(any(type.scan == "heritability") | any(is.lod)) {
     if(verbose)
       cat("environmental variance ...\n")
     tmp <- rep(iterdiag[, "envvar"], npair)
-    if(any(type == "heritability"))
+    if(any(type.scan == "heritability"))
       totvar <- totvar + tmp
     else if(any(is.lod))
       env <- unlist(tapply(tmp, inter, mean))
   }
 
-  var.elem <- function(type, vari) {
-    ifelse(type == "estimate", vari, paste("var", vari, sep = ""))
+  var.elem <- function(type.scan, vari) {
+    ifelse(type.scan == "estimate", vari, paste("var", vari, sep = ""))
   }
 
   accum <- matrix(0, nindex, 2)
@@ -1559,7 +1970,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   
   ## Number of main effect samples per locus.
   is.full <- (is.count &
-               sapply(scan, function(x) match("full", x, nomatch = 0)))
+              sapply(scan, function(x) match("full", x, nomatch = 0)))
   names(is.full) <- names(is.count)
   if(any(is.full)) {
     for(tri in names(is.full)[is.full])
@@ -1567,21 +1978,21 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   }
   
   ## Get non-epistatic components: additive and dominance.
-  if(any(type == "heritability"))
+  if(any(type.scan == "heritability"))
     vars <- var1
   else
     vars <- var1[match(unique(unlist(scan)), var1, nomatch = 0)]
   if(verbose & length(vars))
     cat("non-epistatic components ...\n")
   for(vari in vars) {
-    if(any(type == "estimate"))
+    if(any(type.scan == "estimate"))
       main.val <- mainloci[, vari]
     
     ## Loop over all interacting covariates.
     if(sum(intcov)) {
       ## Get GxE samples.
       gbye <- qb.get(qbObject, "gbye")
-  
+      
       cov.val <- rep(0, nrow(mainloci))
       covars <- seq(nfixcov)[intcov]
       for(covj in covars) {
@@ -1590,49 +2001,49 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
           same <- match(paste(gbyej[, "niter"], gbyej[, "chrom"],
                               gbyej[, "locus"], sep = ":"),
                         paste(mainloci[, "niter"], mainloci[, "chrom"],
-                                mainloci[, "locus"], sep = ":"))
+                              mainloci[, "locus"], sep = ":"))
           
           ## Parameter estimates of GxE fixed effects.
           done.her <- done.est <- FALSE
           for(tri in c("lower","upper")) {
             if(match(covj, covar, nomatch = 0) |
-               type[tri] == "heritability") {
-              if(tri == "lower" | type[tri] != type["lower"]) {
+               type.scan[tri] == "heritability") {
+              if(tri == "lower" | type.scan[tri] != type.scan["lower"]) {
                 cname <- paste(vari, paste(names(covar.means)[covj],
                                            sep = "."))
-                cov.val[same] <- gbyej[[var.elem(type[tri], vari)]]
+                cov.val[same] <- gbyej[[var.elem(type.scan[tri], vari)]]
                 tmp <- apply(array(cov.val[index], c(2,nindex)), 2, sum)
               }
-              if(type[tri] == "heritability" & !done.her) {
+              if(type.scan[tri] == "heritability" & !done.her) {
                 totvar <- totvar + tmp
                 done.her <- TRUE
               }
-                if(match(cname, scan[[tri]], nomatch = 0))
-                  accum[, tri] <- accum[, tri] + tmp
+              if(match(cname, scan[[tri]], nomatch = 0))
+                accum[, tri] <- accum[, tri] + tmp
             }
             
             ## Offset parameter estimate by covariates.
-            if((type[tri] == "estimate" | type[tri] == "cellmean") &
+            if((type.scan[tri] == "estimate" | type.scan[tri] == "cellmean") &
                covar.means[covj] != 0 & !done.est) {
               main.val[same] <- main.val[same] + covar.means[covj] * gbyej[[vari]]
               done.est <- TRUE
             }
           }
-          }
+        }
       }
     }
 
     ## Now include the component.
     done.her <- FALSE
     for(tri in c("lower","upper")) {
-      if(tri == "lower" | type[tri] != type["lower"]) {
-        if(type[tri] == "estimate")
+      if(tri == "lower" | type.scan[tri] != type.scan["lower"]) {
+        if(type.scan[tri] == "estimate")
           tmp <- main.val
         else ## variance components and counts
           tmp <- mainloci[, paste("var", vari, sep = "")]
         tmp <- apply(array(tmp[index], c(2,nindex)), 2, sum)
       }
-      if(type[tri] == "heritability" & !done.her) {
+      if(type.scan[tri] == "heritability" & !done.her) {
         totvar <- totvar + tmp
         done.her <- TRUE
       }
@@ -1645,7 +2056,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   if(epistasis) {
     if(verbose)
       cat("epistatic components ...\n")
-    if(any(type == "heritability"))
+    if(any(type.scan == "heritability"))
       vars <- var2
     else
       vars <- var2[match(unique(unlist(scan)), var2, nomatch = 0)]
@@ -1659,7 +2070,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
                                as.character(inter),
                                sep = ":"),
                          nomatch = 0)
-      if(any(type == "nqtl")) {
+      if(any(type.scan == "nqtl")) {
         nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"],
                              pairloci[, "chrom2"], sep = ":"))
       }
@@ -1675,8 +2086,8 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
       for(vari in vars) {
         done.her <- FALSE
         for(tri in c("lower","upper")) {
-          element <- var.elem(type[tri], vari)
-          if(type[tri] == "heritability" & !done.her) {
+          element <- var.elem(type.scan[tri], vari)
+          if(type.scan[tri] == "heritability" & !done.her) {
             totvar[epi.match] <-
               totvar[epi.match] + pairloci[epi.match > 0, element]
             done.her <- TRUE
@@ -1697,7 +2108,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   n.inter <- length(levels(inter))
   for(tri in c("lower","upper")) {
     if(is.count[tri]) {
-      if(type[tri] == "nqtl") {
+      if(type.scan[tri] == "nqtl") {
         if(weight[tri] == "main") {
           tmp <- unlist(table(nqtl.main))[nqtl.main]
           tmp2 <- accum[, tri] > 0
@@ -1708,7 +2119,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
           accum[!tmp2, tri] <- 0
           rm(tmp2)
           gc()
-#         accum[, tri] <- unlist(tapply(accum[, tri] > 0, nqtl.main, sum))[nqtl.main]
+                                        #         accum[, tri] <- unlist(tapply(accum[, tri] > 0, nqtl.main, sum))[nqtl.main]
         }
         else { ## epistasis
           accum[epi.match, tri] <-
@@ -1721,7 +2132,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
         tmp <- unlist(tapply(accum[, tri] > 0, inter, sum))
       tmp[is.na(tmp)] <- 0
       accum[seq(n.inter), tri] <-
-        qb.count(qbObject, tmp, type[tri], n.iter, bf.prior)
+        qb.count(tmp, type.scan[tri], n.iter, bf.prior)
     }
     else { ## is.effect
       tmp <- unlist(tapply(accum[, tri], inter, mean))
@@ -1731,17 +2142,17 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   }
   accum <- accum[seq(n.inter), ]
   
-  if(any(type == "heritability")) {
+  if(any(type.scan == "heritability")) {
     totvar <- unlist(tapply(totvar, inter, mean))
     totvar[is.na(totvar)] <- 0
   }
 
   
   ## Compute heritability.
-  if(any(type == "heritability") & verbose)
+  if(any(type.scan == "heritability") & verbose)
     cat("heritability ...\n")
   for(tri in c("lower","upper")) {
-    if(type[tri] == "heritability") {
+    if(type.scan[tri] == "heritability") {
       accum[, tri] <- 100 * accum[, tri] / totvar
       accum[, tri][is.na(accum[, tri])] <- 0
     }
@@ -1761,7 +2172,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     tmp <- match(tmp, iterdiag[, "niter"])
     rss <- unlist(tapply(rss[tmp], inter, mean))
     
-    if(any(type == "detection")) {
+    if(any(type.scan == "detection")) {
       npar <- unlist(tapply(npar[tmp], inter, mean))
       npar[is.na(npar)] <- 0
       for(tri in c("lower","upper")) {
@@ -1770,22 +2181,14 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     
     ## calculate LPD or other diagnostic.
     for(tri in c("lower","upper")) {
-      nscan <- length(scan[tri])
-      if(is.lod[tri]) {
-        accum[, tri] <- nind.pheno *
-          log((rss + env * nscan + nind.pheno * accum[, tri]) / rss)
-        if(type[tri] == "LPD")
-          accum[, tri] <- accum[, tri] / (2 * log(10))
-        else if(type[tri] == "LR")
-          accum[, tri] <- accum[, tri] / 2
-        else if(type[tri] == "detection") {
-          ## This is restricts detection prior to sampled loci pairs.
-          p1 <- exp(accum[, tri] / 2)
-          detect.prior = 1 / nrow(accum)
-          accum[, tri] <- p1 * detect.prior / (1 + (p1 - 1) * detect.prior)
-          accum[is.na(accum[, tri]), tri] <- 0.5
-        }
-      }
+      ## Count df for main effects twice, for both loci.
+      ## Only count interacting covariates once (could be a mistake).
+      ## Would be more involved to count these properly.
+      tmp <- sum(!is.na(match(scan[[tri]], var1)))
+      nscan <- tmp + length(scan[[tri]])
+      if(is.lod[tri])
+        accum[, tri] <- calc.objective(accum[, tri], rss, env, nind.pheno,
+                                       nscan, npar, type.scan[tri])
     }
   }
 
@@ -1803,9 +2206,9 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
       cat("qb.scanone on diagonal with", paste(scan.one, collapse = ","),
           "...\n")
     qb.scan$one <- qb.scanone(qbObject, epistasis,
-                          scan.one, type["lower"], sum.scan = "only",
-                          covar = covar, min.iter = min.iter,
-                          verbose = FALSE)
+                              scan.one, type.scan["lower"], sum.scan = "two",
+                              covar = covar, min.iter = min.iter,
+                              verbose = FALSE)
   }
   else {
     if(verbose)
@@ -1813,166 +2216,144 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     qb.scan$one <- rep(0, nrow(pull.grid(qbObject)))
   }
 
+  qb.scan$grid <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
+  qb.scan$iterdiag <- qb.get(qbObject, "iterdiag")
+  qb.scan$mainloci <- qb.get(qbObject, "mainloci")
+  qb.scan$pairloci <- qb.get(qbObject, "pairloci")
+
   ## Assign attributes.
   attr(qb.scan, "class") <- c("qb.scantwo", "list")
-  attr(qb.scan, "method") <- type
+  attr(qb.scan, "type.scan") <- type.scan
   attr(qb.scan, "scan") <- scan.names
   attr(qb.scan, "min.iter") <- min.iter
-  attr(qb.scan, "type") <- qb.get(qbObject, "cross")
+  attr(qb.scan, "cross.class") <- qb.cross.class(qbObject)
   attr(qb.scan, "chr") <- chr
   attr(qb.scan, "weight") <- weight
   attr(qb.scan, "pheno.name") <- pheno.name
   attr(qb.scan, "geno.names") <- geno.names
   attr(qb.scan, "map") <- map
-  attr(qb.scan, "qb") <- qb.name
+#  attr(qb.scan, "qb") <- qb.name
+  attr(qb.scan, "niter") <- qb.niter(qbObject)
+  attr(qb.scan, "reference") <- mean(qb.reference(qbObject,
+                                                  qb.scan$mainloci,
+                                                  qb.scan$iterdiag,
+                                                  inter, type.scan))
+  attr(qb.scan, "split.chr") <- qb.get(qbObject, "split.chr")
   qb.scan
 }
 ###################################################################
 summary.qb.scantwo <- function(object,
-                             chr = NULL, ## Must be integer for now.
-                             threshold = 0,
-                             sort = "no",
-                             which.pos = "upper",
-                             min.iter = attr(object, "min.iter"),
-                             refine = FALSE, width = 10, smooth = 3,
-                             n.qtl = 0.05,
-                             ...)
+                               chr = NULL, ## Must be integer for now.
+                               threshold = 0,
+                               sort = "no",
+                               which.pos = "upper",
+                               min.iter = attr(object, "min.iter"),
+                               refine = FALSE, width = 10, smooth = 3,
+                               n.qtl = 0.05,
+                               weight = c("sqrt","count","none"),
+                               ...)
 {
   ## new intertwo needs to be checked out
   ## need pos1 and pos2 for lower and upper separately
   ## chr not working?
-  
-  qbObject <- get(attr(object, "qb"))
-  chr.qb <- attr(object, "chr")
-  if(!is.null(chr.qb))
-    qbObject <- subset(qbObject, chr = chr.qb)
+  weight <- match.arg(weight)
   
   pheno.name <- attr(object, "pheno.name")
 
   ## Get position pairs.
-  gridtwo <- qb.intertwo(qbObject, min.iter)
-  inter <- paste(gridtwo[1, ], gridtwo[3, ], sep = ".")
+  gridtwo <- qb.intertwo(min.iter, object$mainloci, object$iterdiag, object$pairloci)
 
-  ## Foll parallel track to uinter to get chromosome names.
   geno.names <- attr(object, "geno.names")
-  chr.pair <- paste(geno.names[gridtwo[1, ]], geno.names[gridtwo[3, ]],
-                    sep = ":")
+  inter <- paste(geno.names[gridtwo[1, ]], geno.names[gridtwo[3, ]], sep = ":")
 
   ## Get unique pairs of chromosomes.
   ## This assumes chromosome names are unique!
   tmp <- order(gridtwo[1, ], gridtwo[3, ])
-  uinter <- unique(inter[tmp])
-  chr.pair <- unique(chr.pair[tmp])
+  chr.pair <- unique(inter[tmp])
   chrs <- as.matrix(gridtwo[c(1,3), tmp[!duplicated(inter[tmp])]])
-  if(!missing(chr)) {
-    tmp <- !is.na(match(uinter, c(outer(chr, chr, paste, sep = "."))))
-    uinter <- uinter[tmp]
-    chr.pair <- chr.pair[tmp]
-    chrs <- as.matrix(chrs[, tmp])
-    keep <- !is.na(match(gridtwo[1, ], chr)) & !is.na(match(gridtwo[3, ], chr))
-  }
-  else
-    keep <- rep(TRUE, ncol(gridtwo))
+  chr <- qb.find.chr(chr = chr, geno.names = geno.names)
 
-  out <- matrix(0, length(uinter), 9)
+  tmp <- !is.na(match(chr.pair,
+                      c(outer(geno.names[chr], geno.names[chr], paste, sep = ":"))))
+  chr.pair <- chr.pair[tmp]
+  chrs <- as.matrix(chrs[, tmp])
+  keep <- !is.na(match(gridtwo[1, ], chr)) & !is.na(match(gridtwo[3, ], chr))
+
+  out <- matrix(0, length(chr.pair), 9)
   dimnames(out) <- list(chr.pair, c("chr1", "chr2",
-                                  "n.qtl",
-                                  "l.pos1", "l.pos2", "lower",
-                                  "u.pos1", "u.pos2", "upper"))
+                                    "n.qtl",
+                                    "l.pos1", "l.pos2", "lower",
+                                    "u.pos1", "u.pos2", "upper"))
 
-  n.iter <- nrow(qb.get(qbObject, "iterdiag"))
+  n.iter <- attr(object, "niter")
 
   out[, c("chr1", "chr2")] <- t(chrs)
-  out[, "n.qtl"] <- tapply(gridtwo["niter", keep], inter[keep], sum) / n.iter
+
+  tmp <- tapply(gridtwo["niter", keep], inter[keep], sum) / n.iter
+  out[, "n.qtl"] <- out[,"n.qtl"] <- tmp[chr.pair]
   rm(keep)
 
   ## Restrict to pairs with at least n.qtl estimated QTL.
   tmp <- out[, "n.qtl"] >= n.qtl
   if(sum(tmp)) {
-    if(sum(tmp) == 1) {
-      outn <- dimnames(out)
-      out <- matrix(out[tmp,], 1)
-      dimnames(out) <- list(outn[[1]][tmp], outn[[2]])
-    }
-    else
-      out <- out[tmp, ]
-    uinter <- uinter[tmp]
+    out <- out[tmp,, drop = FALSE]
+    chr.pair <- chr.pair[tmp]
   }
   else
     out <- NULL
   
   if(!is.null(out)) {
-    x2 <- qb.scantwo.smooth(object, chr, smooth, gridtwo, ...)
+    x2 <- qb.scantwo.smooth(object, chr, smooth,
+                            qb.intertwo(min.iter, object$mainloci, object$iterdiag,
+                                        object$pairloci),
+                            weight = weight, ...)
 
-    type <- attr(x2, "method")
+    type.scan <- attr(x2, "type.scan")
 
     ## Center as mean for variance, estimate, cellmean.
-    ## Center as mode for all other types.
+    ## Center as mode for all other types of scans.
     center <- character()
-    for(tri in names(type)) {
+    for(tri in names(type.scan)) {
       center[tri] <- "mean"
-      if(is.na(match(type[tri], c("variance","estimate","cellmean"))))
+      if(is.na(match(type.scan[tri], c("variance","estimate","cellmean"))))
         center[tri] <- "mode"
     }
     
     ## Weighted means by chr.
-
-    ## Transition to R/qtl 1.04
-    if(compareVersion(qtlversion(), "1.04-48") >= 0) {
-      tmp <- upper.tri(x2$lod)
-      tmpx <- x2
-      tmpx$lod[tmp] <- t(x2$lod)[tmp] - x2$lod[tmp]
-      tmp <- summary(tmpx)
-      tmp2 <- paste(tmp$chr1,tmp$chr2,sep=".")
-      tmp2 <- match(uinter,tmp2)
-
-      ## R/qtl column names changing with 1.04-48.
-
-      ## Lower triangle (full).
-      for(i in c("pos1","pos2"))
-        out[, paste("l", i, sep = ".")] <- tmp[tmp2, paste(i, "f", sep = "")]
-      out[, "lower"] <- tmp[tmp2, "lod.full"]
-
-      ## Upper triangle (int).
-      tmp <- summary(tmpx, what = "int")
-      for(i in c("pos1","pos2"))
-        out[, paste("u", i, sep = ".")] <- tmp[tmp2, i]
-      out[, "upper"] <- tmp[tmp2, "lod.int"]
-      
-      rm(tmp,tmp2,tmpx)
-      gc()
+    tmp <- upper.tri(x2$lod)
+    tmpx <- x2
+    tmpx$lod[tmp] <- t(x2$lod)[tmp] - x2$lod[tmp]
+    tmpx$map$chr <- ordered(geno.names[tmpx$map$chr], geno.names)
+    tmp <- summary(tmpx)
+    tmp2 <- paste(tmp$chr1, tmp$chr2, sep = ":")
+    tmp2 <- match(chr.pair, tmp2)
+    ## Fix any NA, due to reversal of chr1 and chr2.
+    if(any(is.na(tmp2))) {
+      tmp3 <- paste(geno.names[tmp$chr2], geno.names[tmp$chr1], sep = ":")
+      tmp2[is.na(tmp2)] <- match(chr.pair[is.na(tmp2)], tmp3)
     }
-    else {
-      x.iter <- qb.smoothtwo(x2$map, x2$nitertwo, x2$niterone, x2$nitertwo,
-                             smooth)
-      ## somehow x.iter does not agree with posterior
-      ## and I am not sure I got the transposes right below
-      lod <- x2$lod
-      x2$lod <- t(lod)
-      x2$lod[row(x.iter) > col(x.iter)] <- x.iter[row(x.iter) > col(x.iter)]
-      tmp <- summary(x2) ## lod.int has lower, lod.joint has max main posterior
-      tmp2 <- paste(tmp$chr1,tmp$chr2,sep=".")
-      tmp2 <- match(uinter,tmp2)
-      
-      ## R/qtl column names changing with 1.04-48.
-      for(i in c("pos1","pos2"))
-        out[, paste("l", i, sep = ".")] <- tmp[tmp2, grep(i, names(tmp))[1]]
-      out[, "lower"] <- tmp[tmp2, "lod.int"]
-      
-      x2$lod <- lod
-      x2$lod[row(x.iter) > col(x.iter)] <- t(x.iter)[row(x.iter) > col(x.iter)]
-      tmp <- summary(x2) ## lod.int has upper, lod.joint has max epis posterior
-      tmp2 <- paste(tmp$chr1, tmp$chr2, sep = ".")
-      tmp2 <- match(uinter, tmp2)
-      for(i in c("pos1","pos2"))
-        out[, paste("u", i, sep = ".")] <- tmp[tmp2, grep(i, names(tmp))[1]]
-      out[, "upper"] <- tmp[tmp2, "lod.int"]
-      
-      x2$lod <- lod
     
-      rm(x.iter, lod, tmp, tmp2)
-      gc()
-    }
+    ## R/qtl column names changing with 1.04-48.
+    if(compareVersion(qtlversion(), "1.04-48") < 0)
+      stop("old version of R/qtl: please update now")
+    
+    ## The following uses R/qtl's summary.scanone to get mode
+    ## for each pair of chromosomes in upper and/or lower triangle.
+    ## Want to have option to get mean (weighted by gridtwo[,"nepis"]).
+    
+    ## Lower triangle (full).
+    for(i in c("pos1","pos2"))
+      out[, paste("l", i, sep = ".")] <- tmp[tmp2, paste(i, "f", sep = "")]
+    out[, "lower"] <- tmp[tmp2, "lod.full"]
+
+    ## Upper triangle (int).
+    tmp <- summary(tmpx, what = "int")
+    for(i in c("pos1","pos2"))
+      out[, paste("u", i, sep = ".")] <- tmp[tmp2, i]
+    out[, "upper"] <- tmp[tmp2, "lod.int"]
+    
+    rm(tmp,tmp2,tmpx)
+    gc()
     
     ## Drop loci pairs with all zeroes.
     if(nrow(out) > 1) {
@@ -1989,9 +2370,9 @@ summary.qb.scantwo <- function(object,
     ## Keep only chrs with some value about threshold.
     out <- qb.threshold(out, threshold, 2)
   }
-    
+  
   ## Refine estimates for LPD.
-  if(!is.null(out) & refine & any(center == "mode")) {
+  if(!is.null(out) & refine) if(any(center == "mode")) {
     map <- attr(object, "map")
     n.sum <- nrow(out)
 
@@ -2009,11 +2390,11 @@ summary.qb.scantwo <- function(object,
         ## Refine both triangular parts.
         for(tri in c("upper","lower")) {
           grid <- qb.scantwo.slice(x2, chr[j],
-                                 slice=c(chr=chr[3-j],
-                                   start = pos[3-j] - width,
-                                   end = pos[3-j] + width,
-                                   upper = (tri == "upper")),
-                                 type, smooth)
+                                   slice=c(chr=chr[3-j],
+                                     start = pos[3-j] - width,
+                                     end = pos[3-j] + width,
+                                     upper = (tri == "upper")),
+                                   type.scan, smooth, weight)
           tmp <- max(grid[, 3])
           if(tmp > out[i, tri]) {
             ## Return position for the chosen triangular part.
@@ -2039,7 +2420,7 @@ summary.qb.scantwo <- function(object,
   if(!is.null(out)) {
     out <- as.data.frame(out)
     class(out) <- c("summary.qb.scantwo", "data.frame")
-    attr(out, "method") <- type
+    attr(out, "type.scan") <- type.scan
     attr(out, "pheno.name") <- pheno.name
     attr(out, "scan") <- attr(x2, "scan")
     attr(out, "min.iter") <- min.iter
@@ -2048,8 +2429,7 @@ summary.qb.scantwo <- function(object,
   out
 }
 ###################################################################
-print.qb.scantwo <- function(x, digits = 3, ...)
-  print(summary(x, ...), digits = 3)
+print.qb.scantwo <- function(x, ...) print(summary(x, ...), ...)
 ###################################################################
 print.summary.qb.scantwo <- function(x, digits = 3, ...)
 {
@@ -2057,12 +2437,12 @@ print.summary.qb.scantwo <- function(x, digits = 3, ...)
   if (max(nchar(z)) == 1) 
     rownames(x) <- apply(x[, 1:2], 1, function(a) {
       paste("c", a, collapse = ":", sep = "")
-      })
+    })
   else rownames(x) <- apply(x[, 1:2], 1, function(a) {
     paste(sprintf("c%-2s", a), collapse = ":")
-    })
+  })
   
-  cat(paste(c("upper:","lower:"), attr(x, "method")[c("upper","lower")],
+  cat(paste(c("upper:","lower:"), attr(x, "type.scan")[c("upper","lower")],
             "of", attr(x, "pheno.name"),
             "for", attr(x, "scan")[c("upper","lower")],
             collapse = "\n"),
@@ -2081,7 +2461,7 @@ print.summary.qb.scantwo <- function(x, digits = 3, ...)
   print.data.frame(x[, -(1:2)], digits = digits)
 }
 ###################################################################
-qb.scantwo.slice <- function(x2, chr, slice, type, smooth)
+qb.scantwo.slice <- function(x2, chr, slice, type.scan, smooth, weight = "sqrt")
 {
   ## Get grid.
   grid <- x2$map[, 1:2]
@@ -2109,7 +2489,7 @@ qb.scantwo.slice <- function(x2, chr, slice, type, smooth)
   diaglod <- lod2[row(lod2) == 1 + col(lod2)]
   nlod <- length(diaglod)
   diag(lod2) <- (diaglod[c(1, seq(nlod))] + diaglod[c(seq(nlod), nlod)]) / 2
-  
+
   ## Now get desired row(s)
   is.slice <- grid$chr == slice["chr"] & grid$pos >= slice["start"] &
   grid$pos <= slice["end"]
@@ -2141,11 +2521,11 @@ qb.scantwo.slice <- function(x2, chr, slice, type, smooth)
     }
   }
   
-  typ <- type[c("lower", "upper")[(1 + slice["upper"])]]
+  type.slice <- type.scan[c("lower", "upper")[(1 + slice["upper"])]]
   lod2[is.na(lod2)] <- 0
-  grid[[typ]] <- rep(NA, nrow(grid))
-  grid[is.chr, typ] <- qb.smoothone(lod2, grid[is.chr, ], smooth,
-                                     x2$niterone[is.chr])
+  grid[[type.slice]] <- rep(NA, nrow(grid))
+  grid[is.chr, type.slice] <- qb.smoothone(lod2, grid[is.chr, ], smooth,
+                                    x2$niterone[is.chr], weight = weight)
   
   ## Add smooth estimate of locus on slice chromosome.
   chr.name <- paste("chr", slice["chr"], sep = ".")
@@ -2161,7 +2541,8 @@ qb.scantwo.slice <- function(x2, chr, slice, type, smooth)
     else {
       grid[[chr.name]] <- rep(NA, nrow(grid))
       grid[is.chr, chr.name] <- qb.smoothone(tmp, grid[is.chr, ], smooth,
-                                              x2$niterone[is.chr])
+                                             x2$niterone[is.chr],
+                                             weight = weight)
     }
   }
 
@@ -2170,50 +2551,43 @@ qb.scantwo.slice <- function(x2, chr, slice, type, smooth)
   
   ## Make grid a scanone object.
   class(grid) <- c("scanone", "data.frame")
-  attr(grid, "method") <- typ
-  attr(grid, "type") <- type
+  attr(grid, "type.scan") <- type.slice
   attr(grid, "model") <- "normal"
   grid
 }
 ###################################################################
-qb.scantwo.smooth <- function(x,
-                            chr = NULL,
-                            smooth = 3,
-                            gridtwo = qb.intertwo(qbObject, min.iter),
-                            ...)
+qb.scantwo.smooth <- function(x, chr = NULL, smooth = 3, gridtwo, ...)
 {
-  qbObject <- get(attr(x, "qb"))
-  chr.qb <- attr(x, "chr")
-  if(!is.null(chr.qb))
-    qbObject <- subset(qbObject, chr = chr.qb)
-
-  type <- attr(x, "method")
+  type.scan <- attr(x, "type.scan")
   scan <- attr(x, "scan")
-  min.iter <- attr(x, "min.iter")
   weight <- attr(x, "weight")
 
-  ## Get sampling grid.
-  gridone <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
   ## Force getting of 2-D sampling grid as well.
   i.lower <- paste(gridtwo[3,], gridtwo[4, ], sep = ":")
-  
+
+  gridone <- x$grid
+  mainloci <- x$mainloci
 
   ## Subset index for selected chromosomes.
   ## Note careful handshaking below to match up chr.sub.
   if(!is.null(chr)) {
     if(!is.numeric(chr))
       stop("chr must be numeric index to chromosomes")
-    chr.sub <- match(gridone$chr, chr)
+    tmp <- ordered(gridone$chr)
+    chr.names <- levels(tmp)[match(chr, levels(tmp))]
+    chr.sub <- match(gridone$chr, chr.names)
     chr.sub <- !is.na(chr.sub)
+
     if(!sum(chr.sub))
       stop(paste("no samples for chromosomes",
                  chr[sort(unique(chr.sub))],
                  collapse = ","))
-    qbObject <- subset(qbObject, chr = chr)
-    gridone <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
+
+    gridone <- gridone[gridone$chr %in% chr.names, ]
+    mainloci <- mainloci[mainloci$chrom %in% chr.names, ]
   }
   else {
-    chr <- sort(unique(gridone$chr))
+#    chr <- sort(unique(gridone$chr))
     chr.sub <- rep(TRUE, nrow(gridone))
   }
 
@@ -2235,7 +2609,7 @@ qb.scantwo.smooth <- function(x,
   lod[i.lower[chr.sub2]] <- x$two[chr.sub2, "lower"]
   if(all(x$two[chr.sub2, "upper"] == 0)) {
     lod[i.upper[chr.sub2]] <- x$two[chr.sub2, "lower"]
-    type["upper"] <- type["lower"]
+    type.scan["upper"] <- type.scan["lower"]
     scan[["upper"]] <- scan[["lower"]]
   }
   else
@@ -2248,77 +2622,62 @@ qb.scantwo.smooth <- function(x,
   names(tmp) <- names(weight)
   nitertwo[i.lower[chr.sub2]] <- gridtwo[tmp["lower"], chr.sub2]
   nitertwo[i.upper[chr.sub2]] <- gridtwo[tmp["upper"], chr.sub2]
-  niterone <- unclass(table(qb.inter(qbObject, gridone)))
+  niterone <- unclass(table(qb.inter(, gridone, mainloci)))
 
   ## Smooth lod matrix by chromosome.
-  lod <- qb.smoothtwo(gridone, nitertwo, niterone, lod, smooth)
+  lod <- qb.smoothtwo(gridone, nitertwo, niterone, lod, smooth, ...)
 
   ## Make a scantwo object.
   lst <- list(lod = lod, map = gridone, scanoneX = NULL,
               niterone = niterone, nitertwo = nitertwo)
   attr(lst, "class") <- "scantwo"
-  attr(lst, "method") <- type
-  attr(lst, "type") <- attr(x, "type")
+  attr(lst, "type.scan") <- type.scan
   attr(lst, "scan") <- scan
   invisible(lst)
 }
 ###################################################################
 plot.qb.scantwo <- function(x,
-                          chr = NULL,
-                          smooth = 3,
-                          main = mains,
-                          offset = offsets,
-                          nodiag = all(diag(x2$lod) == 0),
-                          slice = NULL,
-                          show.locus = TRUE,
-                          verbose = FALSE,
-                          ...)
+                            chr = NULL,
+                            smooth = 3,
+                            main = mains,
+                            offset = offsets,
+                            nodiag = all(diag(x2$lod) == 0),
+                            slice = NULL,
+                            show.locus = TRUE,
+                            weight = c("sqrt","count","none"),
+                            verbose = FALSE,
+                            split.chr = attr(x, "split.chr"),
+                            ...)
 {
+  weight <- match.arg(weight)
   geno.names <- attr(x, "geno.names")
 
-  ## Make sure chr and slice are numerical indices.
-  if(is.null(chr))
-    chr <- seq(geno.names)
-  if(is.logical(chr))
-    chr <- seq(geno.names)[chr]
-  if(is.character(chr))
-    chr <- match(chr, geno.names, nomatch = 0)
-  chr <- chr[chr >= 0]
-  
+  ## Find numerical indices for chr and slice.
+  chrs <- chr <- qb.find.chr(chr = chr, geno.names = geno.names)
   if(!is.null(slice)) {
-    if(is.logical(slice))
-      slice <- seq(geno.names)[slice]
-    if(is.character(slice))
-      slice <- match(slice, geno.names, nomatch = 0)
-    if(slice <= 0)
-      stop("Option slice must be index to chromosome")
+    slice <- qb.find.chr(chr = slice[1], geno.names = geno.names)
+    chrs <- c(chrs, slice)
   }
   
-  chrs <- chr
-  if(!is.null(slice))
-    chrs <- c(chrs, slice[1])
-  
-  x2 <- qb.scantwo.smooth(x, chrs, smooth, ...)
+  min.iter <- attr(x, "min.iter")
+  x2 <- qb.scantwo.smooth(x, chrs, smooth,
+                          qb.intertwo(min.iter, x$mainloci, x$iterdiag, x$pairloci),
+                          weight = weight, ...)
 
-  qbObject <- get(attr(x, "qb"))
-  chr.qb <- attr(x, "chr")
-  if(!is.null(chr.qb))
-    qbObject <- subset(qbObject, chr = chr.qb)
-  
   pheno.name <- attr(x, "pheno.name")
-  type <- attr(x2, "method")
+  type.scan <- attr(x2, "type.scan")
   scan <- attr(x2, "scan")
   min.iter <- attr(x, "min.iter")
   
   if(verbose) {
-    cat(paste(c("\nupper:","lower:"), type[c("upper","lower")], "of",
+    cat(paste(c("\nupper:","lower:"), type.scan[c("upper","lower")], "of",
               pheno.name, "for", scan[c("upper","lower")],
               collapse = "\n"),
         "\n")
     if(min.iter > 1)
       cat("Including only loci pairs with at least", min.iter, "samples.\n")
   }
-  mains <- paste(type[c("upper","lower")], "of",
+  mains <- paste(type.scan[c("upper","lower")], "of",
                  scan[c("upper","lower")], collapse = " / ")
   
   if(is.null(slice)) {
@@ -2327,18 +2686,18 @@ plot.qb.scantwo <- function(x,
       max(x, -x, na.rm = TRUE)
     }
     offsets <- c(lower = 0, upper = 0)
-    if(type["upper"] == "estimate")
+    if(type.scan["upper"] == "estimate")
       offsets["upper"] <- tmpfn(lod[row(lod) < col(lod)])
-    if(type["lower"] == "estimate") {
+    if(type.scan["lower"] == "estimate") {
       offsets["lower"] <- tmpfn(lod[row(lod) >= col(lod)])
     }
     if(is.null(names(offset)))
       names(offset) <- names(offsets)
-    if(type["upper"] == "estimate") {
+    if(type.scan["upper"] == "estimate") {
       lod[row(lod) < col(lod)] <- 
         1 + (lod[row(lod) < col(lod)] / offset["upper"])
     }
-    if(type["lower"] == "estimate") {
+    if(type.scan["lower"] == "estimate") {
       lod[row(lod) >= col(lod)] <- 
         1 + (lod[row(lod) >= col(lod)] / offset["upper"])
     }
@@ -2355,15 +2714,30 @@ plot.qb.scantwo <- function(x,
                            collapse = ", ", sep = " = "))
     }
 
+    ## Make sure chr is ordered with geno.names.
+    grid <- data.frame(chr = x2$map$chr, pos = x2$map$map)
     
-    ## Plot scantwo object.
-    if(compareVersion(qtlversion(), "1.04-48") >= 0) {
-      ## plot.scantwo 1.04 assumes upper triangle is add.
-      ## plot.scantwo 1.03 assumes upper triangel is epis.
-      tmp <- upper.tri(x2$lod)
-      x2$lod[tmp] <- t(x2$lod)[tmp] - x2$lod[tmp]
+    ## Add extra marker at split points.
+    split.chr <- split.chr[names(split.chr) %in% geno.names[chr]]
+
+    if(length(split.chr)) {
+      xout <- qb.chrsplit(grid, x$mainloci, chr, attr(x, "niter"), geno.names, split.chr)
+      geno.names <- levels(xout$chr)
+      chr <- attr(xout, "unsplit")
+      x2$map$chr <- ordered(xout$chr, geno.names)
     }
-    x2$map$chr <- ordered(geno.names[x2$map$chr], geno.names)
+    else
+      x2$map$chr <- ordered(geno.names[x2$map$chr], geno.names)
+
+    ## Plot scantwo object.
+    if(compareVersion(qtlversion(), "1.04-48") < 0)
+      stop("old version of R/qtl: please update now")
+    
+    ## plot.scantwo 1.04 assumes upper triangle is add.
+    ## plot.scantwo 1.03 assumes upper triangel is epis.
+    tmp <- upper.tri(x2$lod)
+    x2$lod[tmp] <- t(x2$lod)[tmp] - x2$lod[tmp]
+
     plot(x2, nodiag = nodiag, main = main,
          incl.markers = TRUE, ...)
     if(verbose)
@@ -2371,7 +2745,7 @@ plot.qb.scantwo <- function(x,
     invisible(x2)
   }
   else { ## 1-D slice through 2-D surface
-    grid <- qb.scantwo.slice(x2, chr, slice, type, smooth)
+    grid <- qb.scantwo.slice(x2, chr, slice, type.scan, smooth, weight)
 
     ## Plot slice.
     if(var(grid[[4]]) > 0 & show.locus) {
@@ -2391,15 +2765,21 @@ plot.qb.scantwo <- function(x,
 }
 ###################################################################
 qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
-                          offdiag = 0.5)
+                         offdiag = 0.5, weight = "sqrt", ...)
 {
+  ## Weighted average of x.
+  switch(weight,
+         count = {w <- nitertwo},
+         none = {w <- array(1, dim(nitertwo))},
+         sqrt =, {w <- sqrt(nitertwo)})
+  
   if(smooth) {
     if(offdiag < 0)
       offdiag <- 0
     if(offdiag > 1)
-       offdiag <- 1
+      offdiag <- 1
     
-    smoothtwo <- function(x, smooth, nitertwo) {
+    smoothtwo <- function(x, smooth, w) {
       n.map <- dim(x)
       if(min(n.map) > 3) {
         nr <- n.map[1]
@@ -2407,7 +2787,7 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
         o <- (x != 0)
         for(i in seq(smooth)) {
           ## Set up numerator = weighted sum of xs.
-          wt <- nitertwo * x
+          wt <- w * x
           x <- (wt[, c(1, seq(nc - 1))] +
                 wt[, c(seq(2, nc), nc)] +
                 wt[c(1, seq(nr - 1)), ] +
@@ -2418,37 +2798,37 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
                wt[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
                wt[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
                wt[c(seq(2, nr), nr), c(1, seq(nc - 1))])
-            
+          
           if(any(o))
             x[o] <- (x + 4 * (1 + offdiag) * wt)[o]
           
           ## Now get denominator = sum of weights.
-          wt <- (nitertwo[, c(1, seq(nc - 1))] +
-                 nitertwo[, c(seq(2, nc), nc)] +
-                 nitertwo[c(1, seq(nr - 1)), ] +
-                 nitertwo[c(seq(2, nr), nr), ])
+          wt <- (w[, c(1, seq(nc - 1))] +
+                 w[, c(seq(2, nc), nc)] +
+                 w[c(1, seq(nr - 1)), ] +
+                 w[c(seq(2, nr), nr), ])
           if(offdiag)
             wt <- wt + offdiag *
-              (nitertwo[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
-               nitertwo[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
-               nitertwo[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
-               nitertwo[c(seq(2, nr), nr), c(1, seq(nc - 1))])
+              (w[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
+               w[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
+               w[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
+               w[c(seq(2, nr), nr), c(1, seq(nc - 1))])
           ## Off-diagonal elements.
           if(any(o))
-            wt[o] <- (wt + 4 * (1 + offdiag) * nitertwo)[o]
+            wt[o] <- (wt + 4 * (1 + offdiag) * w)[o]
           x <- x / wt
           x[is.na(x)] <- 0
         }
       }
       x
     }
-    smoothtwo.same <- function(x, smooth, nitertwo) {
+    smoothtwo.same <- function(x, smooth, w) {
       ## Smooth upper and lower half of x, leaving diagonal unchanged.
       is.upper <- row(x) > col(x)
       is.lower <- row(x) < col(x)
 
       ## Make mat symmetric using lower triangle.
-      tmpfn <- function(x, smooth, nitertwo, is.upper) {
+      tmpfn <- function(x, smooth, w, is.upper) {
         tmpfn2 <- function(x) {
           mat <- x
           mat[is.upper] <- t(x)[is.upper]
@@ -2458,39 +2838,39 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
                         diagmat[c(seq(ndiag), ndiag)]) / 2
           mat
         }
-        smoothtwo(tmpfn2(x), smooth, tmpfn2(nitertwo))
+        smoothtwo(tmpfn2(x), smooth, tmpfn2(w))
       }
-      x[is.lower] <- tmpfn(x, smooth, nitertwo, is.upper)[is.lower]
-      x[is.upper] <- t(tmpfn(t(x), smooth, t(nitertwo), is.upper))[is.upper]
+      x[is.lower] <- tmpfn(x, smooth, w, is.upper)[is.lower]
+      x[is.upper] <- t(tmpfn(t(x), smooth, t(w), is.upper))[is.upper]
       x
     }
     chrs <- unique(grid$chr)
     n.chr <- length(chrs)
     if(n.chr == 1)
-      x <- smoothtwo.same(x, smooth, nitertwo)
+      x <- smoothtwo.same(x, smooth, w)
     else {
       for(i in seq(n.chr)) {
         ## process diagonal matrix.
         rows <- chrs[i] == grid$chr
         if(sum(rows)) {
           x[rows,rows] <- smoothtwo.same(x[rows,rows], smooth,
-                                         nitertwo[rows,rows])
+                                         w[rows,rows])
           ## Now off diagonal matrices.
           if(i < n.chr) for(j in seq(i + 1, n.chr)) {
             cols <- chrs[j] == grid$chr
             if(sum(cols)) {
               ## Lower triangle matrix.
               x[rows,cols] <- smoothtwo(x[rows,cols], smooth,
-                                        nitertwo[rows,cols])
+                                        w[rows,cols])
               ## Upper triangle matrix.
               x[cols,rows] <- smoothtwo(x[cols,rows], smooth,
-                                        nitertwo[cols,rows])
+                                        w[cols,rows])
             }
           }
         }
       }
     }
-    diag(x) <- qb.smoothone(diag(x), grid, smooth, niterone)
+    diag(x) <- qb.smoothone(diag(x), grid, smooth, niterone, weight = weight)
   }
   x
 }

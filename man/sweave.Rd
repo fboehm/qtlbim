@@ -25,7 +25,7 @@ qb.sweave(cross, pheno.col = 1, n.iter = 3000, n.draws = 64,
   \item{upper.threshold}{Threshold for upper triangle (epistasis) in 2-D
     scan; see \code{\link{qb.scantwo}}.}
   \item{SweaveFile}{Name of \code{\link[utils]{Sweave}} file (default is
-    \code{system.file("doc", "hyperslide.Rnw", package = "qtlbim")}).}
+    \code{system.file("doc", "prototype_qtl_hyper_data.Rnw", package = "qtlbim")}).}
   \item{SweaveExtra}{Name of user-supplied extra
     \code{\link[utils]{Sweave}} file (default is \code{NULL}).} 
   \item{PDFDir}{Name of directory to store PDF files (default is
@@ -36,16 +36,16 @@ qb.sweave(cross, pheno.col = 1, n.iter = 3000, n.draws = 64,
 \details{
 This is a simple shell around the \code{\link[utils]{Sweave}} routine to
 create customized documents with embedded QTL analysis. The default file
-\code{system.file("doc", "hyperslide.Rnw", package = "qtlbim")} creates a
+\code{system.file("doc", "prototype.qtl.hyper.slides.Rnw", package = "qtlbim")} creates a
 "beamer" style PDF slide show. An alternative file
-\code{system.file("doc", "hyperpaper.Rnw", package = "qtlbim")} creates a
+\code{system.file("external", "prototype.qtl.hyper.paper.Rnw", package = "qtlbim")} creates a
 preprint document. Both require post-processing with \code{pdflatex}.
 
 A user-defined section can be added to the automated documents, using
 the \code{SweaveExtra} option. We have provided
-\code{system.file("external", "hyperslideextra.Rnw", package = "qtlbim")}
+\code{system.file("external", "hyper.slide.extra.Rnw", package = "qtlbim")}
 for the slide version and
-\code{system.file("external", "hyperpaperextra.Rnw", package = "qtlbim")}
+\code{system.file("external", "hyper.paper.extra.Rnw", package = "qtlbim")}
 for the preprint version.
 }
 \references{ \url{http://www.qtlbim.org} }
@@ -60,16 +60,16 @@ qb.sweave(hyper)
 
 ## Turn LaTeX into PDF. Run twice to get outline correct.
 ## Need pdflatex on your system.
-system("pdflatex hyperslide")
-system("pdflatex hyperslide")
+system("pdflatex prototype.qtl.hyper.slides")
+system("pdflatex prototype.qtl.hyper.slides")
 
 ## Create document form, with extra section.
 qb.sweave(hyper,
-  SweaveFile = system.file("external", "hyperpaper.Rnw", package = "qtlbim"))
-  SweaveExtra = system.file("external", "hyperpaperextra.Rnw",
+  SweaveFile = system.file("external", "prototype.qtl.hyper.paper.Rnw", package = "qtlbim"))
+  SweaveExtra = system.file("external", "hyper.paper.extra.Rnw",
     package = "qtlbim"))
-system("pdflatex hyperpaper")
-system("pdflatex hyperpaper")
+system("pdflatex prototype.qtl.hyper.paper")
+system("pdflatex prototype.qtl.hyper.paper")
 }
 }
 \keyword{hplot}

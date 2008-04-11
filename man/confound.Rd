@@ -42,11 +42,8 @@ The object inherits from \code{\link[qtl]{scanone}} objects.
 \author{Brian S. Yandell}
 \seealso{\code{\link{qb.mcmc}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.confound(qbExample)
 plot(temp)
 }

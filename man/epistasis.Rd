@@ -49,10 +49,8 @@ qb.intcov(qbObject, covar, effects = c("add","dom"),
 \author{Brian S. Yandell, yandell@stat.wisc.edu }
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-}
 temp <- qb.epistasis(qbExample)
 summary(temp)
 plot(temp)

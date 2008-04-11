@@ -22,7 +22,7 @@
 sim.data <- function(...) qb.sim.cross(...)
 
 qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
-                         n.ind = 400, type = c("f2","bc"), missing.geno = 0.0,
+                         n.ind = 400, type = c("f2","bc","riself","risib"), missing.geno = 0.0,
                          missing.pheno = 0.0, ordinal = c(0.5,0.5),
                          qtl.pos = NULL, qtl.main = NULL, qtl.epis = NULL,
                          covariate = NULL, gbye = NULL,seed=NULL ) 
@@ -95,8 +95,9 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
         dimnames(data) <- list(NULL,mar.names[[i]])
         d <- diff(map[[i]])
         r <- 0.5*(1-exp(-2*d/100))  # we only consider Haldane distance
-        rbar <- 1-r
-        if(type=="bc") {
+        if (type=="riself" | type=="risib") r <- 4*r/(1+6*r)
+	rbar <- 1-r
+        if(type=="bc" | type=="riself" | type=="risib") {
            data[ ,1] <- sample(1:2,n.ind,repl=TRUE)
            if(n.mar[i] > 1) {
               for (j in 1:(n.mar[i]-1)) {
@@ -147,7 +148,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
     if (n.qtl > 0) {
         if(!is.null(qtl.main)) {
            n.main <- nrow(qtl.main)
-           if(type=="bc") {
+           if(type=="bc" | type=="riself" | type=="risib") {
               dimnames(qtl.main) <- list(paste("main", seq(n.main), sep = "."),
                                          c("qtl", "add"))
               for(i in 1:n.main) {
@@ -167,7 +168,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
         }
         if(!is.null(qtl.epis)) {
            n.epis <- nrow(qtl.epis)
-           if(type=="bc") {
+           if(type=="bc" | type=="riself" | type=="risib") {
               dimnames(qtl.epis) <- list(paste("epis", seq(n.epis), sep = "."),
                                          c("qtl.a", "qtl.b", "aa"))
               for(i in 1:n.epis) {
@@ -203,7 +204,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
        pheno.normal <- pheno.normal+fix.cov*covariate[1]+random
        if(!is.null(gbye)) {
           n.gbye <- nrow(gbye)
-          if(type=="bc") {
+          if(type=="bc" | type=="riself" | type=="risib") {
               dimnames(gbye) <- list(paste("GxE", seq(n.gbye), sep = "."),
                                      c("qtl", "add"))
               for(i in 1:nrow(gbye)) {
@@ -239,7 +240,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
        qtl$geno <- qtl.geno
        qtl$pos <- qtl.pos 
        if(!is.null(qtl.main)) {
-          if(type=="bc") qtl.main[ ,2] <- qtl.main[ ,2]^2/(4*vp)
+          if(type=="bc" | type=="riself" | type=="risib") qtl.main[ ,2] <- qtl.main[ ,2]^2/(4*vp)
           if(type=="f2") {
              qtl.main[ ,2] <- qtl.main[ ,2]^2/(2*vp)
              qtl.main[ ,3] <- qtl.main[ ,3]^2/(4*vp)
@@ -247,7 +248,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
           qtl$herit.main <- qtl.main
        }
        if(!is.null(qtl.epis)) {
-          if(type=="bc") qtl.epis[ ,3] <- qtl.epis[ ,3]^2/(16*vp)
+          if(type=="bc" | type=="riself" | type=="risib") qtl.epis[ ,3] <- qtl.epis[ ,3]^2/(16*vp)
           if(type=="f2") {
              qtl.epis[ ,3] <- qtl.epis[ ,3]^2/(4*vp)
              qtl.epis[ ,4] <- qtl.epis[ ,4]^2/(8*vp)
@@ -261,7 +262,7 @@ qb.sim.cross <- function(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
     if(!is.null(covariate)) {
        qtl$herit.cov <- c(0.25*covariate[1]^2/vp,covariate[2]/vp)
        if(!is.null(gbye)) {
-          if(type=="bc") gbye[ ,2] <- gbye[ ,2]^2*0.25/(4*vp)
+          if(type=="bc" | type=="riself" | type=="risib") gbye[ ,2] <- gbye[ ,2]^2*0.25/(4*vp)
           if(type=="f2") {
              gbye[ ,2] <- gbye[ ,2]^2*0.25/(2*vp)
              gbye[ ,3] <- gbye[ ,3]^2*0.25/(4*vp)

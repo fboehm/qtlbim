@@ -9,30 +9,23 @@ Plot or print marginal diagnostics of effects from a qb.scanone object.
 \usage{
 \method{print}{summary.qb.scanone}(x, digits = 3, \dots)
 \method{print}{qb.scanone}(x, digits = 3, \dots)
-\method{plot}{qb.scanone}(x, chr, smooth = 3, scan, ylim,
-  scan.name, col, main, sub, verbose = FALSE, \dots)
+\method{plot}{qb.scanone}(x, chr, scan, ylim, scan.name, \dots)
 }
 
 \arguments{
   \item{x}{An object of class \code{qb.scanone}.}
   \item{digits}{Significant digits to round with print.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
-  \item{smooth}{Perform smoothing if > 0 using weighted average over
-    \code{smooth} adjacent points.}
   \item{scan}{The model effects to include, the default is all
     those included in the \code{\link[qtl]{scanone}} object \code{x}.}
-  \item{ylim}{Limits for vertical (y) axis; default uses data limits.}
-  \item{scan.name}{Name used in automatically generated main title.}
-  \item{col}{Named vector of colors for plot. Names of colors correspond
-    to effects to be plotted. Unnamed colors will be made \code{"black"}.}
-  \item{main}{Main title for the plot}
-  \item{sub}{Subtitle for the plot; default is color names if not too long}
-  \item{verbose}{Give verbose feedback if \code{TRUE}.}
+  \item{ylim}{Vector of length 2 with vertical limits.}
+  \item{scan.name}{Name of \code{scan} for plot; default is
+    \code{"effects"} or comma-separated catenation of \code{scan}.}
   \item{\dots}{Other values passed to the generic plot function.}
 }
 
-}
-\value{Colors used in plots as character vector.
+\value{
+  Data frame with colors and line types used in plots.
 }
 \details{
 This plot method uses \code{\link[qtl]{plot.scanone}} as the engine to plot
@@ -43,6 +36,9 @@ diagnostics except counts is \code{scan} = c("sum", "main",
 "epis"). Counts and posterior diagnostics are typically plotted in two
 stacked plots. Individual columns from the \code{x} object can be
 plotted by specifying their names as a vector to option \code{scan}.
+
+Arguments \code{col} and \code{lty} use keywords to names in \code{scan}
+argument. Default \code{main} and \code{sub} arguments are provided.
 }
 \references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }

@@ -8,7 +8,7 @@ containing information on environmental variance, explained variance
 components, epistatic and non-epistatic variance components.
 }
 \usage{
-qb.scantwo(qbObject, epistasis = TRUE, scan, type,
+qb.scantwo(qbObject, epistasis = TRUE, scan, type.scan,
   upper.scan = "epistasis", lower.scan = "full", covar,
   adjust.covar, chr, min.iter = 1, verbose = FALSE)
 }
@@ -17,7 +17,7 @@ qb.scantwo(qbObject, epistasis = TRUE, scan, type,
   \item{epistasis}{If \code{TRUE} information on epistasis is included
     in the return value.}
   \item{scan}{List of diagnostics to scan (see below).}
-  \item{type}{Vector of two scan types; default is "heritability" (see below).}
+  \item{type.scan}{Vector of two scan types; default is "heritability" (see below).}
   \item{upper.scan}{Vector of diagnostics to scan for upper triangle
     (see below).}
   \item{lower.scan}{Vector of diagnostics to scan for lower triangle
@@ -36,12 +36,12 @@ qb.scantwo(qbObject, epistasis = TRUE, scan, type,
 }
 \value{
 Returns an object of class \code{qb.scantwo} (a data frame) containing
-effects selected according to \code{type} and \code{scan}.
+effects selected according to \code{type.scan} and \code{scan}.
 }
 \details{
-The \code{scan} and \code{type} are similar to those used in
+The \code{scan} and \code{type.scan} are similar to those used in
 \code{\link{qb.scanone}}. However, here \code{scan} is a list and
-\code{type} is a vector, each with elements "lower" and "upper". You can
+\code{type.scan} is a vector, each with elements "lower" and "upper". You can
 either specify \code{scan} as a list, or profide \code{upper.scan} and
 \code{lower.scan} separately.
 
@@ -52,9 +52,9 @@ the separate options \code{upper.scan} and \code{lower.scan}. The string
   "da", "dd")}. The string "full" is shorthand for the epistatics
 effects plus main effects, \code{c("add", "dom")}, plus any GxE terms.
 
-The \code{type} defaults to \code{c(upper = "LPD", lower =
+The \code{type.scan} defaults to \code{c(upper = "LPD", lower =
   "LPD")}. See \code{\link{qb.scanone}} for the range of possible
-types. Mostly the 2-D version of \code{type} provides marginal summaries
+types. Mostly the 2-D version of \code{type.scan} provides marginal summaries
 for pairs of loci. However, for type \code{"nqtl"}, the marginal summaries
 involving main effects (e.g. with \code{scan} values \code{"full"} or
 \code{"main"} or \code{"add"} or \code{"dom"}) show, for each pair of
@@ -65,10 +65,8 @@ chromosomes, the average number of QTL at both chromosomes.
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{plot.qb.scanone}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-}
 temp <- qb.scantwo(qbExample)
 summary(temp)
 plot(temp)

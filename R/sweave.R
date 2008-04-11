@@ -90,9 +90,9 @@ qb.arch.default <- function(object, chr, pos, tolerance = 10, ...)
     chr <- c(chr, t(object[, c("chr1","chr2")]))
     pos <- c(pos, t(object[, c("u.pos1","u.pos2")]))
   }
-  
+
   o <- order(chr, pos)
-  d <- abs(diff(pos[o])) <= tolerance & diff(chr[o]) == 0
+  d <- abs(diff(pos[o])) <= tolerance & diff(unclass(factor(chr[o]))) == 0
   newpos <- unlist(tapply(pos[o], cumsum(1 - c(0, d)),
                           function(x) rep(round(mean(x), 2), length(x))))
   data <- data.frame(chr = chr[o], pos = newpos, type = type[o])
@@ -177,12 +177,18 @@ qb.archpairs <- function(arch)
   if(is.null(arch$pair.by.qtl))
     return(NULL)
   out <- list()
-  out$chr <-
-    as.data.frame(lapply(arch$pair.by.qtl,
-                         function(x,y) y[as.character(x), "chr"],
-                         arch$qtl))
-  names(out$chr) <- paste("chr", c("a", "b"), sep = "")
-  row.names(out$chr) <- paste("pair", seq(nrow(out$chr)))
+
+  ## Make sure chr is character.
+  tmp <- lapply(arch$pair.by.qtl,
+                function(x,y) y[as.character(x), "chr"],
+                arch$qtl)
+  out$chr <- cbind(as.character(tmp[[1]]),
+                   as.character(tmp[[2]]))
+
+  n.pair <- nrow(out$chr)
+  dimnames(out$chr) <- list(if(n.pair) paste("pair", seq(nrow(out$chr)))
+                            else NULL,
+                            paste("chr", c("a", "b"), sep = ""))
   out$pos <-
     as.data.frame(lapply(arch$pair.by.qtl,
                          function(x,y) y[as.character(x), "pos"],
@@ -194,14 +200,17 @@ qb.archpairs <- function(arch)
 ##############################################################
 qb.pairgroup <- function(arch, pairs = qb.archpairs(arch))
 {
+  ## Chromosomes are now ordered factors. Change to character.
+  pairchr <- apply(pairs$chr, 2, as.character)
+  
   ## All chr in pairs.
-  n.pair <- nrow(pairs$chr)
+  n.pair <- nrow(pairchr)
   cliques <- list()
   if(!is.null(n.pair)) {
-    cliques[[1]] <- sort(unique(unlist(pairs$chr[1,])))
+    cliques[[1]] <- sort(unique(unlist(pairchr[1,])))
     if(n.pair > 1) {
       for(i in 2:n.pair) {
-        tmp <- sort(unique(unlist(pairs$chr[i,])))
+        tmp <- sort(unique(unlist(pairchr[i,])))
         ci <- 0
         j <- 0
         while(j < length(cliques) & ci == 0) {
@@ -275,7 +284,16 @@ step.fitqtl <- function(cross, qtl, pheno.col = 1, arch,
     formula(paste("y ~", paste(c(my.main, my.epis), collapse = "+")))
 
   ## Fit model.
-  cross.fit <- fitqtl(cross$pheno[[pheno.col]], qtl,
+  ## R/qtl fitqtl changed with 1.08-43, but not released yet.
+  old.fitqtl <- compareVersion(qtlversion(), "1.08-43") < 0
+  if(old.fitqtl)
+    myfitqtl <- function(cross, pheno.col, ...)
+      fitqtl(cross$pheno[[pheno.col]], ...)
+  else
+    myfitqtl <- function(cross, pheno.col, ...)
+      fitqtl(cross, pheno.col, ...)
+  
+  cross.fit <- myfitqtl(cross, pheno.col, qtl,
                       formula = my.formula)
   if(trace == 3 & !is.null(cross.fit$result.drop))
     print(signif(cross.fit$result.drop[, -6], 3))
@@ -334,7 +352,7 @@ step.fitqtl <- function(cross, qtl, pheno.col = 1, arch,
       formula(paste("y ~", paste(c(my.main, my.epis), collapse = "+")))
 
     ## Refit model.
-    cross.fit <- fitqtl(cross$pheno[[pheno.col]], qtl,
+    cross.fit <- myfitqtl(cross, pheno.col, qtl,
                         formula = my.formula)
 
     ## Adjust check list for next loop.

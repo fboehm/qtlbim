@@ -1,21 +1,18 @@
 \name{plot.qb.scantwo}
 \alias{plot.qb.scantwo}
-\alias{print.qb.scantwo}
-\alias{print.summary.qb.scantwo}
 \title{Two dimensional LOD Plot of Epistasis/joint}
 \description{
 Plots joint LOD for chromosomes on a two dimensional grid.
 }
 \usage{
-\method{print}{summary.qb.scantwo}(x, digits = 3, \dots)
-\method{print}{qb.scantwo}(x, digits = 3, \dots)
 \method{plot}{qb.scantwo}(x, chr, smooth = 3, main, offset,
-  nodiag, slice = NULL, show.locus = TRUE, verbose = FALSE, \dots)
+  nodiag, slice = NULL, show.locus = TRUE,
+  weight = c("sqrt","count","none"), verbose = FALSE,
+  split.chr, \dots)
 }
 
 \arguments{
   \item{x}{An object of class \code{qb.scantwo}.}
-  \item{digits}{Significant digits to round with print.}
   \item{chr}{Vector of chromosomes to plot. Must be integer.}
   \item{smooth}{Perform smoothing if > 0 using weighted average over
     \code{smooth} adjacent points.}
@@ -25,7 +22,12 @@ Plots joint LOD for chromosomes on a two dimensional grid.
   \item{slice}{Take 1-D slice through 2-D surface is not \code{NULL}
     (see below).}
   \item{show.locus}{If a \code{slice}, show locus estimate if \code{TRUE}.}
+  \item{weight}{Weights to use for nearest neighbor
+    smoothing. \code{sqrt} is square root of count per locus. Used only
+    if \code{smooth} > 0.}
   \item{verbose}{Give verbose feedback if \code{TRUE}.}
+  \item{split.chr}{Split summary by multiple QTL per chromosome (see
+    details for \code{\link{plot.qb.scanone}}).}
   \item{\dots}{Other parameters passed to generic plot function.}
 }
 

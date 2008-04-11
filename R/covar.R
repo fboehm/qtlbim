@@ -56,17 +56,15 @@ covar.mean <- function(qbObject, adjust.covar, verbose = FALSE)
   else {
     ## Could use qb.get(qbObject, "fixcoef") and qb.get(qbObject, "yvalue") here.
     ## Recall that missing code used is 999.
-    cross <- qb.cross(qbObject)
+    cross <- qb.cross(qbObject, genoprob = FALSE)
     covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
     if(nfixcov > 0) {
       pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
       use.value <- cross$pheno[, pheno.name]
-      use.value <- !is.na(use.value) & abs(use.value) != Inf 
-      tmp <- cross$pheno[, covar.name[seq(nfixcov)]]
-      if(nfixcov == 1)
-        covar.means <- mean(tmp[use.value], na.rm = TRUE)
-      else
-        covar.means <- unlist(lapply(tmp[use.value, ], mean, na.rm = TRUE))
+      use.value <- !is.na(use.value) & abs(use.value) != Inf
+      tmp <- cross$pheno[, covar.name[seq(nfixcov)], drop = FALSE]
+      covar.means <- unlist(lapply(tmp[use.value,, drop = FALSE],
+                                   mean, na.rm = TRUE))
       covar.means <- c(covar.means, rep(0, nrancov))
     }
     else
@@ -109,7 +107,7 @@ covar.var <- function(qbObject)
        stop("no covar element in qb object", call. = FALSE,
             immediate. = TRUE)
   }
-  cross <- qb.cross(qbObject)
+  cross <- qb.cross(qbObject, genoprob = FALSE)
   covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")[seq(nfixcov)]]
   cov(as.matrix(cross$pheno[, covar.name]), use = "pair")
 }
@@ -127,6 +125,8 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
   nfixcov <- qb.get(qbObject, "nfixcov")
   nrancov <- qb.get(qbObject, "nrancov")
   intcov <- qb.get(qbObject, "intcov")
+  intcov <- check.intcov(intcov, nfixcov)
+
   if(!nfixcov)
     scan <- scan[scan != "fixcov"]
   if(!nrancov)
@@ -136,7 +136,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
   if(!length(scan))
     stop("no elements for variance components")
 
-  is.bc <- (qb.get(qbObject, "cross") == "bc")
+  is.bc <- (qb.cross.class(qbObject) == "bc")
 
   ## Determine variance components to include.
   var1 <- "add"
@@ -145,13 +145,13 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
     var1 <- c(var1,"dom")
     var2 <- c(var2,"ad","da","dd")
   }
-  cross <- qb.cross(qbObject)
   if(nfixcov + nrancov)
-    covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
+    covar.name <- names(qb.cross(qbObject, genoprob = FALSE)$pheno)[qb.get(qbObject, "covar")]
   iterdiag <- qb.get(qbObject, "iterdiag")
+  n.iter <- nrow(iterdiag)
 
   if(aggregate) {
-    out <- matrix(NA, nrow(iterdiag), length(scan))
+    out <- matrix(NA, n.iter, length(scan))
     dimnames(out) <- list(NULL, scan)
   }
   else {
@@ -171,7 +171,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
       outnames <- c(outnames, covar.name[nfixcov + seq(nrancov)])
     if(any(scan == "GxE"))
       outnames <- c(outnames, paste(var1, "E", sep = "x"))
-    out <- matrix(NA, nrow(iterdiag), length(outnames))
+    out <- matrix(NA, n.iter, length(outnames))
     dimnames(out) <- list(NULL, outnames)
   }
   
@@ -199,7 +199,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
     if(nfixcov & any(scan == "fixcov")) {
       fix.name <- covar.name[seq(nfixcov)] 
       covs <- covar.var(qbObject)
-      fix.comp <- apply(as.matrix(covariate[, seq(nfixcov)]),
+      fix.comp <- apply(covariate[, seq(nfixcov), drop = FALSE],
                         1,
                         function(x, covs) c(covs * outer(x, x)),
                         covs)
@@ -218,10 +218,9 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
     }
     if(nrancov) {
       if(aggregate) {
-        out[, "rancov"] <- if(nrancov == 1)
-          covariate[, nfixcov + 1]
-        else
-          apply(covariate[, nfixcov + seq(nrancov)], 1, sum)
+        out[, "rancov"] <- apply(covariate[, nfixcov + seq(nrancov),
+                                           drop = FALSE],
+                                 1, sum)
       }
       else
         out[, covar.name[nfixcov + seq(nrancov)]] <-
@@ -441,8 +440,7 @@ qb.covar <- function(qbObject, element = "add", covar = 1,
                           paste(covar.name[covar], element, sep = "."))
   
   ## Use chr names from cross qbObject.
-  cross <- qb.cross(qbObject)
-  chrnames = names(cross$geno)
+  chrnames = names(qb.cross(qbObject, genoprob = FALSE)$geno)
   data$chr <- ordered(chrnames[mainloci$chrom],
                       chrnames[sort(unique(mainloci$chrom))])
   class(data) <- c("qb.covar", "data.frame")
@@ -530,22 +528,11 @@ qb.confound <- function(qbObject, covar = 1)
   qb.exists(qbObject)
   
   cross <- qb.cross(qbObject)
-  grid <- pull.grid(qbObject)
+  grid <- pull.grid(qbObject, cross = cross)
   is.f2 <- class(cross)[1] == "f2"
 
-  if(is.null(cross$geno[[1]]$prob)) {
-    step <- qb.get(qbObject, "step")
-    if(is.null(step)) {
-      warning("First running qb.genoprob with default step size",
-              call. = FALSE, immediate. = TRUE)
-      cross <- qb.genoprob(cross)
-    }
-    else {
-      warning(paste("First running qb.genoprob with step =", step),
-              call. = FALSE, immediate. = TRUE)
-      cross <- qb.genoprob(cross, step = step)
-    }
-  }
+  if(is.null(cross$geno[[1]]$prob))
+    stop("First first run qb.genoprob on cross object")
 
   covariate <- cross$pheno[, qb.get(qbObject, "covar")[covar]]
   covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")[covar]]
@@ -573,7 +560,7 @@ qb.confound <- function(qbObject, covar = 1)
                              function(x) (x - mean(x, na.rm = TRUE)) ^ 2),
                        covariate, use = "pairwise.complete.obs")
   class(grid) <- c("qb.confound", "scanone", "data.frame")
-  attr(grid, "cross") <- qb.get(qbObject, "cross")
+  attr(grid, "cross.class") <- qb.cross.class(qbObject)
   attr(grid, "n.cov") <- sum(!is.na(covariate))
   attr(grid, "covar") <- covar.name
   grid
@@ -598,7 +585,7 @@ plot.qb.confound <- function(x,
   n.cov <- attr(x, "n.cov")
   covar.name <- attr(x, "covar")
   
-  curves <- seq(1 + (attr(x, "cross") == "f2"))
+  curves <- seq(1 + (attr(x, "cross.class") == "f2"))
   col <- c("blue", "red")[curves]
   adddom <- c("add", "dom")[curves]
   

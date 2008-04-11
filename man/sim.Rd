@@ -10,7 +10,7 @@
 }
 \usage{
 qb.sim.cross(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
-  n.ind = 400, type = c("f2","bc"), missing.geno = 0.0,
+  n.ind = 400, type = c("f2","bc","riself","risib"), missing.geno = 0.0,
   missing.pheno = 0.0, ordinal = c(0.5,0.5),
   qtl.pos = NULL, qtl.main = NULL, qtl.epis = NULL,
   covariate = NULL, gbye = NULL, seed = NULL )

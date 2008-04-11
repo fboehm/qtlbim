@@ -9,7 +9,7 @@ These routines refine QTL positions for epistatic pairs and show plots
 to reveal the nature of epistasis.
 }
 \usage{
-qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
+qb.slicetwo(qbObject, chr, pos, type.scan = "2logBF", width = 10)
 \method{summary}{qb.slicetwo}(object, \dots)
 \method{print}{qb.slicetwo}(x, \dots)
 \method{plot}{qb.slicetwo}(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
@@ -21,7 +21,7 @@ qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
   \item{x}{Object of class \code{qb.slicetwo}.}
   \item{chr}{Chromosome vector.}
   \item{pos}{Position vector corresponding to \code{chr}.}
-  \item{type}{Type of profile scan; see \code{\link{qb.scanone}}.}
+  \item{type.scan}{Type of profile scan; see \code{\link{qb.scanone}}.}
   \item{width}{Width of slice.}
   \item{byrow}{Arrange plots by row (for slides) if \code{TRUE}.}
   \item{figs}{Plot only selected figures. Full set of \code{c("profile",
@@ -34,11 +34,8 @@ qb.slicetwo(qbObject, chr, pos, type = "2logBF", width = 10)
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{qb.scantwo}}, \code{\link{qb.sliceone}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.slicetwo(qbExample, chr = c(1,2), pos = c(45,12))
 summary(temp)
 plot(temp)

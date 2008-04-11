@@ -36,9 +36,8 @@ detail complementary to \code{\link{qb.multloci}} and
     \code{\link{qb.multloci}}}
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 tmpar <- par(mfrow = c(2,2))
 temp <- qb.pairloci(qbExample, c(1,2))
 summary(temp)

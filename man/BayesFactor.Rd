@@ -1,5 +1,6 @@
 \name{qb.BayesFactor}
 \alias{qb.BayesFactor}
+\alias{qb.bf}
 \alias{plot.qb.BayesFactor}
 \alias{print.qb.BayesFactor}
 \alias{summary.qb.BayesFactor}
@@ -9,8 +10,9 @@ Model-averaged posteriors and Bayes factors computed for number and
 pattern of QTL, chromosomes and pairs of chromosomes showing epistasis.
 }
 \usage{
+qb.bf(\dots)
 qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
-  cutoff.pattern = 0.2, cutoff.pairs = 1, nmax = 15)
+  cutoff.pattern, cutoff.pairs = 1, nmax = 15, epistasis = TRUE)
 \method{plot}{qb.BayesFactor}(x, \dots)
 \method{summary}{qb.BayesFactor}(object, sort = TRUE, digits = 3, \dots)
 \method{print}{qb.BayesFactor}(x, \dots)
@@ -21,17 +23,20 @@ qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
   \item{x}{Object of class \code{qb.BayesFactor}.}
   \item{items}{Items to include in model selection assessment.}
   \item{cutoff.pattern}{Percent cutoff for pattern inclusion in model
-    selection.} 
+    selection. Default is 0.25 (0.5) if \code{epistasis} is \code{TRUE}
+    (\code{FALSE}).} 
   \item{cutoff.pairs}{Percent cutoff for epistatic pair inclusion in
     model selection.}
   \item{nmax}{Maximum number of model terms included per item (for
     \code{items} "pattern" and "pairs" only).}
+  \item{epistasis}{Include epistasis in patterns if \code{TRUE}.}
   \item{sort}{Sort by Bayes factor if \code{TRUE}.}
   \item{digits}{Number of significant digits for summary.}
   \item{\dots}{Additional arguments passed to generic plot, summary or print.}
 }
 \details{
-  \code{qb.BayesFactor} creates model selection results for selected
+  \code{qb.BayesFactor} (or \code{qb.bf} for short) creates model
+  selection results for selected 
   items. These are based on marginal posteriors and priors, averaged
   over all other model parameters. The posterior may be influenced by
   prior, while Bayes factors are empirically less sensitive for QTL
@@ -60,9 +65,8 @@ qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
 \seealso{\code{\link{plot.qb}}, \code{\link{qb.mcmc}}}
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 temp <- qb.BayesFactor(qbExample)
 summary(temp)
 plot(temp)

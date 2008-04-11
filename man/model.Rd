@@ -9,7 +9,7 @@
 qb.model(cross, epistasis = TRUE, main.nqtl = 3,
   mean.nqtl = main.nqtl + 3, max.nqtl = NULL, interval = NULL,
   chr.nqtl = NULL,intcov = c(0), depen = FALSE,
-  prop = c(0.5, 0.1, 0.05), \dots)	     
+  prop = c(0.5, 0.1, 0.05), contrast = TRUE, \dots)	     
   
 }
 \arguments{
@@ -26,14 +26,18 @@ qb.model(cross, epistasis = TRUE, main.nqtl = 3,
   \item{chr.nqtl}{list of the maximum number of QTLs allowed to be detected 
     on each chromosome. Default is the length of the chromosome
     divided by \code{interval}.}
-  \item{intcov}{list of the fixed covariates with which gene-environment interaction 
-    will be considered.}
+  \item{intcov}{logical or 0/1 vector for fixed covariates indicating which
+    gene-environment interaction will be considered (default is all
+    \code{FALSE}, no GxE).}
   \item{depen}{=TRUE will use dependent prior for indicator variables of epistatic effects.}
   \item{prop}{prior inclusion probabilities for epistatic effects in three different scenarios: 
-    when none,one and both the main effects of the two interacting QTL are 
-    included in the model. Note that the sum of the probabilities need not
-    be equal to 1 and \code{prop} should be specified only when \code{depen=TRUE}.
+    when both (default 0.5), one (0.1) or none (0.05) of the main
+    effects of the two interacting QTL are included in the model. Note
+    that the sum of the probabilities need not be equal to 1 and
+    \code{prop} should be specified only when \code{depen=TRUE}.
   }
+  \item{contrast}{Use Cockerham model if \code{TRUE}; otherwise estimate
+    genotypic values.}
   \item{\dots}{Not used.}
 }
 \value{

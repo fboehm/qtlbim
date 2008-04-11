@@ -10,9 +10,10 @@ This method extracts iteration diagnostics and mainloci from the
 Generic summary and plot can be used for display.
 }
 \usage{
-qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type, covar,
+qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type.scan, covar,
   adjust.covar, chr, sum.scan = "yes", min.iter = 1,
-  aggregate = TRUE, verbose = FALSE)
+  aggregate = TRUE, smooth = 3, weight = c("sqrt","count","none"),
+  split.chr, center.type = c("mode","mean","scan"), verbose = FALSE)
 \method{summary}{qb.sliceone}(object, chr, \dots)
 \method{print}{qb.sliceone}(x, \dots)
 \method{plot}{qb.sliceone}(x, \dots, scan, auto.par = TRUE)
@@ -25,7 +26,7 @@ qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type, covar,
   \item{epistasis}{If \code{TRUE} then information about
     epistasis is included.}
   \item{scan}{Vector of diagnostics to scan (see below).}
-  \item{type}{Type of scan; default is "heritability" (see below).}
+  \item{type.scan}{Type of scan; default is "heritability" (see below).}
   \item{covar}{Covariate(s) to include; default is \code{seq(nfixcov)}
     where \code{nfixcov} is taken from \code{\link{qb.data}}. Set to 0
     to exclude any covariates.}
@@ -39,6 +40,13 @@ qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type, covar,
     iterations is at least \code{min.iter}; default is to include all
     (\code{min.iter} = 1).}
   \item{aggregate}{Aggregate effects into main, epis, gbye if \code{TRUE}.}
+  \item{smooth}{Degree of nearest neighbor smoothing to determine maxima.}
+  \item{weight}{Weights to use for nearest neighbor
+    smoothing. \code{sqrt} is square root of count per locus. Used only
+    if \code{smooth} > 0.}
+  \item{split.chr}{Split summary by multiple QTL per chromosome (see
+    details for \code{\link{plot.qb.scanone}}).}
+  \item{center.type}{Method to find QTL loci. See details.}
   \item{verbose}{ Give verbose feedback if \code{TRUE}.}
   \item{auto.par}{Automatic setting of plot parameters for multiple
     plots if \code{TRUE}.}
@@ -47,7 +55,7 @@ qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type, covar,
 
 \value{
 \code{qb.sliceone} returns an object of class \code{qb.sliceone} (a data frame) containing
-effects selected according to \code{type} and \code{scan}.
+effects selected according to \code{type.scan} and \code{scan}.
 }
 \details{
 All arguments except \code{slice} agree with \code{\link{qb.scanone}}. The
@@ -69,18 +77,15 @@ chromosomes.
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{summary.qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 ## Get profile of heritability.
 temp <- qb.sliceone(qbExample, slice = 1, chr = 2:3)
 summary(temp)
 plot(temp)
 
 ## Get profile of cell means.
-temp <- qb.sliceone(qbExample, slice = 1, chr = 2:3, type = "cellmean")
+temp <- qb.sliceone(qbExample, slice = 1, chr = 2:3, type.scan = "cellmean")
 summary(temp)
 plot(temp)
 }

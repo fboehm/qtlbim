@@ -1,8 +1,10 @@
 \name{qb.get}
 \alias{covar.mean}
 \alias{pull.grid}
+\alias{pull.loci}
 \alias{qb.get}
 \alias{qb.cross}
+\alias{qb.cross.class}
 \alias{qb.demo}
 \alias{qb.load}
 \alias{qb.save}
@@ -14,13 +16,16 @@
 }
 \usage{
 covar.mean(qbObject, adjust.covar, verbose = FALSE)
-pull.grid(qbObject, offset, spacing, mask.region)
-qb.cross(qbObject)
+pull.grid(qbObject, offset, spacing, mask.region, cross, step,
+  off.end, stepwidth, \dots)
+pull.loci(cross, step, off.end, stepwidth, region)
+qb.cross(qbObject, genoprob = TRUE, \dots)
+qb.cross.class(qbObject)
 qb.demo()
-qb.get(qbObject, element, sub)
+qb.get(qbObject, element, pheno.id = 1, warn = TRUE, \dots)
 qb.load(cross, qbObject, dir, file)
-qb.save(cross, qbObject, dir, file)
-qb.reorder(qbObject)
+qb.save(cross, qbObject, dir, Name)
+qb.reorder(qbObject, warn = FALSE)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
@@ -30,6 +35,12 @@ qb.reorder(qbObject)
   \item{verbose}{Verbose mode if \code{TRUE}.}
   \item{cross}{Object of class \code{cross} (see \code{\link[qtl]{read.cross}}).}
   \item{offset}{Offset by first marker if \code{TRUE}.}
+  \item{step}{Argument to \code{\link[qtl]{create.map}}.}
+  \item{off.end}{Argument to \code{\link[qtl]{create.map}}.}
+  \item{stepwidth}{Argument to \code{\link[qtl]{create.map}}.}
+  \item{region}{Argument to \code{\link[qtl]{create.map}}.}
+  \item{genoprob}{Compute genotype probabilities with
+    \code{\link{qb.genoprob}} if \code{TRUE}.}
   \item{spacing}{Add columns for \code{map}, \code{eq.spacing} and
     \code{xchr} if \code{TRUE}. This corresponds to \code{map} element
     of a \code{\link[qtl]{scantwo}} object.}
@@ -40,12 +51,16 @@ qb.reorder(qbObject)
     \code{\link{qb.model}} or \code{\link{qb.mcmc}}, or it is one of the
     MCMC sample files in \code{output.dir}, from \code{c("iterdiag",
       "mainloci", "pairloci", "covariates", "gbye")}.}
-  \item{sub}{Character string for subelement of \code{qbObject} to
-    get.}
+  \item{pheno.id}{Numeric or character identifier for phenotype. Useful
+    eventually for multiple traits.}
+  \item{warn}{Warn user if \code{qbObject} is legacy format if \code{TRUE}.}
   \item{dir}{Character string name of directory for load if \code{qbObject}
     does not exist.}
   \item{file}{Character string name of file for load if \code{qbObject}
     does not exist.}
+  \item{Name}{Character string name of suffix for save if \code{qbObject}
+    exists.}
+  \item{\dots}{Additional arguments.}
 }
 \details{
   These are all internal routines. But some may be useful beyond.
@@ -77,18 +92,14 @@ qb.reorder(qbObject)
   positions within chromosomes are in increasing order. It creates the
   \code{subset} element of a \code{qb} object.
 
-  \code{qb.save} and \code{qb.load} are used to speed up examples and
-  vignettes by saving and loading an external workspace containing a
-  \code{cross} and a \code{qb} object. \code{qb.save} returns
-  \code{TRUE} if the save was successful. \code{qb.load} returns
-  \code{TRUE} if the objects exist already or they were loaded properly.
+  \code{qb.save} and \code{qb.load} are depricated. They were used to
+  save and retrieve MCMC 
+  samples used in examples and vignettes. We now use
+  \code{\link[base]{save}} and \code{\link[base]{data}}.
 }
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 covar.mean(qbExample)
 qb.get(qbExample, "output.dir")
 summary(qb.cross(qbExample))
@@ -98,7 +109,7 @@ names(temp)
 
 \dontrun{
 ## The following should have no effect.
-qbExample <- qb.reorder(qbExampleb}
+qbExample <- qb.reorder(qbExampleb)
 
 ## You can call the following rather than demo() to get a tour.
 qb.demo()

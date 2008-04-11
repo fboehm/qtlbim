@@ -12,7 +12,7 @@ qb.hpdone(qbObject, level = 0.5, profile = "2logBF",
   effects = "cellmean", scan = "sum", chr, smooth = 3, \dots)
 \method{summary}{qb.hpdone}(object, chr, digits = 3, \dots)
 \method{print}{qb.hpdone}(x, \dots)
-\method{plot}{qb.hpdone}(x, chr, smooth = 3, \dots)
+\method{plot}{qb.hpdone}(x, chr, \dots)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
@@ -50,13 +50,10 @@ on HPD region. Create genome scans for \code{profile} and \code{effects}.
 }
 \references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
-\seealso{\code{\link{qb.scanone}}}
+\seealso{\code{\link{qb.scanone}}, \code{\link{qb.hpdchr}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-
-}
 temp <- qb.hpdone(qbExample)
 summary(temp)
 plot(temp)

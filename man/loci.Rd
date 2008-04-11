@@ -45,9 +45,8 @@ qb.loci(qbObject, loci = c("main", "epistasis", "GxE"), covar, \dots)
 \seealso{\code{\link[base]{jitter}},\code{\link{subset.qb}}}
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 temp <- qb.loci(qbExample)
 plot(temp)
 summary(temp)

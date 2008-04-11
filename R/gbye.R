@@ -4,8 +4,8 @@ qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
   if(is.null(gbye))
     return(invisible(NULL))
 
-  cross <- qb.cross(qbObject)
-  geno.names <- names(cross$geno)
+  cross <- qb.cross(qbObject, genoprob = FALSE)
+  geno.names <- qb.geno.names(qbObject, cross)
   get.covar <- qb.get(qbObject,
                       "nfixcov")[as.logical(qb.get(qbObject, "intcov"))]
   covar.names <- names(cross$pheno)[covar]
@@ -15,7 +15,7 @@ qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
   np <- outer(np[[2]], np[[1]], paste, sep = ".")
   percent <- c(percent)
   o <- order(-percent)
-  percent <- 100 * percent[o] / nrow(qb.get(qbObject, "iterdiag"))
+  percent <- 100 * percent[o] / qb.niter(qbObject)
   names(percent) <- np[o]
   percent <- percent[ percent >  cutoff ]
   if(length(percent) > nmax)
@@ -38,8 +38,8 @@ qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
   }
 
   ## Identify covariates and chromosomes with interacting QTL.
-  cross <- qb.cross(qbObject)
-  geno.names <- names(cross$geno)
+  cross <- qb.cross(qbObject, genoprob = FALSE)
+  geno.names <- qb.geno.names(qbObject, cross)
   get.covar <- qb.get(qbObject,
                       "nfixcov")[as.logical(qb.get(qbObject, "intcov"))]
   if(!length(covar))

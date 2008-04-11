@@ -41,9 +41,8 @@
   \code{\link{qb.diag}} }
 
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
-}
+data(qbExample)
+
 plot(qbExample)
 summary(qbExample)
 }

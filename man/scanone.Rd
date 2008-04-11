@@ -8,16 +8,17 @@ containing information on environmental variance, explained variance
 components, non-epistatic variance components.
 }
 \usage{
-qb.scanone(qbObject, epistasis = TRUE, scan, type, covar, adjust.covar,
-  chr, sum.scan = "yes", min.iter = 1,
-  aggregate = TRUE, half = FALSE, verbose = FALSE)
+qb.scanone(qbObject, epistasis = TRUE, scan, type.scan, covar, adjust.covar,
+  chr, sum.scan = "yes", min.iter = 1, aggregate = TRUE, smooth = 3,
+  weight = c("sqrt","count","none"), split.chr,
+  center.type = c("mode","mean","scan"), half = FALSE, verbose = FALSE)
 }
 \arguments{
   \item{qbObject}{An object of class \code{qb}.}
   \item{epistasis}{If \code{TRUE} then information about
     epistasis is included.}
   \item{scan}{Vector of diagnostics to scan (see below).}
-  \item{type}{Type of scan; default is "heritability" (see below).}
+  \item{type.scan}{Type of scan; default is "heritability" (see below).}
   \item{covar}{Covariate(s) to include; default is \code{seq(nfixcov)}
     where \code{nfixcov} is taken from \code{\link{qb.data}}. Set to 0
     to exclude any covariates.}
@@ -32,18 +33,24 @@ qb.scanone(qbObject, epistasis = TRUE, scan, type, covar, adjust.covar,
     (\code{min.iter} = 1).}
   \item{aggregate}{Aggregate effects into main, epis, gbye if \code{TRUE}.}
   \item{half}{Cut epistatic effects in half if \code{TRUE}.}
+  \item{smooth}{Degree of nearest neighbor smoothing to determine maxima.}
+  \item{weight}{Weights to use for nearest neighbor
+    smoothing. \code{sqrt} is square root of count per locus. Used only
+    if \code{smooth} > 0.}
+  \item{center.type}{Method to find QTL loci. See details.}
+  \item{split.chr}{Split summary by multiple QTL per chromosome (see details).}
   \item{verbose}{ Give verbose feedback if \code{TRUE}.}
 }
 
 \value{
 Returns an object of class \code{qb.scanone} (a data frame) containing
-effects selected according to \code{type} and \code{scan}.
+effects selected according to \code{type.scan} and \code{scan}.
 }
 \details{
-The \code{type} specifies what type of scan is performed. Scan produces
+The \code{type.scan} specifies what type of scan is performed. Scan produces
 marginal estimates of diagnostics at each potential loci across the
 genome. That is, values are adjusted for other possible QTL simply by
-taking the marginal average over MCMC samples. Choices of \code{type} are
+taking the marginal average over MCMC samples. Choices of \code{type.scan} are
 "heritability", "LPD", "LR", "deviance", "detection", "variance",
 "estimate", "cellmean", "count", "log10", "posterior", "logposterior"
 (i.e. log10(posterior)), "BF", "2logBF" (i.e. 2*ln(BF)), and "nqtl"
@@ -77,16 +84,33 @@ present are included automatically if \code{covar} is not 0. For type
 "estimate", main effects for "add" and "dom" are adjusted for any
 covariate GxE effects. The \code{sum.scan} is used for all types but the
 counts to get a summary across \code{scan} effects.
+
+The \code{"mode"} and \code{"mean"} centering rely on the mode and mean,
+respectively, of the posterior; the \code{"scan"} centering uses the
+mode of the actual type used to create the \code{qb.scanone}
+object. The \code{"scan"} agrees with an \code{\link[qtl]{scanone}}
+summary method for \code{"pos"} and \code{"sum"} columns. However, the
+mode for a \code{"scan"} could be in a region of low posterior mass
+and may not be reliable as such. Note that \code{mean} can be
+biased when there are linked loci. Only used in \code{qb.scanone}
+summary.
+
+Evidence for linked loci leads to multiple summary lines per
+chromosome. Be default, a \code{qbObject} has inferred chromosome splits
+based on MCMC samples (see \code{\link{qb.split.chr}}). This is
+determined in a similar manner to 
+\code{\link{qb.multloci}}. In particular,
+the arguments \code{cutoff} and \code{nqtl} documented in
+\code{\link{qb.multloci}} would adjust whether and how many linked loci may
+be considered. These apply across all chromosomes being summaried.
 }
 
 \references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 \seealso{\code{\link{summary.qb.scanone}}, \code{\link{plot.qb.scanone}}}
 \examples{
-\dontshow{
-qb.load(cross, qbExample)
+data(qbExample)
 
-}
 temp <- qb.scanone(qbExample)
 summary(temp)
 plot(temp)

@@ -1,6 +1,5 @@
 \name{vern}
 \alias{vern}
-\non_function{}
 \title{Eight week vernalization data for Brassica napus}
 \description{
 Contains genotypes and phenotypes for 8-week vernalization study used in

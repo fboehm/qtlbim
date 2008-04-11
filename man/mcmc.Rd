@@ -7,8 +7,8 @@
   QTL mapping.   
 }
 \usage{
-qb.mcmc(cross, data, model, mydir = ".", n.iter = 3000, n.thin = 40,
-  n.burnin = 0.01*n.iter*n.thin, algorithm = c("M-H","Gibbs"),
+qb.mcmc(cross, data, model, mydir = ".", n.iter = 3000, n.thin = 20,
+  n.burnin = 0.01*n.iter*n.thin,
   genoupdate = TRUE, seed = 0, verbose = TRUE, \dots)   
 }
 \arguments{
@@ -26,8 +26,6 @@ qb.mcmc(cross, data, model, mydir = ".", n.iter = 3000, n.thin = 40,
   \item{n.thin}{the thinning number which must be a positive number (default=40)}
   \item{n.burnin}{the initial burn-in period, i.e number of iterations to discard
                   at the beginning of the MCMC run default being 0.01*n.iter*n.thin.}
-  \item{algorithm}{specifies the sampling algorithm for MCMC : Gibbs sampler ("Gibbs")
-                  or Metropolis-Hastings algorithm ("M-H")}
   \item{genoupdate}{=TRUE will update QTL genotypes and =FALSE will not do so and use
                       the expected value of the QTL genotypes.}
   \item{seed}{Specifies the seed for the random number generator. Using the same seed
@@ -168,12 +166,16 @@ The following files are saved in \code{output.dir}:
 
                         Depending on the type of cross there would be more columns in the following order:
                         additive effect, dominant effect, variance of additive effect,
-                        and variance of dominant effect.
-                        
+                        and variance of dominant effect.\cr\cr
 
-                        
-                        
-                              
+  \item \bold{\file{deviance.dat}}
+
+                        The deviance file saved in \code{mydir} has 1 column:\cr
+				
+				\code{column no 1} : posterior deviance.\cr\cr
+				
+				There is one deviance value for each iteration, or \code{n.iter} values.
+				The last value is the deviance calculated at the posterior means, known as Dhat.\cr\cr
          }
 }
    
