@@ -524,7 +524,7 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
     targets <- unique(pattern)
 
     for(i in c("locus","variance")) {
-      tmp <- tapply(iters[, "locus"], index, quantile, level)
+      tmp <- tapply(iters[, i], index, quantile, level)
       conf[, paste(i, "LCL", sep = ".")] <-
         unlist(sapply(tmp, function(x) x[1]))
       conf[, paste(i, "UCL", sep = ".")] <-
@@ -548,7 +548,7 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
     }
     else {
       matches <- NULL
-      tmpfn <- function(chrs, splits.pat, ...)
+      tmpfn <- function(chrs, splits.pat, i, pattern.nqtl, patterns, matches)
         (splits.pat %in% chrs)
     }
 
@@ -581,6 +581,8 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
       }
     }
   }
+  conf[, "n.qtl"] <- conf[, "n.qtl"] / qb.niter(qbObject)
+  
   sumpat <- as.data.frame(sumpat)
   tmp <- unlist(strsplit(targets, ",", fixed = TRUE))
   tmp <- tmp[tmp %in% splits]
@@ -647,9 +649,13 @@ qb.BestPattern <- function(qbObject,
   names(conf) <- patterns
 
   ## Add confidence intervals and drop niter.
-  for(i in names(model))
+  for(i in names(model)) {
     model[[i]] <- cbind(model[[i]][, -1], conf[[i]])
-
+    model[[i]] <- model[[i]][, c("n.qtl","chrom",
+                                 "locus","locus.LCL","locus.UCL",
+                                 "variance","variance.LCL","variance.UCL")]
+  }
+  
   ## Compute distances among patterns.
   ## Want to first take care of NULL pattern.
   score <- rep(qb.nulldist(NULL, signed, score.type)$score,
@@ -862,10 +868,24 @@ summary.qb.BestPattern <- function(object, method = "complete",
   if(n.best == 1) {
     tmp <- which.max(object$score)[1]
     out$best <- object$model[[tmp]]
+
+    ## Reduce to significant digits.
+    out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")] <-
+      signif(out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")], 3)
+    out$best[, c("locus","locus.LCL","locus.UCL")] <-
+      signif(out$best[, c("locus","locus.LCL","locus.UCL")], 5)
   }
   else {
     tmp <- order(-object$score)[seq(n.best)]
     out$best <- object$model[tmp]
+
+    ## Reduce to significant digits.
+    for(i in names(out$best)) {
+      out$best[[i]][, c("n.qtl","variance","variance.LCL","variance.UCL")] <-
+        signif(out$best[[i]][, c("n.qtl","variance","variance.LCL","variance.UCL")], 3)
+      out$best[[i]][, c("locus","locus.LCL","locus.UCL")] <-
+        signif(out$best[[i]][, c("locus","locus.LCL","locus.UCL")], 5)
+    }
   }
 
   out$score.type <- attr(object, "score.type")
@@ -877,11 +897,13 @@ summary.qb.BestPattern <- function(object, method = "complete",
 #######################################################################
 print.summary.qb.BestPattern <- function(x, ...)
 {
-  cat("Maximum number of QTL in architecture:", x$max.qtl, "\n\n")
-  cat("Summary by pattern\n")
+  cat("Best pattern(s) by", x$score.type, "score\n")
+  print(x$best)
+
+  cat("\nSummary by better patterns\n")
   print(x$summary)
 
-  cat("\nBest pattern(s) by", x$score.type, "score\n")
-  print(x$best)
+  cat("\nMaximum number of QTL in architecture:", x$max.qtl, "\n")
+
   invisible()
 }

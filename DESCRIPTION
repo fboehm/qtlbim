@@ -1,6 +1,6 @@
 Package: qtlbim
-Version: 1.7.6
-Date: 2008-04-11
+Version: 1.7.7
+Date: 2008-04-23
 Author: Brian S. Yandell <yandell@stat.wisc.edu>
   and Nengjun Yi <nyi@ms.soph.uab.edu>,
   with contributions from
@@ -14,4 +14,4 @@ Maintainer: Brian S. Yandell <yandell@stat.wisc.edu>
 Depends: stats, qtl (>= 1.0.5), lattice, coda, tools, MASS
 License: GPL (>= 2)
 URL: http://www.qtlbim.org
-Packaged: Fri Apr 11 12:05:16 2008; yandell
+Packaged: Wed Apr 23 10:59:14 2008; yandell

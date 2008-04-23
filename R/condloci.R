@@ -145,7 +145,7 @@ plot.qb.condloci <- function(x, merge = TRUE, jitter = 0.5, ...)
   if(merge | length(prob) == 1) {
     ## Density plot averaged over number of QTL.
     tmp <- round(100 * table(x$qtl) / niter)
-    densityplot(~locus, x, groups = qtl,
+    densityplot(~locus, x, groups = x$qtl,
                 main = paste("chr = ", chr, ", nqtl = ", nqtl,
                   " (", paste(tmp, collapse = ", "), "%)", sep = ""),
                 ...)
@@ -155,7 +155,7 @@ plot.qb.condloci <- function(x, merge = TRUE, jitter = 0.5, ...)
     tmp <- c("=",">=")[1 + (x$nqtl > nqtl)]
     x$nqtl <- factor(paste("chr = ", chr, ", nqtl ", tmp, " ", x$nqtl,
                            " (", prob[x$nqtl], "%)", sep = ""))
-    densityplot(~locus | nqtl, x, groups = qtl,
+    densityplot(~locus | nqtl, x, groups = x$qtl,
                 layout = c(1,length(prob)))
   }
 }

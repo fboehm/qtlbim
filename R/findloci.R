@@ -200,7 +200,7 @@ plot.qb.multloci <- function(x, amount = .5, cex = attr(x, "cex"),
       ## Assumes response = locus, group = qtl, number of QTL in nqtl.
       mydensityplot <- function(locus.more, dens, main) {
         if(weight) {
-          densityplot(~locus, locus.more, cex = cex, groups = qtl, lty = 1,
+          densityplot(~locus, locus.more, cex = cex, groups = locus.more$qtl, lty = 1,
                       main = main,
                       panel = function(x, ...) {
                         ## Get trellis plot info.
@@ -237,7 +237,7 @@ plot.qb.multloci <- function(x, amount = .5, cex = attr(x, "cex"),
                       })
         }
         else {
-          densityplot(~locus, locus.more, cex = cex, groups = qtl, lty = 1,
+          densityplot(~locus, locus.more, cex = cex, groups = locus.more$qtl, lty = 1,
                       main = main,
                       panel = function(x, ...) {
                         panel.superpose(x, ...)
@@ -260,7 +260,7 @@ plot.qb.multloci <- function(x, amount = .5, cex = attr(x, "cex"),
       else {
         tmp <- c("=",">=")[1 + (locus.more$nqtl > c(x$nqtl.est))]
         print(densityplot(~locus | factor(paste("n.qtl", tmp, locus.more$nqtl)),
-                          locus.more, cex = cex, groups = qtl, lty = 1,
+                          locus.more, cex = cex, groups = locus.more$qtl, lty = 1,
                           panel = function(x, ...) {
                             panel.densityplot(x, ...)
                             panel.rug(x = pos, end = 0.02, quiet = TRUE, col = "black")
@@ -382,7 +382,7 @@ plot.qb.multloci <- function(x, amount = .5, cex = attr(x, "cex"),
       
       ## XY plot with optional contour lines.
       tmp <- range(locus.one, locus.more$locus1, locus.more$locus2)
-      print(xyplot(locus2 ~ locus1, locus.more, cex = cex, groups = nqtl,
+      print(xyplot(locus2 ~ locus1, locus.more, cex = cex, groups = locus.more$nqtl,
                    xlim = tmp, ylim = tmp,
                    panel = function(x,y,...) {
                      panel.abline(0,1, col = "gray")

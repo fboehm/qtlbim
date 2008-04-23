@@ -929,17 +929,8 @@ qb.match.pattern <- function(qbObject, targets, exact = TRUE,
   res
 }
 ##############################################################################
-qb.makepattern <- function(qbObject, epistasis = TRUE,
-                           geno.names = qb.geno.names(qbObject),
-                           iterdiag = qb.get(qbObject, "iterdiag"),
-                           mainloci = qb.get(qbObject, "mainloci"),
-                           pairloci = qb.get(qbObject, "pairloci"))
+qb.split.names <- function(geno.names, locus, split.chr)
 {
-  out <- rep("NULL", nrow(iterdiag))
-  names(out) <- iterdiag$niter
-  split.names <- geno.names[mainloci$chrom]
-  split.chr <- qb.get(qbObject, "split.chr")
-  split.chr <- split.chr[names(split.chr) %in% geno.names]
   if(length(split.chr)) { ## Set up names for split chr.
     ## Want a way to replace geno.names[mainloci$chrom] with
     ## the split.chr name. Need to use mainloci$locus to see what split on chr.
@@ -950,27 +941,51 @@ qb.makepattern <- function(qbObject, epistasis = TRUE,
     ## Dumb loop on number of splits per chr.
     ## There has got to be a more clever way.
     for(i in names(split.chr)) {
-      ii <- (i == split.names)
+      ii <- (i == geno.names)
       if(any(ii)) {
         suffix <- rep(1, sum(ii))
         for(j in seq(length(split.chr[[i]])))
-          suffix[split.chr[[i]][j] < mainloci$locus[ii]] <- j + 1
-        split.names[ii] <- paste(split.names[ii], suffix, sep = ".")
+          suffix[split.chr[[i]][j] < locus[ii]] <- j + 1
+        geno.names[ii] <- paste(geno.names[ii], suffix, sep = ".")
       }
     }
   }
+  geno.names
+}
+##############################################################################
+qb.makepattern <- function(qbObject, epistasis = TRUE,
+                           geno.names = qb.geno.names(qbObject),
+                           iterdiag = qb.get(qbObject, "iterdiag"),
+                           mainloci = qb.get(qbObject, "mainloci"),
+                           pairloci = qb.get(qbObject, "pairloci"))
+{
+  ## Make pattern with chr separated by commas, epistatic pairs joined by colon.
+  out <- rep("NULL", nrow(iterdiag))
+  names(out) <- iterdiag$niter
+
+  split.chr <- qb.get(qbObject, "split.chr")
+  split.chr <- split.chr[names(split.chr) %in% geno.names]
+
+  split.names <- qb.split.names(geno.names[mainloci$chrom],
+                                mainloci$locus, split.chr)
+
   tmp <- unlist(tapply(split.names,
                        mainloci$niter,
                        paste, collapse = ",", sep = ""))
   out[names(tmp)] <- tmp
-  if (epistasis)
-    if(!is.null(pairloci)) {
-    tmp <- unlist(tapply(paste(geno.names[pairloci$chrom1],
-                                geno.names[pairloci$chrom2], sep = ":"),
-                          pairloci$niter,
-                          paste, collapse = ",", sep = ""))
+
+  if (epistasis) if(!is.null(pairloci)) {
+    split.names <- qb.split.names(geno.names[pairloci$chrom1],
+                                  pairloci$locus1, split.chr)
+    split.names2 <- qb.split.names(geno.names[pairloci$chrom2],
+                                   pairloci$locus2, split.chr)
+    
+    tmp <- unlist(tapply(paste(split.names, split.names2, sep = ":"),
+                         pairloci$niter,
+                         paste, collapse = ",", sep = ""))
     out[names(tmp)] <- paste(out[names(tmp)], tmp, sep = ",")
   }
+  
   out
 }
 ##############################################################################
