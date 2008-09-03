@@ -19,14 +19,17 @@
 ## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ##
 ##############################################################################
-qb.reorder <- function(qbObject, warn = FALSE)
+qb.reorder <- function(qbObject, warn = FALSE,
+                          pheno.col = qb.get(qbObject, "pheno.col", warn = warn))
 {
-  ## Need only do this once (however, it is idempotent).
-
+  ## Need only do this once per phenotype (however, it is idempotent).
+  cross <- qb.cross(qbObject, genoprob = FALSE, warn = warn)
+  pheno.names <- names(qb.find.pheno(qbObject, cross, pheno.col, warn = warn))
+  
   region <- qb.get(qbObject, "region", warn = warn)
   if(is.null(region)) {
     ## Subset regions for chromosomes.
-    map <- pull.map(qb.cross(qbObject, genoprob = FALSE, warn = warn))
+    map <- pull.map(cross)
     region <- as.data.frame(lapply(map, range))
     region <- data.frame(chr = seq(ncol(region)),
                          start = unlist(region[1,]),
@@ -35,60 +38,70 @@ qb.reorder <- function(qbObject, warn = FALSE)
   }
   
   if(is.legacy(qbObject)) {
-    if (!is.null(qbObject$subset))
-      return(qbObject)
-    
+    ## Assume if one phenotype has subset, they all do.
+    if(length(qbObject$subset) >= 1) {
+      if (!is.null(qbObject$subset[[pheno.names[1]]]))
+        return(qbObject)
+    }
+
     ## Sequence of iterations in iterdiag.
-    iterdiag <- qb.get.legacy(qbObject, "iterdiag", sub = NULL, warn = warn)
-    subs <- list(iterdiag = seq(nrow(iterdiag)))
+    iterdiag <- qb.get.legacy(qbObject, "iterdiag", sub = NULL, warn = warn, pheno.col = pheno.names, drop = FALSE)
     
     ## Need to reorder QTL in mainloci by niter, then chrom, then locus.
-    mainloci <- qb.get.legacy(qbObject, "mainloci", sub = NULL, warn = warn)
-    if (!is.null(mainloci))
-      subs$mainloci <- order(mainloci$niter, mainloci$chrom, mainloci$locus)
+    mainloci <- qb.get.legacy(qbObject, "mainloci", sub = NULL, warn = warn, pheno.col = pheno.names, drop = FALSE)
     
     ## Subset for GxE interaction: order by niter, covar, chrom, locus.
-    gbye <- qb.get.legacy(qbObject, "gbye", sub = NULL, warn = warn)
-    if (!is.null(gbye))
-      subs$gbye <- order(gbye$niter, gbye$covar, gbye$chrom, gbye$locus)
+    gbye <- qb.get.legacy(qbObject, "gbye", sub = NULL, warn = warn, pheno.col = pheno.names, drop = FALSE)
     
     ## Need to reorder QTL1, QTL2 in pairloci so that:
     ##      chrom1 < chrom2
     ##      locus1 < locus2 if chrom1 == chrom2
-    p <- qb.get.legacy(qbObject, "pairloci", sub = NULL, warn = warn)
-    if (is.null(p))
-      subs$pairloci <- list(order = 0, flip = 0, left = 0, right = 0)
-    else {
-      s <- list(flip = (p$chrom1 > p$chrom2) |
-                ((p$chrom1 == p$chrom2) & (p$locus1 > p$locus2)))
-      ## order chromosome/locus sets
-      if (any(s$flip)) {
-        s$left <- c("chrom1","locus1")
-        s$right <- c("chrom2","locus2")
-        if (!is.null(p$ad)) {
-          ## f2
-          s$left <- c(s$left,"ad","varad")
-          s$right <- c(s$right,"da","varda")
-        }
-        n.p <- nrow(p)
-        p.chr <- n.p * (match(c("chrom1","chrom2"), names(p)) - 1)
-        p.pos <- n.p * (match(c("locus2","locus2"), names(p)) - 1)
-        s$order <- order(p$niter,
-                         as.matrix(p)[seq(n.p) + p.chr[1 + s$flip]],
-                         as.matrix(p)[seq(n.p) + p.pos[1 + s$flip]],
-                         as.matrix(p)[seq(n.p) + p.chr[2 - s$flip]],
-                         as.matrix(p)[seq(n.p) + p.pos[2 - s$flip]])
-      }
+    pairloci <- qb.get.legacy(qbObject, "pairloci", sub = NULL, warn = warn, pheno.col = pheno.names, drop = FALSE)
+
+    subsets <- list()
+    for(pheno in names(iterdiag)) {
+      subs <- list(iterdiag = seq(nrow(iterdiag[[pheno]])))
+      if (!is.null(mainloci[[pheno]]))
+        subs$mainloci <- order(mainloci[[pheno]]$niter, mainloci[[pheno]]$chrom, mainloci[[pheno]]$locus)
+      if (!is.null(gbye[[pheno]]))
+        subs$gbye <- order(gbye[[pheno]]$niter, gbye[[pheno]]$covar, gbye[[pheno]]$chrom, gbye[[pheno]]$locus)
+    
+      if (is.null(pairloci[[pheno]]))
+        subs$pairloci <- list(order = 0, flip = 0, left = 0, right = 0)
       else {
-        s$left <- s$right <- 0
-        s$order <- seq(nrow(p))
+        s <- list(flip = (pairloci[[pheno]]$chrom1 > pairloci[[pheno]]$chrom2) |
+                  ((pairloci[[pheno]]$chrom1 == pairloci[[pheno]]$chrom2) &
+                   (pairloci[[pheno]]$locus1 > pairloci[[pheno]]$locus2)))
+        ## order chromosome/locus sets
+        if (any(s$flip)) {
+          s$left <- c("chrom1","locus1")
+          s$right <- c("chrom2","locus2")
+          if (!is.null(pairloci[[pheno]]$ad)) {
+            ## f2
+            s$left <- c(s$left,"ad","varad")
+            s$right <- c(s$right,"da","varda")
+          }
+          n.p <- nrow(pairloci[[pheno]])
+          p.chr <- n.p * (match(c("chrom1","chrom2"), names(pairloci[[pheno]])) - 1)
+          p.pos <- n.p * (match(c("locus2","locus2"), names(pairloci[[pheno]])) - 1)
+          s$order <- order(pairloci[[pheno]]$niter,
+                           as.matrix(pairloci[[pheno]])[seq(n.p) + p.chr[1 + s$flip]],
+                           as.matrix(pairloci[[pheno]])[seq(n.p) + p.pos[1 + s$flip]],
+                           as.matrix(pairloci[[pheno]])[seq(n.p) + p.chr[2 - s$flip]],
+                           as.matrix(pairloci[[pheno]])[seq(n.p) + p.pos[2 - s$flip]])
+        }
+        else {
+          s$left <- s$right <- 0
+          s$order <- seq(nrow(pairloci[[pheno]]))
+        }
+        subs$pairloci <- s
       }
-      subs$pairloci <- s
+      subs$region <- region
+      subsets[[pheno]] <- subs
     }
-    subs$region <- region
     
     ## Now attach subset to qb object.
-    qbObject$subset <- subs
+    qbObject$subset <- subsets
   }
   else
     qbObject$args$region <- region
@@ -105,7 +118,7 @@ qb.split.chr <- function(qbObject, split = qb.mainmodes(qbObject, ...)$valleys,
 ##############################################################################
 is.legacy <- function(qbObject) is.null(qbObject$args)
 ##############################################################################
-qb.legacy <- function(qbObject, remove = FALSE)
+qb.legacy <- function(qbObject, remove = FALSE, ...)
 {
   ## Convert from several objects to one combined qb object.
 
@@ -125,92 +138,103 @@ qb.legacy <- function(qbObject, remove = FALSE)
     if(is.null(qbObject$mcmc.samples)) {
       ## Upgrade recent qb objects, with only one trait.
       pheno.col <- qb.get(qbObject, "pheno.col")
-      pheno.id <- names(qb.cross(qbObject, genoprob = FALSE)$pheno)[pheno.col]
+      pheno.names <- qb.pheno.names(qbObject)[pheno.col]
       mcmc <- list()
-      for(pheno in pheno.id) {
+      for(pheno in pheno.names) {
         mcmc[[pheno]] <- list()
         for(i in c("iterdiag","mainloci","pairloci","covariates","gbye"))
-          mcmc[[pheno]][[i]] <- qb.get(qbObject, i, pheno.id = pheno)
+          mcmc[[pheno]][[i]] <- qb.get(qbObject, i, pheno.col = pheno)
       }
+      if(length(pheno.names) > 1)
+        mcmc$sigma <- qb.get(qbObject, "sigma", pheno.col = pheno.names[1])
       qbObject$mcmc.samples <- mcmc
       
       ## Remove tacked on MCMC runs.
       for(i in c("iterdiag","mainloci","pairloci","covariates","gbye"))
         qbObject[[i]] <- NULL
     }
-    return(qbObject)
+    new <- qbObject
   }
-  
-  ## Old arguments now bundled as "args".
-  new <- list(args = qbObject)
-
-  ## Only need region from old subset list.
-  new$args$region <- new$args$subset$region
-  new$args$subset <- NULL
-
-  ## Drop objects not actually used, particularly large ones.
-  for(i in c("yvalue","fixcoef","rancoef"))
-    new$args[[i]] <- NULL
-
-  ## Cross object. Ideally run through qb.genoprob already.
-  cross <- qb.cross(qbObject, genoprob = FALSE, warn = FALSE)
-
-  ## Reduce to phenotypes needed.
-  ## Make sure names are preserved.
-  phenos <- c(new$args$pheno.col, new$args$covar)
-  for(i in c("sex","pgm")) {
-    tmp <- match(i, tolower(names(cross$pheno)))
-    if(!is.na(tmp) & is.na(match(tmp, phenos)))
+  else {
+    ## Old arguments now bundled as "args".
+    new <- list(args = qbObject)
+    class(new$args) <- "list"
+    
+    ## Only need region from old subset list.
+    new$args$region <- new$args$subset$region
+    new$args$subset <- NULL
+    
+    ## Drop objects not actually used, particularly large ones.
+    for(i in c("yvalue","fixcoef","rancoef"))
+      new$args[[i]] <- NULL
+    
+    ## Cross object. Ideally run through qb.genoprob already.
+    cross <- qb.cross(qbObject, genoprob = FALSE, warn = FALSE)
+    
+    ## Reduce to phenotypes needed.
+    ## Make sure names are preserved.
+    phenos <- c(new$args$pheno.col, new$args$covar)
+    for(i in c("sex","pgm")) {
+      tmp <- match(i, tolower(names(cross$pheno)))
+      if(!is.na(tmp) & is.na(match(tmp, phenos)))
         phenos <- c(phenos, tmp)
+    }
+    phenos <- names(cross$pheno)[phenos[phenos>0]]
+    cross$pheno <- data.frame(cross$pheno[, phenos, drop = FALSE])
+    names(cross$pheno) <- phenos
+    
+    ## Reset pheno.col and covar to reflect change.
+    n.pheno <- length(new$args$pheno.col)
+    new$args$pheno.col <- seq(n.pheno)
+    new$args$covar <- if(new$args$nfixcov)
+      n.pheno + seq(new$args$nfixcov)
+    else
+      0
+    new$args$covar <- c(new$args$covar,
+                        if(new$args$nrancov) {
+                          n.pheno + new$args$nfixcov +
+                            seq(new$args$nrancov)
+                        }
+                        else {
+                          0
+                        })
+    
+    ## Assign qb.genoprob attributes to args list if not there.
+    defaults <- qb.genoprob.defaults(cross)
+    for(i in names(defaults))
+      if(is.null(new$args[[i]]))
+        new$args[[i]] <- defaults[[i]]
+    
+    ## Attach cleaned cross object.
+    new$cross.object <- clean(cross)
+    
+    ## External MCMC files now internal.
+    ## Organized as list of lists for multiple trait extension.
+    pheno.names <- qb.pheno.names(qbObject, cross)[new$args$pheno.col]
+
+    ## Redo reorder if multiple traits, as probably done wrong.
+    if(length(pheno.names) > 1)
+      qbObject <- qb.reorder(qbObject)
+
+    ## Get MCMC samples.
+    mcmc <- list()
+    for(pheno in pheno.names) {
+      mcmc[[pheno]] <- list()
+      for(i in c("iterdiag","mainloci","pairloci","covariates","gbye"))
+        mcmc[[pheno]][[i]] <-
+          qb.get.legacy(qbObject, i,, FALSE, pheno.col = pheno, ...)
+    }
+    if(length(pheno.names) > 1)
+      mcmc$sigma <- qb.get.legacy(qbObject, "sigma",, FALSE, pheno.col = pheno.names[1], ...)
+    new$mcmc.samples <- mcmc
+    
+    ## Set up number of iterations correctly.
+    new$args$n.iter <- nrow(mcmc[[1]]$iterdiag)
+
+    class(new) <- c("qb", "list")
   }
-  phenos <- names(cross$pheno)[phenos[phenos>0]]
-  cross$pheno <- data.frame(cross$pheno[, phenos, drop = FALSE])
-  names(cross$pheno) <- phenos
-  
-  ## Reset pheno.col and covar to reflect change.
-  n.pheno <- length(new$args$pheno.col)
-  new$args$pheno.col <- seq(n.pheno)
-  new$args$covar <- if(new$args$nfixcov)
-    n.pheno + seq(new$args$nfixcov)
-  else
-    0
-  new$args$covar <- c(new$args$covar,
-                      if(new$args$nrancov) {
-                        n.pheno + new$args$nfixcov +
-                          seq(new$args$nrancov)
-                      }
-                      else {
-                        0
-                      })
-
-  ## Assign qb.genoprob attributes to args list if not there.
-  defaults <- qb.genoprob.defaults(cross)
-  for(i in names(defaults))
-    if(is.null(new$args[[i]]))
-       new$args[[i]] <- defaults[[i]]
-
-  ## Attach cleaned cross object.
-  new$cross.object <- clean(cross)
-
-  ## External MCMC files now internal.
-  ## Organized as list of lists for multiple trait extension.
-  pheno.id <- names(cross$pheno)[new$args$pheno.col]
-  mcmc <- list()
-  for(pheno in pheno.id) {
-    mcmc[[pheno]] <- list()
-    for(i in c("iterdiag","mainloci","pairloci","covariates","gbye"))
-      mcmc[[pheno]][[i]] <-
-        qb.get.legacy(qbObject, i, pheno.id = pheno, warn = FALSE)
-  }
-  new$mcmc.samples <- mcmc
-
-  ## Set up number of iterations correctly.
-  new$args$n.iter <- nrow(mcmc[[1]]$iterdiag)
-
   if(remove)
     qb.remove(qbObject, external.only = TRUE)
-
-  class(new) <- c("qb", "list")
 
   ## Set up chromosome split for multiple linked loci.
   ## qb.split.chr(new)
@@ -244,12 +268,26 @@ qb.genoprob.defaults <- function(cross)
   defaults
 }
 ##############################################################################
-qb.get <- function(qbObject, element, pheno.id = 1, warn = TRUE, ...)
+qb.get <- function(qbObject, element,
+                   pheno.col = qb.get(qbObject, "pheno.col", warn = warn)[1],
+                   warn = TRUE, ...)
 {
-  is.mcmc.data <- element %in% c("iterdiag","mainloci","pairloci","covariates","gbye")
-  if(!is.null(qbObject$args)) { ## new style qb object
+  ## Check if MCMC data element.
+  is.mcmc.data <- element %in% c("iterdiag","mainloci","pairloci","covariates","gbye","sigma")
+    
+  if(!is.legacy(qbObject)) { ## new style qb object
     if(is.mcmc.data) {
-      x <- qbObject$mcmc.samples[[pheno.id]][[element]]
+      if(is.character(pheno.col)) {
+        pheno.names <- names(qbObject$mcmc.samples)
+        tmp <- match(pheno.col, pheno.names)
+        if(is.na(tmp))
+          stop(paste("cannot match pheno.col:", tmp))
+        pheno.col <- tmp
+      }
+
+      x <- qbObject$mcmc.samples[[pheno.col]][[element]]
+      if(is.null(x))
+        x <- qbObject$mcmc.samples[[element]]
       if(is.null(x))
         x <- qbObject[[element]]
     }
@@ -265,30 +303,53 @@ qb.get <- function(qbObject, element, pheno.id = 1, warn = TRUE, ...)
     ## but kept for backward compatibility.
     if(warn)
       warning("Getting legacy objects: use qb.legacy() to update")
-    x <- qb.get.legacy(qbObject, element, pheno.id = pheno.id,
+    x <- qb.get.legacy(qbObject, element, pheno.col = pheno.col,
                        warn = warn, ...)
   }
   x
 }
 ##############################################################################
+qb.find.pheno <- function(qbObject, cross = qb.cross(qbObject, genoprob = FALSE, warn = warn),
+                          pheno.col, warn = FALSE)
+{
+  ## Match up pheno column as numeric or character.
+  pheno.names <- qb.pheno.names(qbObject, cross)
+  if(is.numeric(pheno.col))
+    pheno.col <- pheno.names[pheno.col]
+  pheno.names <- pheno.names[qb.get(qbObject, "pheno.col", warn = warn)]
+  tmp <- match(pheno.col, pheno.names)
+  if(any(is.na(tmp)))
+    stop(paste("cannot match all pheno.col:", paste(pheno.col, collapse = ", ")))
+  names(tmp) <- pheno.col
+  attr(tmp, "pheno.names") <- pheno.names
+  tmp
+}
+##############################################################################
 qb.get.legacy <- function(qbObject, element,
-                          sub = qbObject$subset[[element]],
-                          warn = warn,
-                          cross = qb.cross(qbObject, warn = warn),
-                          pheno.id = 1, ...)
-{   
-  is.mcmc.data <- element %in% c("iterdiag","mainloci","pairloci","covariates","gbye")
+                          sub = qbObject$subset,
+                          warn = TRUE,
+                          cross = qb.cross(qbObject, genoprob = FALSE, warn = warn),
+                          pheno.col = qb.get(qbObject, "pheno.col", warn = warn),
+                          drop = TRUE, legacy.dir = FALSE, ...)
+{
+  is.mcmc.data <- element %in% c("iterdiag","mainloci","pairloci","covariates","gbye","sigma")
+
   if(is.mcmc.data) { ## Get MCMC samples from flat files.
-    if(is.character(pheno.id)) {
-      pheno.col <- qb.get(qbObject, "pheno.col", warn = warn)
-      pheno.names <- names(qb.cross(qbObject, warn = warn)$pheno)
-      pheno.id <- match(pheno.id, pheno.names[pheno.col])
-      if(is.na(pheno.id))
-        stop(paste("cannot match pheno:", pheno.id))
-    }
+
+    ## Allow for multiple pheno.col; requires care on output.dir.
+    pheno.col <- qb.find.pheno(qbObject, cross, pheno.col, warn = warn)
+    pheno.names <- attr(pheno.col, "pheno.names")
+
+    ## Get MCMC sample element. Return NULL if missing or empty.
     renamedElement<-paste(element,".dat",sep="")
-    filename <- file.path(qbObject$output.dir[pheno.id],
-                          renamedElement) 
+
+    ## *** NEED TO FIX THIS FOR COMBINED FILES.
+    if(legacy.dir)
+      filename <- file.path(qbObject$output.dir[pheno.col],
+                            renamedElement)
+    else
+      filename <- file.path(qbObject$output.dir[1],
+                            renamedElement)
     if (!file.exists(filename))
       return(NULL)
     tmp <- scan(filename, n = 1, quiet = TRUE)
@@ -310,18 +371,25 @@ qb.get.legacy <- function(qbObject, element,
       var1 <- c(var1,"vardom")
       var2 <- c(var2,"varad","varda","vardd")
     }
-    
     v <- var1
-    if (qbObject$epistasis) v <- c(v,var2)
+    if (qbObject$epistasis)
+      v <- c(v,var2)
     if (qbObject$qtl_envi) {
       v <- c(v,"envadd")
       if (!is.bc) v <- c(v,"envdom")
     }
     if (qbObject$envi) v <- c(v,"varenv")
     v <- c(v,"var")
-    
+
     xnames <- switch(element,
                      covariates = {
+                       n.cov <- qb.get(qbObject, "nfixcov",warn=warn) + qb.get(qbObject,"nrancov",warn=warn)
+                       if (n.cov)
+                         paste("cov", seq(n.cov), sep = "")
+                       else
+                         c("cov1")
+                     },
+                     sigma = {
                        if (is.null(x))
                          c("cov1")
                        else
@@ -331,27 +399,67 @@ qb.get.legacy <- function(qbObject, element,
                      mainloci = c("niter","nqtl","chrom","locus",eff1,var1),
                      pairloci = c("niter","n.epis","chrom1","locus1","chrom2","locus2",eff2,var2),
                      iterdiag = c("niter","nqtl","mean","envvar",v))
-    
+
     ## assign the names to X
-    if (is.null(x))
-      {
-        if (!is.null(xnames)) {
-          x <- data.frame(matrix(NA, 0, length(xnames)))
-          names(x) <- xnames
-        }
+    if (is.null(x)) {
+      if (!is.null(xnames)) {
+        x <- data.frame(matrix(NA, 0, length(xnames)))
+        names(x) <- xnames
       }
-    else {
-      if (element == "covariates")
+    }
+    else { ## Element has MCMC samples.
+      if(ncol(x) == length(xnames)) { ## Separate MCMC samples per phenotype.
+        names(x) <- xnames
+        x <- list(a = x)
+        names(x) <- names(pheno.col)[1]
+      }
+      else {
+        ## Second column (after niter) has phenotype number.
+        ## Split MCMC sample element into a list.
+        if(element == "covariates") {
+          names(x) <- c("pheno.col", xnames)
+          x <- split(x[, -1, drop = FALSE], x[, 1], drop = FALSE)
+        }
+        else {
+          names(x) <- c(xnames[1], "pheno.col", xnames[-1])
+          x <- split(x[, -2, drop = FALSE], x[, 2], drop = FALSE)
+        }
+        names(x) <- pheno.names
+        x <- x[names(pheno.col), drop = FALSE]
+      }
+
+      ## Reorder for covariates is same as iterdiag.
+      if (element == "covariates" | element == "sigma")
         element <- "iterdiag"
-      names(x) <- xnames
-      if (!is.null(sub)) {
-        if (element == "pairloci") {
-          if (any(sub$flip))
-            x[sub$flip, c(sub$left,sub$right)] <- x[sub$flip, c(sub$right,sub$left)]
-          x <- x[sub$order, ]
+
+      if(!is.null(sub)) {
+        if("iterdiag" %in% names(sub)) {
+          if(length(pheno.names) > 1) {
+            ## This should not happen.
+            warning("making NULL reorder subset for qb object with multiple phenotypes")
+            sub <- NULL
+          }
+          else {
+            ## This could happen with old legacy stuff.
+            sub <- list(a = sub)
+            names(sub) <- pheno.names
+          }
         }
         else
-          x <- x[sub, ]
+          names(sub) <- pheno.names
+
+        ## Reorder and subset element by phenotype.
+        for(i in names(x)) {
+          mysub <- sub[[i]][[element]]
+          if (element == "pairloci") {
+            if (any(mysub$flip))
+              x[[i]][mysub$flip, c(mysub$left,mysub$right)] <-
+                x[[i]][mysub$flip, c(mysub$right,mysub$left)]
+            x[[i]] <- x[[i]][mysub$order,, drop = FALSE]
+          }
+          else
+            x[[i]] <- x[[i]][mysub,, drop = FALSE]
+        }
       }
     }
     
@@ -360,6 +468,7 @@ qb.get.legacy <- function(qbObject, element,
     step <- qb.get(qbObject, "step", warn = warn)
     if(is.null(step))
       step <- defaults$step
+
     ## Pull grid (which automatically uses region subsets.
     grid <- pull.grid(qbObject, offset = TRUE, mask.region = FALSE,
                       cross = cross,
@@ -374,12 +483,18 @@ qb.get.legacy <- function(qbObject, element,
                                  })),
                     sep = ":")
     if (element == "mainloci" | element == "gbye") {
-        x$locus <- grid$pos[match(paste(x$chrom, x$locus, sep = ":"), chrpos)]
-      }
-    if (element == "pairloci") {
-      x$locus1 <- grid$pos[match(paste(x$chrom1, x$locus1, sep = ":"), chrpos)]
-      x$locus2 <- grid$pos[match(paste(x$chrom2, x$locus2, sep = ":"), chrpos)]
+      for(i in names(x))
+        x[[i]]$locus <- grid$pos[match(paste(x[[i]]$chrom, x[[i]]$locus, sep = ":"), chrpos)]
     }
+    if (element == "pairloci") {
+      for(i in names(x)) {
+        x[[i]]$locus1 <- grid$pos[match(paste(x[[i]]$chrom1, x[[i]]$locus1, sep = ":"), chrpos)]
+        x[[i]]$locus2 <- grid$pos[match(paste(x[[i]]$chrom2, x[[i]]$locus2, sep = ":"), chrpos)]
+      }
+    }
+    ## Revert to data frame if only one pheno.col. This is consistent with old style.
+    if(length(x) == 1 & drop)
+      x <- x[[1]]
   }
   else { ## Old style qb elements.
     if(element == "region")
@@ -401,11 +516,13 @@ qb.remove <- function(qbObject, verbose = TRUE, external.only = FALSE)
     qbName <- deparse(substitute(qbObject))
 
   tmp <- qb.get(qbObject, "output.dir", warn = FALSE)
-  if (dirname(tmp) != system.file("external", package = "qtlbim")) {
+  if (any(dirname(tmp) != system.file("external", package = "qtlbim"))) {
     if (verbose)
-      warning(paste("Removing external directory", tmp),
+      warning(paste("Removing external director", ifelse(length(tmp) == 1, "y ", "ies "),
+                    paste(tmp, collapse = ", ")),
               call. = FALSE, immediate. = TRUE)
-    unlink(tmp, recursive = TRUE)
+    for(i in tmp)
+      unlink(i, recursive = TRUE)
   }
   if(!external.only) {
     if (verbose)
@@ -433,7 +550,7 @@ qb.exists <- function(qbObject)
 ##############################################################################
 qb.recover <- function(cross, traitName,
                         ## Find existing directory name if it exists.
-                        output.dir = system(paste("ls -d ./", traitName, "_*",
+                        output.dir = system(paste("ls -d ./", traitName[1], "_*",
                           sep = ""),
                           intern = TRUE),
                         ## Guess at other parameters.
@@ -487,7 +604,7 @@ qb.recover <- function(cross, traitName,
 ##############################################################################
 subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
                       region, offset = TRUE, restrict.pair = TRUE,
-                      pheno.id = 1, ...)
+                      pheno.col = qb.get(x, "pheno.col"), ...)
 {
   ## Checks.
   if (missing(nqtl) & missing(pattern) & missing(exact) & missing(chr) &
@@ -503,10 +620,11 @@ subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
   
   ## Get elements (except covariate, which matches iterdiag)
   ## Note that previous subsetting is done here (see Incorporate below).
-  iterdiag <- qb.get(x, "iterdiag", pheno.id = pheno.id)
-  mainloci <- qb.get(x, "mainloci", pheno.id = pheno.id)
-  pairloci <- qb.get(x, "pairloci", pheno.id = pheno.id)
-  gbye <- qb.get(x, "gbye", pheno.id = pheno.id)
+  pheno.col <- pheno.col[1]
+  iterdiag <- qb.get(x, "iterdiag", pheno.col = pheno.col)
+  mainloci <- qb.get(x, "mainloci", pheno.col = pheno.col)
+  pairloci <- qb.get(x, "pairloci", pheno.col = pheno.col)
+  gbye <- qb.get(x, "gbye", pheno.col = pheno.col)
 
   ## And set up subset list on nqtl.
   ## These are TRUE/FALSE indicators except for region.
@@ -689,7 +807,7 @@ subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
     ## Now adjusted for multiple trait format.
     if(is.null(x$mcmc.samples))
       x <- qb.legacy(x)
-    mcmc.pheno <- x$mcmc.samples[[pheno.id]]
+    mcmc.pheno <- x$mcmc.samples[[pheno.col]]
     mcmc.pheno$iterdiag <- mcmc.pheno$iterdiag[sub$iterdiag, ]
     if(!is.null(mcmc.pheno$covariates))
       mcmc.pheno$covariates <-
@@ -699,7 +817,7 @@ subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
       mcmc.pheno$gbye <- mcmc.pheno$gbye[sub$gbye, ]
     if(!is.null(mcmc.pheno$pairloci))
       mcmc.pheno$pairloci <- mcmc.pheno$pairloci[sub$pairloci, ]
-    x$mcmc.samples[[pheno.id]] <- mcmc.pheno
+    x$mcmc.samples[[pheno.col]] <- mcmc.pheno
 
     x$args$n.iter <- nrow(mcmc.pheno$iterdiag)
     x$args$region <- sub$region
@@ -709,6 +827,8 @@ subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
 ##############################################################################
 qb.save <- function(cross, qbObject, dir = ".", Name= substring(qbName, 3))
 {
+  .Deprecated("save")
+  
   qbCross <- deparse(substitute(cross))
   qbName <- deparse(substitute(qbObject))
 
@@ -739,6 +859,8 @@ qb.load <- function(cross, qbObject,
                     dir = system.file("external", package = "qtlbim"),
                     file = paste(Name, "RData", sep = "."))
 {
+  .Deprecated("load")
+  
   crossName <- deparse(substitute(cross))
   qbName <- deparse(substitute(qbObject))
   Name <- substring(qbName, 3)
@@ -777,19 +899,23 @@ qb.niter <- function(qbObject)
   qb.get(qbObject, "n.iter")
 ##############################################################################
 qb.nqtl <- function(qbObject,
-                    iterdiag = qb.get(qbObject, "iterdiag"),
-                    mainloci = qb.get(qbObject, "mainloci"),
-                    match.iter = TRUE)
+                    iterdiag = qb.get(qbObject, "iterdiag", ...),
+                    mainloci = qb.get(qbObject, "mainloci", ...),
+                    match.iter = TRUE, ...)
 {
   iterdiag.nqtl <- rep(0, nrow(iterdiag))
   if(!is.null(mainloci)) if(nrow(mainloci)) {
     ## Fix nqtl in samples:
     ## iterdiag[, "nqtl"] may be wrong due to subsetting earlier.
     tmp <- table(mainloci[, "niter"])
-    tmp2 <- match(names(tmp), iterdiag[, "niter"])
-    iterdiag.nqtl[tmp2] <- c(tmp)
+    tmp2 <- match(names(tmp), as.character(iterdiag[, "niter"]), nomatch = 0)
+    iterdiag.nqtl[tmp2] <- c(tmp[tmp2 > 0])
+    tmp <- sum(tmp == 0)
+    if(tmp)
+      warning(paste(tmp, "mismatches of mainloci iterations and iterdiag"))
+    
     if (!match.iter) {
-      iterdiag.nqtl <- iterdiag.nqtl[tmp2 > 0]
+      iterdiag.nqtl <- iterdiag.nqtl[iterdiag.nqtl > 0]
     }
   }
   iterdiag.nqtl
@@ -833,7 +959,7 @@ qb.cross <- function(qbObject, genoprob = TRUE, ...)
     }
     cross
   }
-  else { ## Legacy
+  else { ## Legacy qb object.
     rm(cross)
     cross.name <- qb.get(qbObject, "cross.name", ...)
     if (is.null(cross.name))
@@ -877,10 +1003,49 @@ qb.cex <- function(qbObject, min.cex = 3.85)
     1
 }
 ##############################################################################
+split.pattern <- function(patterns, epistasis = FALSE)
+{
+  ## WORK IN PROGRESS.
+  chrs <- apply(as.matrix(patterns), 1,
+                  function(x) table(strsplit(x, ",", fixed = TRUE)))
+  if(epistasis) {
+    epis <- lapply(chrs,
+                   function(x)
+                   {
+                     tmp <- grep(":", names(x))
+                     if(length(tmp)) {
+                       out <- as.data.frame(strsplit(names(x[tmp]), ":", fixed = TRUE))
+                       names(out) <- names(x[tmp])
+                       out
+                     }
+                     else
+                       numeric(0)
+                   })
+    names(chrs) <- names(epis) <- patterns
+  }
+  else
+    epis <- NULL
+  chrs <- lapply(chrs,
+                 function(x)
+                 {
+                   tmp <- grep(":", names(x))
+                   if(length(tmp))
+                     x[-tmp]
+                   else
+                     x
+                 })
+  names(chrs) <- names(epis) <- patterns
+  list(chr = chrs, epi = epis)
+}
+##############################################################################
 qb.match.pattern <- function(qbObject, targets, exact = TRUE,
                              patterns = qb.makepattern(qbObject, ...),
                              ...)
 {
+  ## Change vector of character patterns (chr or epi separated by ",")
+  ## into matrix with chr as row, pattern as column.
+  ## Entry in matrix is number of copies of each chr.
+  ## This handles split chr correctly.
   depat <- function(pattern) {
     strs <- apply(as.matrix(pattern), 1,
                   function(x) table(strsplit(x, ",", fixed = TRUE)))
@@ -903,20 +1068,32 @@ qb.match.pattern <- function(qbObject, targets, exact = TRUE,
     dimnames(out) <- list(levs, pattern)
     out
   }
-
   pat <- depat(patterns)
   tar <- depat(targets)
 
-  tmp <- match(dimnames(tar)[[1]], dimnames(pat)[[1]])
+  ## Find matches of chr names.
+  tmp <- match(dimnames(tar)[[1]], dimnames(pat)[[1]], nomatch = 0)
 
   res <- matrix(FALSE, length(patterns), length(targets))
   dimnames(res) <- list(patterns, targets)
 
-  if(any(is.na(tmp))) ## No matches at all. Unlikely.
+  if(all(tmp == 0)) ## No matches at all. Unlikely.
     return(res)
 
+  ## Contract targets to elements matching patterns.
+  if(any(tmp == 0)) {
+    nottar <- apply(tar[tmp == 0, ], 2, sum) == 0
+    tar <- tar[tmp > 0,, drop = FALSE]
+  }
+  else
+    nottar <- rep(TRUE, ncol(tar))
+
   ## Contract patterns to elements matching targets.
-  pat <- pat[tmp, ]
+  if(length(tmp) < nrow(pat))
+    notpat <- apply(pat[-tmp,, drop = FALSE], 2, sum) == 0
+  else
+    notpat <- rep(TRUE, ncol(pat))
+  pat <- pat[tmp,, drop = FALSE]
   
   patfn <- if(exact)
     function(x, target) all(target == x)
@@ -924,8 +1101,16 @@ qb.match.pattern <- function(qbObject, targets, exact = TRUE,
     function(x, target) all(target <= x)
 
   ## Inner product comparison. Must be a more elegant way, but I forget.
-  for(i in targets)
+  for(i in targets) {
     res[, i] <- apply(pat, 2, patfn, tar[,i])
+    ## Need to check others that are not in pat.
+    if(exact)
+      res[, i] <- res[, i] & notpat
+  }
+  ## Check if something in targets is not in patterns.
+  for(i in patterns)
+    res[i, ] <- res[i, ] & nottar
+  
   res
 }
 ##############################################################################
@@ -955,9 +1140,10 @@ qb.split.names <- function(geno.names, locus, split.chr)
 ##############################################################################
 qb.makepattern <- function(qbObject, epistasis = TRUE,
                            geno.names = qb.geno.names(qbObject),
-                           iterdiag = qb.get(qbObject, "iterdiag"),
-                           mainloci = qb.get(qbObject, "mainloci"),
-                           pairloci = qb.get(qbObject, "pairloci"))
+                           iterdiag = qb.get(qbObject, "iterdiag", ...),
+                           mainloci = qb.get(qbObject, "mainloci", ...),
+                           pairloci = qb.get(qbObject, "pairloci", ...),
+                           ...)
 {
   ## Make pattern with chr separated by commas, epistatic pairs joined by colon.
   out <- rep("NULL", nrow(iterdiag))
@@ -1037,6 +1223,10 @@ qb.find.chr <- function(qbObject, chr = NULL,
     chr <- sort(chr)
   chr
 }
+##############################################################################
+qb.pheno.names <- function(qbObject,
+                           cross = qb.cross(qbObject, genoprob = FALSE))
+  names(cross$pheno)
 ##############################################################################
 qb.geno.names <- function(qbObject,
                           cross = qb.cross(qbObject, genoprob = FALSE))

@@ -1,0 +1,1711 @@
+% \VignetteIndexEntry{QTLBIM Overview}
+% \VignetteDepends{qtlbim}
+% \VignetteKeywords{QTL}
+%\VignettePackage{qtlbim}
+\documentclass{article}
+\usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}
+
+\SweaveOpts{eps=FALSE,prefix.string=qtlbimPDF/FIG}
+
+\begin{document}
+
+\title{\textbf{QTL} Analysis using \textbf{B}ayesian \textbf{I}nterval \textbf{M}apping}
+\author{Brian S. Yandell, Jee Young Moon, Samprit Banerjee, William W. Neely, Nengjun Yi}
+\maketitle
+
+\SweaveOpts{engine=R,echo=TRUE}
+
+\abstract{
+\texttt{R/qtlbim} (\texttt{www.qtlbim.org}) provides a powerful suite
+of tools for model selection of the genetic architecture for traits
+influenced by multiple quantitative trait loci (QTL).
+The Markov chain Monte Carlo (MCMC) sampling
+approach draws samples from the more probable genetic
+architectures. Subsequent visualization and summary provides posterior
+estimates of the number and location of QTL, their main and
+epistatic effects, and possibly interacting covariates, or GxE
+interactions. This document assumes some familiarity with QTL and 
+with Bayesian methods. Good sources are Broman (2000),
+Yandell et al. (2007), and Yi et al. (2005). Additional information on
+advances in methods can be found in Yi et al. (2007a,b).
+
+\subsection{Using {\tt qb.scantwo}}
+
+This package provides graphical diagnostics that can help investigate
+"better" genetic architectures. Marginal 1-D and 2-D genome scans,
+analogous to \texttt{R/qtl} (\texttt{www.rqtl.org}), show the
+profiled contribution of QTL by locus adjusted for effects of any
+other QTL. Other tools identify the more probable models based on the
+pattern of main QTL and epistatic pairs across chromosomes.
+Additional diagnostic tools are briefly highlighted.
+This library \texttt{R/qtlbim} builds on the analytical and graphical
+tools in \texttt{R/qtl 1.0.8}.
+}
+
+\tableofcontents
+
+\section{Overview}
+<<echo=FALSE>>=
+# Make width of chunks 60.
+options(width=80)
+if(!file.exists("qtlbimPDF")) {
+  dir.create("qtlbimPDF")
+  warning(paste("Creating Sweave directory qtlbim"),
+    call. = FALSE, immediate. = TRUE)
+}
+@
+
+This vignette describes the MCMC sampling routines and some of the
+plotting facilities available through the \texttt{R/qtlbim} package
+(Yandell et al. 2007).  The
+purpose of these plots is to provide graphical tools for 
+\begin{enumerate}
+\item inferring putative multiple QTL for a phenotype,
+\item producing graphics and summaries of evidence for putative QTL,
+\item visual diagnostics of the MCMC model selection algorithm.
+\end{enumerate}  
+
+Over the past year, there been numerous incremental improvements,
+yielding faster computation and smaller R objects. Most notably,
+the external directory and files created by \texttt{qb.mcmc} are now
+removed immediately (planned later upgrades will eliminate their
+need). Users with "old" style MCMC samples will be warned to upgrade
+using \texttt{qb.legacy}. [The old \texttt{qb.remove} is retained for
+compatibility, but is not needed for new \texttt{qb} objects, nor is
+\texttt{qb.load}.] Another important improvement is that values
+(results) from all routines are now self contained. The \texttt{qb}
+object contains the pertinent aspects of the \texttt{cross} object
+used to create it, and routines such as \texttt{qb.scanone} produce
+self-contained objects. This makes intermediate results more
+transportable. In addition, many objects have been made more compact,
+and R code efficiency has improved. Those interested in specific
+improvements can examine \texttt{ChangeLog.txt} in the R library area.
+
+This document walks through the {\tt R/qtlbim} package by
+demonstrating the following major functions: creation of Bayesian
+samples from the posterior using MCMC sampling; use of plot and
+summary tools to examine genetic architecture; data management in
+R/qtlbim. The package is invoked by the \texttt{library} command
+
+<<label=LoadQtlBim>>=
+library(qtlbim)
+@
+
+\subsection{Hyper data demo}
+
+This document focuses on the \texttt{hyper} dataset
+from \texttt{R/qtl} (Broman et al. 2003), which was initially studied
+in Sugiyama et al. (2001). The \texttt{hyper} dataset is stored in
+\texttt{R/qtl} as a \texttt{cross} object. The \texttt{R/qtlbim}
+package processes this \texttt{cross} object to create a \texttt{qb} object
+called \texttt{qbHyper}, containing the MCMC samples. The
+\texttt{hyper} demo shows how this is done.
+
+\begin{Schunk}
+\begin{Sinput}
+> demo(qb.hyper.tour)
+\end{Sinput}
+\end{Schunk}
+It is possible to directly load the already
+saved \texttt{qb} object with the \texttt{data} command. Following
+this by a call to \texttt{qb.cross} extracts a version of the
+\texttt{cross} object used to create the \texttt{qb} object.
+<<label=LoadQtlBim>>=
+data(qbHyper)
+hyper <- qb.cross(qbHyper)
+@
+
+Alternatively, a \texttt{qb} object can be created by the following
+sequence of commands. First load the hyper data set from R/qtl, and
+subset on the autosomes, as \texttt{R/qtlbim} does not yet handle the
+X chromosome properly.
+\begin{Schunk}
+\begin{Sinput}
+> data(hyper)
+> hyper <- subset(hyper, chr=1:19)
+\end{Sinput}
+\end{Schunk}
+
+  To run the MCMC sampler on 
+the {\tt hyper} data we use the command
+
+\begin{Schunk}
+\begin{Sinput}
+> hyper <- qb.genoprob(hyper, step=2) 
+# Now run the MCMC model selection algorithm.
+# This can take several minutes.
+> qbHyper <- qb.mcmc(hyper, pheno.col = 1, seed = 1616)
+\end{Sinput}
+\end{Schunk}
+
+The option \texttt{seed} sets the random number seed so that this run can be
+repeated exactly. The \texttt{qb} object called \texttt{qbHyper} is
+used throughout this vignette.
+
+\subsection{Creating Bayesian interval mapping MCMC samples}
+
+This section describes in more detail how to create Markov chain Monte
+Carlo (MCMC) samples from the Bayesian posterior to be used for QTL
+mapping. The next step to mapping with the
+{\tt R/qtl} package would be to use the function {\tt calc.genoprob}
+to create genotype probabilities based on a Hidden Markov model. 
+However, for Bayesian model selection, we replace {\tt calc.genoprob}
+with the {\tt R/qtlbim} function {\tt qb.genoprob}.
+The function {\tt qb.genoprob} performs some bookkeeping before calling
+{\tt calc.genoprob} with the variable stepwidth option for
+pseudomarker positions. The probabilities
+for genotypes at pseudomarkers and at markers with missing data are
+calculated by {\tt calc.genoprob} from the observed marker data using
+the multipoint method (\textsc{Jiang} and \textsc{Zeng} 1997).
+
+The MCMC samples are created by {\tt qb.mcmc} after running {\tt qb.genoprob}.
+In the simplest case, MCMC samples are created with the following two calls:
+
+\begin{Schunk}
+\begin{Sinput}
+> hyper <- qb.genoprob(hyper, step=2) 
+> qbHyper <- qb.mcmc(hyper, pheno.col = 1)
+\end{Sinput}
+\end{Schunk}
+
+By default the {\tt qb.mcmc} function prints out progress messages 
+of the number of iterations completed.  These progress messages can be 
+suppressed by setting {\tt verbose=FALSE}.
+Arguments for the routines {\tt qb.data} and {\tt qb.model}, described below,
+can be passed through {\tt qb.mcmc}. Otherwise,
+default values are used. The detail below for {\tt
+qb.data}, {\tt qb.model} and {\tt qb.mcmc} routines could be
+skipped in favor of default settings.
+
+The function {\tt qb.data} specifies the traits to be analyzed, their
+underlying distribution, the random and/or fixed covariates and
+whether to standardize or to use a boxcox transformation. Note that,
+the cross object can have several phenotypes and some of which could
+be used as covariates.
+
+\begin{Schunk}
+\begin{Sinput}
+> qbData <- qb.data(hyper, pheno.col = 1, trait = "normal",
++     fixcov = 0, rancov = 0)
+\end{Sinput}
+\end{Schunk}
+
+\noindent
+The {\tt R/qtlbim} routines handle normal, binary and ordinal data. In
+addition, the user can specify fixed ({\tt fixcov}) and random ({\tt
+rancov}) covariate(s). [The {\tt pheno.col}, {\tt fixcov} and {\tt
+rancov} values can be numeric indices to the phenotype names, or
+character strings with exact phenotype names.] Fixed covariates can be
+included as interacting covariates with the {\tt intcov} option to
+{\tt qb.model} (see below).
+
+The function {\tt qb.model} defines the model parameters, using
+defaults that work well in most settings.
+Users are probably most interested in specifying if {\tt epistasis} is
+considered, the prior expected number of main effect QTLs ({\tt
+main.nqtl}), and the prior expected total number of QTLs ({\tt 
+mean.nqtl}), which includes additional QTLs with only epistatic
+effects. A user may set {\tt main.nqtl} and {\tt mean.nqtl} based on
+previous QTL analysis, for example using R/qtl.
+Setting the maximum number of QTLs overall ({\tt max.nqtl})
+or per chromosome ({\tt chr.nqtl}), and setting the minimum {\tt
+interval} between linked QTL, can be used to restrict sampling as
+needed.
+
+Typically a real data set has several traits which can be considered as
+covariates. The {\tt intcov} option specifies which covariate(s) can interact
+with QTLs, or equivalently, which environmental factors may have GxE
+interactions. The {\tt intcov} should be a vector of 0s and 1s of the
+same length as the {\tt fixcov} option specified for {\tt qb.data} (see above).
+ 
+\begin{Schunk}
+\begin{Sinput}
+> qbModel <- qb.model(hyper, epistasis = TRUE, main.nqtl = 3, 
++     interval = rep(5,nchr(hyper)), chr.nqtl = rep(2,nchr(hyper)),
++     depen = FALSE, prop = c(0.5, 0.1, 0.05))
+\end{Sinput}
+\end{Schunk}
+
+The function {\tt qb.mcmc} creates MCMC samples on the data and model
+specified. The results are initially saved in a unique directory under
+{\tt mydir}, which is removed at completion of the command. Options for
+{\tt qb.data} and {\tt qb.model} can be passed directly to {\tt qb.mcmc},
+or as the objects created above.
+
+\begin{Schunk}
+\begin{Sinput}
+> qb <- qb.mcmc(hyper, data = qbData, model = qbModel, mydir = ".",
++     n.iter = 3000, n.thin = 20, genoupdate = TRUE)
+\end{Sinput}
+\end{Schunk}
+
+The {\tt genoupdate} option simulates pseudomarker and missing marker
+genotypes if {\tt TRUE}, or uses a Haley-Knott (1992) type approach if
+{\tt FALSE}; the latter is faster, but not generally recommended if
+there are many missing genotypes or selective genotyping.
+{\tt n.iter} samples are saved, thinning to one in {\tt n.thin} from
+the MCMC samples to reduce serial correlation. That is, 
+{\tt n.iter * n.thin} samples are drawn, after an initial 
+{\tt n.burnin} samples (1\% of total by default) are discarded to
+allow the chain to converge closer to the posterior distribution.
+
+\subsection{Examining a \texttt{qb} object}
+
+This package uses the S3 generic method to construct {\tt print},
+{\tt summary} and {\tt plot} results for routines. That is, we create
+an object with a call to \texttt{qb.xxx} and then plot it using the
+generic \texttt{plot} command, or show content summary with the
+generic \texttt{summary} command. The generic \texttt{print} command
+for most objects created with {\tt R/qtlbim} routines invokes the
+generic {\tt summary}. Manual pages show the complete set of command,
+print, summary and plot options.
+
+The \texttt{qbHyper} is an object of class \texttt{qb} to which we can
+apply the generic \texttt{summary} or \texttt{plot} routines. We defer
+plots to later sections. Here we show only the summary:
+
+<<label=SummaryQbMCMC>>=
+summary(qbHyper)
+@
+
+\noindent
+Thus, for the 3000 MCMC samples in this object, 21\% has 6 QTL (the mode),
+and 29\% had exactly 1 epistatic pair. The most common epistatic pair,
+in 63\% of samples with epistasis, was 6:15, or a pair of QTL on chromosomes
+6 and 15.
+
+\subsection{The plot demo}
+
+The plot demo \texttt{demo(qb.plot.tour)} gives a sample of the plots
+available in the \texttt{R/qtlbim} package. To start the plot demo,
+use the command
+\begin{Schunk}
+\begin{Sinput}
+> demo(qb.plot.tour)
+\end{Sinput}
+\end{Schunk}
+For a complete set of demos, try
+\begin{Schunk}
+\begin{Sinput}
+> qb.demo()
+\end{Sinput}
+\end{Schunk}
+
+The plot demo begins by giving a generic plot for the \texttt{qb} object
+\texttt{qbHyper}. The \texttt{R/qtlbim} generic \texttt{qb} plot is
+analogous to the generic \texttt{R} plot for linear model objects.
+Where the generic plot for a linear model object shows a sequence of
+graphics whose purpose is to aid in the initial results of model
+fitting, the generic plot function for \texttt{qb} objects  shows  a
+sequence of graphics whose purpose is to give an initial assessment of
+the results produced by the MCMC algortihm. The generic plot for the
+\texttt{qb} object \texttt{qbHyper} created above is shown with the 
+command
+\begin{Schunk}
+\begin{Sinput}
+> plot(qbHyper)
+\end{Sinput}
+\end{Schunk}
+
+The generic plot function shows a sequence of plots that include time
+series plots of the mcmc chain, jittered plots of QTL by chromosome
+and others.  The sequence of plots appearing in the plot demo is
+listed below. The actual plots are shown later in this document under
+the section Useful Plots.
+
+The list of plots shown by the generic plot function.
+\begin{enumerate}
+\item A time series plot of the mcmc chain runs.  This is shown in
+Figure~\ref{figPlotQBCODA}, where it was
+created by the command \texttt{plot(qb.coda(qbHyper))}. 
+\item A jittered plot of QTL by chromosome.  This plot, produced
+separately by \texttt{plot(qb.loci(qbHyper))}, can be seen in 
+Figure~\ref{figPlotQBLOCI} for two chromosomes.
+\item A model selection plot by chromosome.  This plot is identical to
+\texttt{plot(qb.BayesFactor(qbHyper))} shown in Figure~\ref{figPlotQBBF}.
+\item  Plot of QTL posterior for loci plus smooth estimates of QTL
+effects.  This plot is the same as the plot generated by
+\texttt{plot(qb.hpdone(qbHyper))}. 
+Figure~\ref{figPlotQBHPD} shows the result of this command.
+\item A plot of epistatic effects if such effects are
+allowed. Figure~\ref{figPlotQBEPI} shows the result of the command
+\texttt{plot(qb.epistasis(qbHyper))}. 
+\item Summary diagnostics as histograms and boxplots by number of QTL.
+This final diagnostic plot can be generated separately by the command
+\texttt{plot(qb.diag(qbHyper))}. 
+Figure~\ref{figPlotQBDIAG} shows the result of this command.
+\end{enumerate}
+
+\section{Marginal 1-D and 2-D Genome Scans}
+
+This document describes 1-D and 2-D Bayesian genome scan routines 
+available in the {\tt R/qtlbim} package.  In the present context, the 
+term ``scan'' refers to  methods based on constructing one or two 
+dimensional profiles of QTL likelihoods or posterior distributions.  
+These new scan routines  in {\tt R/qtlbim} are analogous to the 
+routines {\tt scanone} and  {\tt scantwo} from  the {\tt R/qtl} 
+package.  On a practical level, using {\tt R/qtlbim} scan routines is  
+very similar to using {\tt R/qtl}'s  {\tt scanone} and {\tt scantwo} 
+methods.   The key difference  between the  scan  routines in  
+{\tt R/qtlbim} and the scan routines in {\tt R/qtl} lies in the 
+technique used for  constructing QTL summaries.  {\tt R/qtlbim}  
+extends {\tt R/qtl} by providing the ability to generate  Markov chain 
+Monte Carlo (MCMC) samples from a posterior distribution for 
+the genetic architecture of a trait.  Furthermore the putative genetic 
+architectures sampled can include an arbirary number of QTL.  
+
+\subsection{Using {\tt qb.scanone}}
+
+The {\tt R/qtlbim} package's scan routines  are called  {\tt qb.scanone} 
+and {\tt qb.scantwo}.  Because these scans are motivated by Bayesian 
+MCMC techniques we refer to {\tt qb.scanone} and {\tt qb.scantwo} 
+collectively as ``qb.scans'' or ``qb.scan routines''.    The utility of 
+the qb.scan routines lies in their ability to provide interpretable 
+summaries of the high-dimensional MCMC samples.  The scan summaries use 
+ideas of Bayesian model  averaging to explore the most probable models 
+given the data.  For example, in a one dimensional genome scan, we 
+might consider the contribution of each potential locus averaging over 
+all  sampled models that include  that locus. This allows us to  adjust 
+for the possible effects of all other loci by examining the marginal  
+distributions. This has the advantage of reducing variation explained 
+by other loci and reducing bias due to  linked loci.  Thus a one 
+dimensional marginal scan can be informative about higher-order models 
+directly without bias or variance inflation.  Although the development 
+of the {\tt qb.scan} routines is motivated by Bayesian techniques, the 
+interpretation of qb.scans  involve a mix of frequentist and Bayesian 
+ideas.  In what follows we show the  
+resolving power of low-dimensional scans that condition on the presence 
+of  other QTL using simulated data with  one QTL and the {\tt hyper} 
+data set.
+
+<<echo=FALSE,results=hide,label=Scanone-HyperLPD>>=
+temp <- qb.scanone(qbHyper,type="LPD") 
+# If the pdf file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-Scanone-HyperLPD.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-Scanone-HyperLPD.pdf", height = 4)
+   plot(temp)
+   dev.off()
+   }
+@ 
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-Scanone-HyperLPD}
+\caption{Plot of {\tt qb.scanone} for LPD of hyper data.  Notice 
+the posterior concentrated on chromosomes 1, 4, 6 and 15.}
+\label{figScanone-HyperLPD}
+\end{figure}
+
+This section illustrates the basic uses and interpretation of the qb.scan 
+routines using simulated data and the {\tt hyper} data.
+The object {\tt qbHyper} created above contains the results of the MCMC 
+run.  Each iteration of the Monte Carlo chain represents a single QTL 
+model.  The entire Monte Carlo chain represents a sample from the 
+posterior distribution of all possible models.  One simple summary of 
+the MCMC sample is the LPD profile, or the Log Posterior Density for a
+QTL at each locus.  The LPD is analogous to the classical LOD, or Log
+ODds. A single QTL LPD can be computed with {\tt R/qtl}'s {\tt
+scanone} using {\tt method="im"}. The marginal LPD from {\tt
+qb.scanone}, however, provides the contribution to LPD of a QTL at a
+locus {\em adjusting} for all other possible QTL. [For a technical
+interpretation, see the section on Theoretical Development.] A summary
+and plot of the LPD is carried out as follows.
+\begin{Schunk}
+\begin{Sinput}
+> temp <- qb.scanone(qbHyper,type="LPD") 
+\end{Sinput}
+\end{Schunk}
+\begin{Schunk}
+\begin{Sinput}
+> plot(temp)
+\end{Sinput}
+\end{Schunk}
+<<label=Scanone-HyperLPD>>=
+summary(temp)
+@ 
+Figure~\ref{figScanone-HyperLPD} shows the LPD concentrated on
+chromosomes 1, 4, 6 and 15, which is consistent with other findings
+for these data (Sugiyama et al. 2001). 
+The blue lines in the plot indicate main effects, the 
+purple indicate epistatic effects and black curves (where visible) 
+represent the sum of main and epistatic effects.   
+
+Figure~\ref{figScanone-HyperBF} shows 2log(BF),
+or twice the log of the Bayes factor,
+measuring the strength of evidence (> 2.1 is high) for a QTL.
+In order to examine the effects on 1, 4, 6 and 15 more closely, we can
+plot subsets of chromosomes by using the plot 
+command {\tt plot(temp, chr=c(1,4,6,15)}.  
+<<label=Scanone-HyperBF>>=
+temp <- qb.scanone(qbHyper,type="2logBF")
+@ 
+\begin{Schunk}
+\begin{Sinput}
+> plot(temp,chr=c(1,4,6,15))
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE,results=hide,label=Scanone-HyperSubset>>=
+# If the pdf file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-Scanone-HyperSubset.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-Scanone-HyperSubset.pdf", height = 4)
+   plot(temp,chr=c(1,4,6,15))
+   dev.off()
+   }
+@ 
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-Scanone-HyperSubset}
+\caption{The {\tt qb.scanone} results for the {\tt hyper} data restricted 
+to chomosomes 1,4,6 and 15.}
+\label{figScanone-HyperBF}
+\end{figure}
+
+\subsection{Using {\tt qb.scantwo}}
+
+The function {\tt qb.scantwo} gives a two dimensional scan that allows us 
+to look for possible epistatic effects between  putative QTL.
+To run {\tt qb.scantwo} on the {\tt hyper} data set,
+we again use the MCMC samples. The summary and the plot in
+Figure~\ref{figScantwo-HyperData} shows strong evidence for the 6:15
+epistasis, and good evidence for a 4:15 epistatic interaction that was
+missed in earlier analyses.
+
+<<echo=TRUE,label=ScantwoSum-HyperData>>=
+temp <- qb.scantwo(qbHyper, chr = c(4,6,15))
+summary(temp, digits = 2)
+@
+\begin{Schunk}
+\begin{Sinput}
+> plot(temp)
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE,results=hide,label=Scantwo-HyperData>>=
+# If the pdf file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-Scantwo-HyperData.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-Scantwo-HyperData.pdf")
+   plot(temp)
+   dev.off()
+   }
+@ 
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-Scantwo-HyperData}
+\caption{A plot of a {\tt qb.scantwo} scan of the {\tt hyper} data 
+showing results for chromosomes 1, 4,6, and 15. Note the main effect from 
+the QTL on chromosome 4 and the epistatic effect between the pairs of 
+QTLs on  chromosomes 4 and 15 and 6 and 15.}
+\label{figScantwo-HyperData}
+\end{figure}
+
+Using the results from the two-dimensional qb.scans of the simple 
+simulated data as a guide, the plot of {\tt qb.scantwo} shows a 
+main effect from a QTL on chromosome 4 and epistatic
+effects between the pairs of QTLs on chromosomes 4 and 15 and 6 and 15. 
+
+\subsection{Types of Scan Summaries}
+
+We have created several types of scan summaries, illustrated
+below. These include the following LPD, heritability, variance
+components, parameter estimates, cell means, posterior probabilities
+and Bayes factors. Below we detail what these are and how they are
+calculated.
+
+For each type, we can provide a summary scan, and in addition provide
+detail broken down by main effects, epistatic effects, and/or GxE
+(genotype by environment, or genotype by covariate)
+interactions. These breakdowns can be further divided into Cockerham
+(1954; see Kao and Zeng 2002) type effects (additive and dominance for
+main effects, or the four epistatic interactions of aa, ad, da, dd) if
+desired.
+
+\begin{itemize}
+\item
+{\tt count} gives the count of the number of MCMC samples including
+this locus. Currently this can be viewed on a log scale using type
+{\tt log10}.
+\item
+{\tt posterior} is the Bayesian posterior probability, basically the
+{\tt count} divided by the total number of MCMC samples.
+\item
+{\tt BF} provides the Bayes factor comparing the model with and
+without this locus. It is more easily viewed as {\tt 2logBF}.
+\item
+{\tt estimate} gives model parameter estimates for main effects,
+epistasis, and GxE interactions.
+\item
+{\tt cellmean} provides marginal means at a locus, adjusted for all
+other model effects from other QTL and covariates.
+\item
+{\tt variance} yields the variance components for QTL effects
+associated with a particular locus.
+\item
+{\tt heritability} is actually at this point explained variation. In a
+future release we may distinguish Rsquared and idealized
+heritability.
+\item
+{\tt LPD} is the log posterior density, adapted from Morton's (1995)
+log odds ratio (LOD) used in human genetics to LOD maps by Lander and
+Botstein (1989). The LPD for QTLs was introduced by Sen and Churchill
+(2001). It tests presence or absence of a QTL at a locus, adjusting
+for all other possible model effects (other QTL, epistasis and
+GxE). The {\tt LPD}, the {\tt LR} or likelihood ratio, and the {\tt
+deviance} are detailed in the next section.
+\item
+{\tt detection} is the posterior probability of detection of a QTL at
+a locus.
+\end{itemize}
+
+\section{Model Selection for Genetic Architecture}
+  
+The \texttt{R/qtlbim} model selection tools do the following:
+\begin{enumerate}
+\item evaluate Bayes factor for number or chromosome pattern of QTL
+(\texttt{qb.bf}); 
+\item examine proximity of sampled architectures (\texttt{qb.best});
+\item measure closeness of sampled architectures to target
+(\texttt{qb.close}). 
+\item one-dimensional (\texttt{qb.scanone}) or two-dimensional
+(\texttt{qb.scantwo}) genome scan; 
+\item characterize genetic architecture (\texttt{qb.arch});
+\item stepwise regression on genetic architecture (\texttt{step.fitqtl});
+\end{enumerate}
+In addition, several new routines begin to examine linked QTL:
+\begin{enumerate}
+\item examine multiple loci (\texttt{qb.multloci});
+\item find main and epistatic modes (\texttt{qb.mainmodes},
+                                     \texttt{qb.epimodes}); 
+\item split chromosomes for linked QTL (\texttt{qb.split.chr});
+\end{enumerate}
+
+\subsection{What is the Best Model?}
+
+It is well and good to be able to explore possible genetic
+architectures, but what is the best? Here we start by defining the
+best genetic architecture as the most probable combinations of QTLs
+across chromosomes and any epistatic pairs given the data. Formally,
+this is the pattern of QTL with the highest posterior probability. In
+fact, this document focuses on assessing the chromosome pattern of
+QTLs. The approach has been found to be comparable in power to
+stepwise regression approaches (Manichaikul et al. 2008).
+
+The routine \texttt{qb.bf} (or \texttt{qb.BayesFactor}) can compute
+the posterior and Bayes factor for the more probable patterns.
+
+<<label=qb.bf>>=
+bf <- qb.bf(qbHyper, item = "pattern")
+summary(bf)
+@
+<<echo=FALSE>>=
+bf.pat <- summary(bf)$pattern
+post.pat <- row.names(bf.pat)[which.max(bf.pat$posterior)]
+bf.pat <- row.names(bf.pat)[which.max(bf.pat$bf)]
+@
+
+The pattern with the highest posterior probability is
+\Sexpr{post.pat},
+ whereas the pattern with highest Bayes factor is
+\Sexpr{bf.pat}. Patterns are represented a chromosome identifiers
+separated by commas; epistatic pairs of chromosomes are joined by a colon.
+The \texttt{qb.bf} summary model-averages over all possible loci on each
+chromosome. That is, with MCMC sampling, we find the frequency of the
+chromosome pattern while ignoring the actual loci values.
+
+This might be enough. However, we can now ask for the most probable
+chromosome pattern, what are the best estimates of loci? These are the
+averages of loci positions for those models that include exactly these
+chromosome patterns. The routine \texttt{qb.best} (or {\tt qb.BestPattern})
+can perform this task, and a few more.
+
+<<label=qb.best>>=
+best <- qb.best(qbHyper)
+summary(best)
+@
+
+The best pattern is by design the most probable, but we now have
+estimates of the \texttt{locus} and \texttt{variance} contribution for
+each QTL. We can view more pattern details, say the top 3 patterns,
+with the option \texttt{n.best = 3}. We can see how this pattern
+compares to other patterns in a few plots.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(best)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=bestplot>>=
+file <- paste("qtlbimPDF", "/bestmds.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(best)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\ 
+
+The font size of a pattern is determined by its posterior
+probability. The 2-D multidimensional scaling (MDS) projection is 
+based on the \texttt{score.type} (see below). Notice that models that
+overlap with \Sexpr{post.pat} are plotted near that pattern. Other
+patterns with little overlay are some distance away.
+
+The default \texttt{score.type} is \texttt{sq.atten},
+the square of the attenuation. When comparing two models, consider a
+QTL locus estimated by each to be on the same chromosome. The
+attenuation is $(1-2r)$, with $r$ the genetic distance (in Morgans)
+between the estimates. If the loci agree exactly, there is no
+attenuation ($r$ = 0). Loci on different chromosomes for different
+models have a score contribution of 0. The scores are added up, trying
+in the process to match of QTL as best as possible between any two
+genetic architectures. Other \texttt{score.type}s are
+\texttt{attenuation} (signed or not),
+\texttt{recombination}, \texttt{distance}, and
+explained \texttt{variance}. The latter provides a one-dimensional
+ordering of models based on overall fit.
+
+It is possible to examine the patterns in another way, by plotting a
+dendrogram based on hierarchical clustering.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(best, type = "hclust")
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=besthcplot>>=
+file <- paste("qtlbimPDF", "/besthc.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(best, type = "hclust")
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\ 
+
+The default for method of model averaging of the \texttt{locus} and
+\texttt{variance} for \texttt{qb.best} is to average over loci from
+all MCMC samples that include a particular pattern--that is, average
+over all patterns that have the target \texttt{nested} within
+them. Instead, we can model average over all MCMC samples, or only
+those with an exact match to the best pattern. The \texttt{all}
+average uses the most MCMC samples per locus, while the \texttt{exact}
+typically involves very few samples, those that exactly match a
+particular pattern. There is a tradeoff of bias and variance in the
+choice of these methods, although bias appears empirically to be small
+due to the way MCMC samples cluster around more probable loci. Below
+are the three choices for inclusion in model averaging. It is also
+possible to change the way the \texttt{center} is determined (default
+is \texttt{"median"}, but \texttt{"mean"} is an alternative). The plots
+and summaries (not shown) change slightly as well, as all better
+patterns are altered similarly.
+
+<<label=average>>=
+qb.best(qbHyper, include = "all")$model[[1]]
+qb.best(qbHyper, include = "nested")$model[[1]]
+qb.best(qbHyper, include = "exact")$model[[1]]
+@
+
+\subsection{How Close are Other Models to a Target?}
+
+A target model might arise from another study, or from another
+analysis of the same dataset. Right here, we will use the most
+probably model as target, but the target object is simply a data frame
+with columns for \texttt{chrom}, \texttt{locus} and \texttt{variance}.
+[If \texttt{variance} is omitted, it is filled in with 0s.] Here is
+the target we are using:
+
+<<label=target>>=
+target <- best$model[[1]]
+@
+
+The routine \texttt{qb.close} gives a score comparison for each MCMC
+realization. These are summarized over chromosome pattern, or over
+number of QTL using boxplots.
+
+<<label=qb.close>>=
+close <- qb.close(qbHyper, target)
+summary(close)
+@
+
+It is more intuitive to look at the boxplots. Notice how patterns
+that miss the 6:15 interaction have much lower attenuation scores.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(close)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=closeplot>>=
+file <- paste("qtlbimPDF", "/closepat.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(close)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+\  
+
+Now examine close-ness summarized by number of QTL in the sample. Notice
+that the samples with 6 or more QTL essentially pick up the four
+target QTL. It is common for Bayesian interval mapping to
+"overfit". This is not necessarily a bad thing. Some of the QTL will
+have small effects. Other tools such as \texttt{qb.scanone} can be
+used to investigate which QTL fit have weak evidence.
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(close, category = "nqtl")
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=closenqtlplot>>=
+file <- paste("qtlbimPDF", "/closenqtl.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 6)
+plot(close, category = "nqtl")
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\subsection{ANOVA confirmation}
+
+The routines \texttt{qb.arch} and \texttt{step.fitqtl} can be helpful
+to refine model selection for genetic architecture. They are
+illustrated in the document on a prototype QTL study of the hyper
+dataset (see Summary). 
+Here we start with the {\tt best} model and use
+{\tt step.fitqtl} to step-by-step
+reduce the model to key main effects and interactions, preserving
+hierarchy.
+The following uses {\tt R/qtl} tools {\tt calc.genoprob}, {\tt sim.geno} and
+{\tt makeqtl}, plus {\tt R/qtlbim}'s {\tt step.fitqtl}, which
+calls {\tt fitqtl} multiple times.
+
+<<echo=TRUE,label=Cross.Arch>>=
+hyper.arch <- qb.arch(best)
+hyper.arch
+@ 
+
+<<echo=TRUE,label=InitializeFitQTL>>=
+hyper.sub <- subset(hyper, chr = hyper.arch$qtl$chr)
+n.draws <- 8
+hyper.sub <- sim.geno(hyper.sub, n.draws=n.draws, step=2, error=0.01)
+qtl <- makeqtl(hyper.sub, as.character(hyper.arch$qtl$chr), hyper.arch$qtl$pos)
+@
+
+Now we run stepwise backward elimination, preserving hierarchy. The
+{\tt step.fitqtl} routine is simply a wrapper for {\tt R/qtl}'s {\tt
+fitqtl} using an analogy to {\tt R}'s {\tt step} function.
+
+<<echo=TRUE,label=StepwiseFitQTL>>=
+hyper.step <- step.fitqtl(hyper.sub, qtl, pheno.col = 1, hyper.arch)
+@
+\begin{Schunk}
+\begin{Sinput}
+> summary(hyper.step$fit)
+\end{Sinput}
+\begin{Soutput}
+Full model result
+----------------------------------
+\end{Soutput}
+\end{Schunk}
+<<echo=FALSE,label=SummaryFitQTL>>=
+sum.fit <- summary(hyper.step$fit)
+print(sum.fit$result.full, quote = FALSE, na.print = "")
+@
+<<results=tex,echo=FALSE>>=
+if(!is.null(sum.fit$result.drop)) {
+  cat("\\begin{Schunk}\n")
+  cat("\\begin{Soutput}\n")
+  cat("\nDrop one QTL at a time ANOVA table:\n")
+  cat("----------------------------------\n")
+  printCoefmat(sum.fit$result.drop[,-6], digits = 4, cs.ind = 1, P.values = TRUE, 
+               has.Pvalue = TRUE, signif.legend = FALSE)
+  cat("\\end{Soutput}\n\n")
+  cat("\\end{Schunk}\n")
+}
+@
+
+In this case, there was no reduction in the selected model, meaning
+the four main QTL and the 6:15 epistatic pair are confirmed. There are
+other exciting new model selection approaches in recent 
+releases of {\tt R/qtl}. See also Manichaikul et al. (2008) for
+empirical comparison of methods.
+
+\subsection{Multiple Linked Loci}
+
+Sometimes there appear to be evidence for linked loci. While
+2-dimensional scans with \texttt{scantwo} or \texttt{qb.scantwo} can
+disambiguate such situations, it can be helpful to have tools to look
+finer, and even to break chromosomes apart.
+
+The routine \texttt{qb.multloci} allows a look at evidence for two or
+more linked QTL. The upper right panel shows the posterior for number
+of linked QTL. The lower right panel shows the density broken up by a
+reasonable guess at the number of QTL (the highest value with at least
+20\% of the samples). The suggested break is based on the valley
+between peaks, using discriminant analysis.
+The upper left panel shows the epistatic pairs, and the lower left
+panel shows a two way plot of singletons (diagonal), pairs, triplets
+(as three pairs), etc.
+
+<<label=qb.multloci>>=
+mult <- qb.multloci(qbHyper, chr = 1)
+@
+\begin{Schunk}
+\begin{Sinput}
+> plot(mult)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=multplot>>=
+file <- paste("qtlbimPDF", "/mult.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(mult)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+<<>>=
+summary(mult)
+@
+
+\noindent
+It is helpful sometimes to separate out samples with different number
+of QTL. This can be done with the \texttt{merge} option.
+
+<<label=unmerge>>=
+summary(mult, merge = FALSE)
+@
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(mult, merge = FALSE)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=multmergeplot>>=
+file <- paste("qtlbimPDF", "/multmerge.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(mult, merge = FALSE)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\noindent
+ \ 
+
+The peaks and valleys are computed with \texttt{qb.mainmodes}. While
+this routine is visible to the user, it is seldom actually
+needed. \texttt{qb.epimodes} serves a similar function for epistatic
+pairs only.
+
+Once a logical split for a chromosome has been established, we can use
+\texttt{qb.split.chr} to formalize the split. By default, it uses the
+results from \texttt{qb.mainmodes}.
+
+<<label=qb.split>>=
+qbHyper <- qb.split.chr(qbHyper)
+qb.get(qbHyper, "split.chr")
+@
+
+\noindent
+The split can be negated by the argument \texttt{split = NULL}. A few
+routines now use this split, and more are planned. For now,
+\texttt{qb.scanone}, \texttt{qb.scantwo} and \texttt{qb.bf} take
+advantage of this. Chromosomes are recoded as chr.1, chr.2, etc.
+
+<<label=bf.split>>=
+qb.bf(qbHyper, item = "pattern") 
+@
+
+<<label=bf.split>>=
+qb.best(qbHyper)
+@
+
+<<label=bf.split>>=
+one <- qb.scanone(qbHyper, type = "LPD") 
+summary(one)
+@
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(one, chr = 1)
+\end{Sinput}
+\end{Schunk}
+<<results=tex,echo=FALSE,label=oneplot>>=
+file <- paste("qtlbimPDF", "/one.pdf", sep = "")
+pdf(file = file, paper = "special", width = 9, height = 9)
+plot(one, chr = 1)
+invisible(dev.off())
+cat("\\includegraphics{", file, "}\n\n", sep = "")
+@
+
+\section{Useful Plots and Summaries}
+
+A number of diagnostic routines are provided to assist with
+analysis. Some of these are bundled together in the generic
+\texttt{plot} routine for \texttt{qb} objects.
+ For instance, \texttt{qb.scanone} and
+\texttt{qb.scantwo} can be used to identify the strength of main and
+epistatic QTL. All these routines have some connection to R/qtl
+(www.rqtl.org) routines, such as \texttt{scanone}, \texttt{scantwo}
+and \texttt{fitqtl}.
+
+\subsection{Plotting MCMC History}
+
+The \texttt{R/qtlbim} samples come from a Monte Carlo simulation.
+Are the MCMC samples well mixed? We can visually inspecting the
+history of the MCMC run. The command
+\begin{Schunk}
+\begin{Sinput}
+> plot(qb.coda(qbHyper))
+\end{Sinput}
+\end{Schunk}
+shows the MCMC chain as a time series. Each step, or iteration, of 
+the MCMC chain represents a single model; therefore, we can explore the 
+history of the MCMC chain by plotting time series for relevant model features.  
+The time series plotted by  \texttt{qb.coda} show the sampling histories for
+\begin{enumerate}
+\item number of QTL in each model model (\texttt{nqtl}),
+\item mean phenotype according to each model (\texttt{mean}),
+\item environmental variability under each model (\texttt{envvar}),
+\item variance explained under each model (\texttt{var}) and
+%\item heritability under each model (\texttt{herit}).
+\end{enumerate}
+
+It is possible to plot a different subset of the model characteristics
+above, by using the optional argument \texttt{variables} in the
+\texttt{qb.coda} function.  For example, in order to view just the
+number of QTL (\texttt{nqtl}) and the model means, use the following
+command.  The results of the following command are shown in
+Figure~\ref{figPlotQBCODA}.
+\begin{Schunk}
+\begin{Sinput}
+> plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE,results=hide,label=PlotQbCoda>>=
+# If the pdf file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-QBCODA.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBCODA.pdf")
+   plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
+   dev.off()
+   }
+@ 
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBCODA}
+\caption{Diagnostic Plot for a MCMC run.}
+\label{figPlotQBCODA}
+\end{figure}
+
+\subsection{A plot of sampled loci by chromosome}
+
+From a biological perspective it may be interesting to view the
+location of possible QTL along the chromosome.  The function
+\texttt{qb.loci} shows a plot of quantitative trait loci for each
+chromosome.  The QTL are from single QTL models appearing as samples
+in the MCMC chain.  In the plot, the actual locations of possible QTL
+are jittered slightly in order to give a sense of the density of
+putative QTL in the vicinity of  each marker. The code
+\begin{Schunk}
+\begin{Sinput}
+> plot(qb.loci(qbHyper))
+\end{Sinput}
+\end{Schunk}
+will produce a plot with all chromosomes. In order to view a subset of
+the chromosomes, the parameter \texttt{chr} to the generic
+\texttt{subset} routine can be used to limit the plot to a selected
+set of chromosomes. The horizontal (blue) lines in the plot show the
+locations of markers. The markers themselves can be labelled by using
+the parameters \texttt{markers} in the function.
+\begin{Schunk}
+\begin{Sinput}
+> plot(qb.loci(subset(qbHyper, chr=c(3,4))), labels=TRUE)
+\end{Sinput}
+\end{Schunk} 
+Figure~\ref{figPlotQBLOCI} shows the result of this command.
+
+<<echo=FALSE,results=hide,label=PlotQbLoci34>>=
+# If the file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-QBLOCI34.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBLOCI34.pdf")
+   plot(qb.loci(subset(qbHyper, chr=c(3,4))), labels=TRUE)
+   dev.off()
+   }
+@ 
+
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBLOCI34}
+\caption{A jittered plot of quantitative trait loci, showing only only
+         chromosomes 3 and 4, with locations and marker labels.}
+\label{figPlotQBLOCI}
+\end{figure}
+
+\subsection{Bayes factor ratios}
+
+The function \texttt{qb.BayesFactor} produces a composite (4-by-2)
+summary plot of the models sampled by the MCMC chain. These plots are
+useful as an initial tool for examining the evidence in favor of
+multiple QTL models and in determining the locations of
+QTL. Figure~\ref{figPlotQBBF} shows the plot produced by the command
+\texttt{qb.BayesFactor(qbHyper)}. The function of each of these
+plots is described below. 
+\begin{enumerate}
+\item The plot appearing in the upper-left of the figure represents a
+plot of the prior distribution for the number of QTL involved in
+models (shown as a broken blue line) against the corresponding
+posterior probabilities (shown as a histogram).
+\item The plot in the upper-right shows Bayes factor ratios.  These
+are the ratios of posterior probabilities to prior probabilities.  For
+pairs of values along the horizontal axis of this plot, the member of
+the pair with a larger Bayes factor ratio should be interpreted as
+more likely. The vertical arrows give an indication of the strength of
+evidence: weak (BF = 3), moderate (BF = 10) or strong (BF = 30).
+\item The second row conveys information in terms of the  pattern of
+chromosomes involved in the models.
+\item The third row adresses the frequency of sampling each
+chromosome.
+\item The fourth row show relative importance of epistatic pairs. Here
+the "6.15", or chr 6 by chr 15, epistatic pair is by far the strongest.
+\end{enumerate}
+<<echo=FALSE,results=hide,label=PlotQbBF>>=
+# If the file hasn't already been created, then draw the plot.
+if(!file.exists("plotQBBF.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBBF.pdf")
+   plot(qb.BayesFactor(qbHyper,cutoff.pattern=0.5))
+   dev.off()
+   }
+@ 
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBBF}
+\caption{Paired plots of posteriors as bars overlaid by priors as blue
+lines (left panels) with Bayes factor ratios to the least likely model
+(right panels). Models in right panel can be compared by vertical
+separation as scale is geometric. Blue arrows on right panels indicate
+weak, moderate or strong Bayes factors for ratios of 3, 10 or 30,
+respectively. Rows convey information about (1) number of QTL, (2)
+chromosome pattern of QTL, (3) chromosomes, (4) epistatic pairs.}
+strong 
+\label{figPlotQBBF}
+\end{figure}
+As with other plot functions in the \texttt{R/qtlbim} package, it is
+possible to limit attention of a subset of chromosomes using the
+generic \texttt{subset} routine.  The \texttt{subset} argument
+\texttt{pattern} can be used to limit the models plotted to those  
+involving a specified list of chromosomes.  For example the command
+\texttt{qb.BayesFactor(subset(qbHyper,pattern=c(2,3,17)))} considers
+only those models involving chromosomes 2,3 and 17.  Repeats in the
+pattern sequence indicate multiple QTL on the same chromosome.
+
+\subsection{Other plots of interest}
+
+An experimental plot uses highest posterior density (HPD) regions. The
+profile of the posterior is interpreted as a density, and the smallest
+region containing 50\% (by default) of the density is the HPD
+region. The command \texttt{plot(qb.hpdone(qbHyper))} yields
+Figure~\ref{figPlotQBHPD}.
+
+<<echo=FALSE,results=hide,label=PlotQbHPD>>=
+# If the file hasn't already been created, then draw the plot.
+if(!file.exists("plotQBHPD.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBHPD.pdf")
+   plot(qb.hpdone(qbHyper))
+   dev.off()
+   }
+@ 
+
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBHPD}
+\caption{A paired plot of posterior scan for loci above a scan of
+marginal genotypic means by locus. In upper panel, black is overall
+posterior, blue is for main effects and purple is for epistasis. In
+lower panel, blue is for AA, purple for AB, and red for BB genotype at
+scanned locus.}
+\label{figPlotQBHPD}
+\end{figure}
+
+Coefficients for epistatic effects for the most probable epistatic
+pairs are shown in Figure~\ref{figPlotQBEPI}. \texttt{plot(qb.epistasis(qbHyper))}.
+produces jittered plots of sampled Cockerham effects, overlaid with
+boxplots. Summaries are provided as well but not shown here.
+
+<<echo=FALSE,results=hide,label=PlotQbEpi>>=
+# If the file hasn't already been created, then draw the plot.
+if(!file.exists("qtlbimPDF/FIG-QBEPI.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBEPI.pdf")
+   plot(qb.epistasis(qbHyper))
+   dev.off()
+   }
+@ 
+
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBEPI}
+\caption{A plot of epistatic effect by pair using Cockerham
+effects. Only stronger epistatic pairs are shown. Blue line at median;
+box contains 50\% of samples for epistatic pair. Percent below pair
+indicates percent of MCMC samples with this epistatic pair.}
+\label{figPlotQBEPI}
+\end{figure}
+
+Summary diagnostics as histograms and boxplots by number of QTL.
+This diagnostic plot can be generated by the command
+\texttt{plot(qb.diag(qbHyper))}, as shown in 
+Figure~\ref{figPlotQBDIAG}.
+
+<<echo=FALSE,results=hide,label=PlotQbDiag>>=
+# If the file hasn't already been created, then draw the plot.
+if(!file.exists("plotQBDIAG.pdf"))
+   { 
+   par(ask=FALSE)
+   pdf(file="qtlbimPDF/FIG-QBDIAG.pdf")
+   plot(qb.diag(qbHyper))
+   dev.off()
+   }
+@ 
+
+\begin{figure}
+\includegraphics{qtlbimPDF/FIG-QBDIAG}
+\caption{A set of diagnostic plots. Default has mean, unexplained
+variance (\texttt{"envvar"}), explained variance (\texttt{"var"}), and
+heritability (\texttt{"herit"}). Left panels show density plot and
+horizontal box plot for all samples. Right panels show box plots by
+number of QTL.}
+\label{figPlotQBDIAG}
+\end{figure}
+
+\section{Data Management}
+
+\subsection{Data Simulation}
+
+R/qtlbim has an inbuilt function {\tt qb.sim.cross} to simulated a
+backcross or F2 data set of class {\tt cross} (see R/qtl help pages
+for details). The following chunk of code generates a data set of
+100 individuals of F2 mating design. These individuals are genotyped
+for 11 not equally spaced markers on 20 chromosomes. There are 7 QTLs,
+two on chromosome 1 and one each on chromosomes 3,5,7,10 and 19. QTL
+numbers 1,3 and 4 have additive main effects of 0.5, -0.5 and 0.5 and
+numbers 2 and 4 have dominant main effects of 0.5 and -0.5. QTL
+numbers 4 and 5 have an additive-additive interaction of -0.7 and
+numbers 6 and 7 have an additive-dominant interaction of 1.2. Two
+covariates, a binary fixed covariate and an ordinal random are
+generated with their corresponding coefficients as 0.5 and 0.07. G x E
+(gene x environemt) interaction is also considered with the fixed
+covariate. A normal phenotype and an ordinal phenotype with 3
+categories are measured. 7\% of the genotypes are randomly missing.
+
+<<label=SimData>>=
+cross <- qb.sim.cross(len=rep(100,20), n.mar=11, eq.spacing=F, n.ind=100, type="f2", 
+                 ordinal=c(0.3,0.3,0.2,0.2), missing.geno=0.03, missing.pheno=0.07,
+                 qtl.pos=rbind(c(1,15),c(1,45),c(3,12),c(5,15),c(7,15),c(10,15),c(12,35),c(19,15)),
+                 qtl.main=rbind(c(1,0.5,0),c(2,0,0.7),c(3,-0.5,0),c(4,0.5,-0.5)),
+                 qtl.epis=rbind(c(4,5,-0.7,0,0,0),c(6,8,0,1.2,0,0)),
+                 covariate=c(0.5,0.07), gbye=rbind(c(7,0.8,0))) 
+
+@
+
+By using the function {\tt qb.sim.cross} a list is attached to cross
+object named "qtl".  This list is typically not a part of the {\tt
+cross} object as described in {\tt read.cross} of the R/qtl library
+and is generated only with the {\tt qb.sim.cross()} function.
+
+<<>>=
+
+names(cross)
+
+@
+
+The {\tt cross\$gvalue} is a vector of predicted values of the same length as
+  the phenotype {\tt cross\$pheno\$pheno.normal}.  
+The {\tt cross\$qtl} contains information about the true values
+which can be compared to after the analysis.
+
+<<>>=
+
+summary(cross$qtl)
+
+@
+
+The summary of the cross object summary is shown below.
+
+<<>>=
+summary(cross)
+@
+
+\section{Theoretical Development}
+
+This section could be skipped. It is aimed at those quantitative folks
+who have read Yi et al. (2005) for the math and want to know
+more. Here we leave out details concerning covariates to simplify
+presentation.
+
+Given complete data on genotypes for all individuals across the
+genome, we could consider a model relating phenotype $y$ to genotype
+$g$ through a design matrix $X$,
+$$
+y = \mu + X\Gamma\beta + e~.
+$$
+The unknown effect parameters are the grand mean, $\mu$, the
+effect parameters, $\beta$, and the unexplained variance, $\sigma^2 =
+V(e)$, which for convenience, we bring together as 
+$\theta = (\mu, \beta, \sigma^2)$\,.
+The genetic architecture is specified by 
+$\Gamma = \mbox{diag}(\gamma)$, which has values of 1 or 0 to indicate
+presence or absence, respectively, of the corresponding model
+effect. The QTL model could thus be written as 
+$p(y\vert \gamma, X, \theta)\,$. [For practical purposes, the maximum
+number of QTL is rarely over  $l_{0}+3\sqrt{l_{0}}$ where
+$l_{0}$ is the prior mean for the total number of QTL. Hence, the size
+of $X$ stored at any time can be greatly reduced through careful
+bookkeeping. See Yi et al. (2005) for details.]
+
+Here are some details on the Cockerham epistatic model for
+experimental crosses with \textit{K+1} genotypes per loci
+($K=1$ for backcross, $K=2$ for intercross).
+There are \textit{K} main effects and $K^{2}$ epistatic effects. For
+a backcross population with two segregating genotypes, $bb$ and $Bb$,
+at locus, the main effect has predictor $x_1 = z - 0.5$, where $z$
+denotes the number of $b$ alleles. The epistatic effect predictors are
+products of main effect predictors. An intercross has three
+segregating genotypes $bb$, $Bb$ and $BB$ at any locus.
+The two main effect predictors for additive and dominance in the
+Cockerham model are $x_1 = z - 1$ and $x_2 = (1-\mbox{abs}(x_1)) -0.5$,
+respectively. The four epistatic effect predictors for a pair of loci
+are cross products of the main effect predictors.
+
+This genetic architecture, specified by a 0-1 vector $\gamma$, allows us
+to consider models of different dimensions, e.g. one vs. two QTL,
+without resorting to a more complicated (reversible jump) sampling
+scheme. The unknown values $\gamma$ are the key device in
+sampling over many different possible genetic architectures, in terms
+of what loci $\lambda$ are included and what gene action is
+important. There is some redundancy between $\gamma$ and $\lambda$: a
+locus is in the model only if at least one $\gamma$ associated with
+that locus is 1. Technically, we consider probabilities 
+$p(\lambda\vert\gamma)$
+that can only be 0 or 1 to indicate whether the loci, $\lambda$\,, are
+compatible with the genetic architecture, $\gamma$\,. While the loci
+are determined by the genetic architecture, $\gamma$ is not completely
+determined by $\lambda$. We exploit this to make more efficient code
+and to build diagnostic summaries.
+
+\subsection{Likelihood and posterior}
+
+In a classical setting, the full likelihood augmented by genotypes,
+$g$, over the genome is
+$$
+p(y,g\vert m, \gamma, \theta) =
+p(y\vert \gamma, X, \theta)p(X\vert g)
+p(g\vert m, \lambda)p(\lambda\vert\gamma)\,,
+$$
+with $m$ the marker genotypes across the genome and
+$p(g\vert m, \lambda)$ the map function.
+The whole-genome genotype information, $g$, and the design matrix, $X$,
+are 1-1 mappings: $p(X\vert g)$ is either 1 or 0, depending on whether
+or not the design is compatible with the genotypes.
+At most loci, we do not fully
+know genotypes $g$, hence the likelihood given observable data is
+averaged over $g$,
+$$
+L(\gamma,\theta\vert y,m) =
+\sum_g p(y,g\vert m, \gamma, \theta)\,.
+$$
+With no QTL, we write $L(\mu\vert y)$ for the null likelihood.
+
+In a Bayesian perspective, a prior $p(\gamma,\theta)$ is placed on
+the unknowns, and we study the posterior,
+$$
+p(g,\gamma, \theta\vert y,m ) \propto
+p(y,g\vert m, \gamma, \theta)p(\gamma,\theta)\,.
+$$
+To study the unknown parameters of interest, $(\gamma, \theta)$\,, we
+average the posterior over the genotypes, or equivalently, form a
+weighted average of the augmented likelihood with weights proportional
+to the prior on $(\gamma, \theta)$\,,
+$$
+p(\gamma, \theta\vert y,m ) = \sum_g p(g,\gamma, \theta\vert y,m )
+\propto
+\sum_g p(y,g\vert m, \gamma, \theta)p(\gamma,\theta)\,.
+$$
+
+\subsection{Parameter estimation}
+
+Classically, the parameters of interest, $(\lambda, \theta)$\,, are
+estimated by maximizing the likelihood. This is usually done in a QTL
+setting by profiling the likelihood, or LOD (see below), with respect
+to one locus or two loci over the genome. We think of that here as
+profiling with respect to a given genetic architecture, $\gamma$\,, to
+find the maximum likelihood estimate (MLE) for $\beta$ \,,
+$$
+\hat{\beta} = V\Gamma X^T y\,,
+$$
+with $V = (\Gamma X^T X \Gamma)^{-1}$ and $\sigma^2V$ the
+variance-covariance matrix for $\hat{\beta}$\,. Here we assume the
+columns of $X$ are centered on zero, so the MLE for the reference is
+$\hat{\mu} = \bar{y}$\,.
+
+Bayesian parameter estimates are typically found as the posterior
+means, which shrink $\hat{\mu}$ toward its prior mean $\mu_0$ and
+$\hat{\beta}$ toward the prior mean of 0, leading to posteriors
+$$
+\mu\sim N\left((1-b)\mu_0 +b\bar{y}, b\sigma^2/n.ind\right)~,
+$$
+and
+$$
+\beta\sim N\left(B\hat{\beta}, B\sigma^2V\right)~,
+$$
+with $b$ and $B$ being Bayesian shrinkage factors.  As we 
+gather more data, the Bayesian priors focus on the MLEs, i.e. $b$ and
+$B$ tend to 1. The likelihood and the posterior are both
+fairly symmetric around the maximum, for any given $\gamma$. Thus, the
+posterior mean and the MLE for $\beta$ are
+very close in practice. This is less apparent from the summaries in
+the previous section, as the Bayesian estimates are attenuated by the
+putative effects of other QTL along the genome. This is a technical
+post-processing issue of properly sorting out the effects of multiple
+linked loci.
+
+\subsection{Variance components}
+
+Variance components can also be estimated in both approaches. The
+classical unbiased estimate for environmental variance is
+$\hat{\sigma}^2=RSS(\hat{\theta})/df$\,, with 
+$RSS(\theta)=\sum(y-\mu-X\Gamma\beta)^2$ and 
+$df = n.ind - 1 - \sum\gamma$.
+%was found in the previous section to be
+%$\ Sexpr{signif(summary(sim.scan)$sigma, 3)}^2 =
+%\ Sexpr{signif(summary(sim.scan)$sigma^2, 3)}$
+%for this simulation using R/qtl {\tt scanone}.
+
+A Bayesian posterior estimate of $\sigma^2$ is its posterior mean,
+which is a weighted average of $RSS(\theta)/n.ind$ and its prior mean. Its
+empirical estimate can be found by averaging the posterior samples,
+
+<<echo=TRUE>>=
+summary(qb.scanone(qbHyper,type="variance",scan="env"))
+@
+
+Heritability is computed as the percent of explained variation,
+$h^2 = 100 (TSS-RSS(\theta))/TSS$\,,
+with $TSS=\sum(y-\bar{y})^2$ the total sum of squares.
+[The idealized variation would substitute expected fractions for the
+$X^2$ terms based on the type of cross.] We can find the posterior
+estimate of variability as the {\tt main} entry below:
+
+<<echo=TRUE>>=
+summary(qb.scanone(qbHyper,type="heritability"))
+@
+
+\subsection{LOD, LPD and BF}
+
+The classical approach introduced by Lander and Botstein (1989)
+profiles the likelihood only along the ridge 
+of maximum $\beta$ for each $\lambda$. That is, at each $\lambda$,
+find $\beta$ that maximizes the LOD. The LOD map is a plot of this
+profile. The LOD statistic to assess QTL is
+$$
+LOD(\lambda) = c + \log_{10}
+\left(
+\max_{\theta} L(\gamma,\theta\vert y,m)p(\lambda\vert\gamma)
+\right)\,,
+$$
+with the constant being $c=-\log_{10}(\max_{\mu} L(\mu\vert y))$\,.
+The likelihood ratio is $LR=10^{LOD}$\,, and deviance is 
+$D=2\log(10)LOD$\,.
+
+
+The Bayesian approach provides a direct estimate of the posterior as
+the histogram of the samples from the Markov chain Monte Carlo. Sen
+and Churchill (2002) proposed profiling the log posterior 
+density, LPD, which involves averaging over the unknown parameters
+$\theta$,
+$$
+LPD(\lambda) = C + \log_{10}
+\left(
+\sum_{\theta} p(\gamma, \theta\vert y,m )p(\lambda\vert\gamma)
+\right)\,.
+$$
+[The sum over $\theta$ is actually an multidimensional integral, but
+we ignore those details here.]
+Here the constant $C$ would involve averaging over the null likelihood
+with respect to the prior on $\mu$. In practice, LOD and LPD are often
+pretty close to each other and can be used interchangeably.
+
+One advantage of sampling a large set of possible models by MCMC is
+that Bayes factors are easily computed. We do not have to resort to
+fancy harmonic means as in Newton and Raftery (199x). Instead, we
+construct marginal posterior histograms for models to be compared, and
+rescale by their priors. For instance, to compare two genetic
+architectures, we construct
+$$
+BF = \frac{\displaystyle p(\gamma\vert y,m)/p(\gamma)}
+{\displaystyle p(0\vert y)/p(0)}~,
+$$
+in which $p(0)$ is the prior on $\gamma$ being all zero (no QTL at
+all) and $p(0\vert y)$ is the posterior. Actually,
+$p(0\vert y)/p(0)\propto p(y)=\sum_{\mu}p(y\vert\mu)p(\mu)$\,,
+with the sum really an integral over the real line.
+Often this is more interpretable on a log scale as $2\log(BF)$\,,
+which we can compute as
+
+<<echo=TRUE>>=
+summary(qb.scanone(qbHyper,type="2logBF"))
+@
+
+\subsection{Marginal Summaries}
+
+Our primary interest here is in marginal statistics. Consider that the
+model has genetic architecture $\gamma$ that include loci
+$\lambda$\,. We want to ask what is the contribution to the model of
+some subset of indicators, $\gamma_2$\,, associated with a locus, or a
+set of loci, $\lambda_2$\,. We might ask this in a variety of ways,
+looking at evidence in terms of LOD or a related statistics, or the
+contribution in terms of variance components, heritability, or
+parameter effects. We can think of partitioning the genetic
+architecture into two components, $\gamma=(\gamma_1,\gamma_2)$\,,
+with a corresponding partition of the effect parameters,
+$$
+\Gamma\beta=(\Gamma_1 + \Gamma_2)\beta~.
+$$
+The subset of effect parameters, $\beta_2=\Gamma_2\beta$\,, may
+include, for instance, the main effects for locus $\lambda_2$ plus
+some or all epistatic effects that involve this locus. We can then ask
+questions about $\beta_2$, or about $\gamma_2$ and $\lambda_2$,
+adjusting for the presence of effects $\beta_1=\Gamma_1\beta$\,. Note 
+that $\beta_1$ could include some model parameters for $\lambda_2$.
+
+\subsubsection{Variance components}
+
+Here and through the rest of this document, we argue that we can
+characterize important diagnostic summaries using marginal properties
+of MCMC samples. The key technical argument is in the next
+paragraph. Namely, we can use the marginal variance components of our
+model fit, ignoring covariances, to construct approximate statistics.
+
+If the columns of $X$ are nearly orthogonal to each other, then
+the variance-covariance matrix for the effect parameter MLEs,
+$\mbox{var}(\hat{\beta}) = \sigma^2V$\,,
+would be {\em diagonally dominant}. That is, we suppose the variances
+along the diagonal are larger than the sum of the absolute
+covariances. Formally, with
+$v=\mbox{diag}(V)$ and $V_{(j)}$ the $j$ column of $V$\,,
+$$
+2v_{(j)} \geq \sum \vert V_{(j)}\vert~.
+$$
+
+In other words, we assume the covariances among effect estimates are
+negligible, and the diagonal values are approximately
+$v_{(j)}\approx\gamma_{(j)}/\sum X_{(j)}^2$\,,
+with $X_{(j)}$ the $j$th column of $X$\,.
+In this case we can approximate $V$ by its diagonal, $D=\mbox{diag}(v)$,
+and get a good approximation of $V^{-1}$ using $D^{-1}$:
+$$
+V^{-1}=D^{-1}[I+O]^{-1}~,
+$$
+with $O$ being on the order of $(V-D)D^{-1}$\,. As long as the
+diagonal entries of $D$ are large, then this approximation
+is good. Where these variances are small, the approximation is not so
+useful. 
+
+Since we are interested in learning about effects with larger
+variance components, this approximation seems quite workable in the
+present setting. It should a pretty reasonable between terms for
+unlinked loci, and under conditions of Hardy-Weinberg equilibrium
+among alleles at each locus. Note also that epistatic effects between
+linked loci will be addressed directly by construction of columns of
+$X$. 
+[I believe the discrepancy of the diagonal can be readily checked
+under H-W by adding another {\tt type} to the {\tt qb.scan}
+routines--next freeze.] 
+
+With this approximation the explained variation can be approximated as
+$$
+TSS-RSS(\theta)=\sum(X\Gamma\beta)^2 \approx \gamma^T r\,,
+$$
+with $r_{(j)}=\beta_{(j)}^2\sum X_{(j)}^2$ being the variance
+explained by the $j$th component of the genetic architecture.
+Then the difference, 
+$RSS(\theta_1)-RSS(\theta) \approx \gamma_2^T r=\sum r_2$\,,
+is simply the sum of variance components, which are readily stored for
+each MCMC iteration. Here, $r_2$ contains the elements of $r$
+corresponding to $\gamma_2 = 1$, and
+$\theta_1=(\mu,\beta_1,\sigma^2)$\,.
+
+Marginal heritability is computed as the additional variation
+explained by the genetic architecture $\gamma_2$ given $\gamma_1$\,,
+$$
+h^2 = 
+\frac{\displaystyle RSS(\theta_1) - RSS(\theta)}
+{TSS}
+=
+\frac{\displaystyle \gamma_2^T r}
+{TSS}
+~.
+$$
+
+\subsubsection{LOD, LPD and BF}
+
+The adjusted LOD to compare the full model to the reduced model with
+$\gamma_2=0$ is
+$$
+LOD(\gamma_2\vert\gamma_1) = \log_{10} \left(
+\frac{\displaystyle \max_{\theta} L(\gamma,\theta\vert y,m)}
+{\displaystyle \max_{\theta_1} L(\gamma_1,\theta_1\vert y,m)}
+\right)\,.
+$$
+The adjusted LPD is similarly,
+$$
+LPD(\gamma_2\vert\gamma_1) = \log_{10} \left(
+\sum_{\theta}\frac{\displaystyle  p(\gamma,\theta\vert y,m)}
+{\displaystyle p(\gamma_1,\theta_1\vert y,m)}
+\right)\,,
+$$
+with again the sum actually being an integral over $\theta$\,.
+
+In the case of normal data
+and complete marker information, the LOD reduces to
+$$
+LOD(\gamma_2\vert\gamma_1) = \frac{n.ind}{2}
+\log_{10} \left(
+\frac{\displaystyle \min_{\theta_1} RSS(\theta_1)/df_1}
+{\displaystyle \min_{\theta} RSS(\theta)/df}
+\right)\,,
+$$
+with degrees of freedom, 
+$df = n.ind - 1 - \sum\gamma$\,, and
+$df_1 = n.ind - 1 - \sum\gamma_1$\,. The LPD follows a similar form,
+but involving an average (or really, integral) over $\theta$\,,
+$$
+LPD(\gamma_2\vert\gamma_1) = \frac{n.ind}{2}
+\log_{10} \left(
+\sum_{\theta}
+\frac{\displaystyle RSS(\theta_1)/df_1}
+{\displaystyle RSS(\theta)/df}
+\right)\,.
+$$
+
+The Bayes factors are easily computed, as noted earlier. To compare
+the two genetic architectures $\gamma$ and $\gamma_1$\,, we construct
+$$
+BF = \frac{\displaystyle p(\gamma\vert y,m)/p(\gamma)}
+{\displaystyle p(\gamma_1\vert y,m)/p(\gamma_1)}~.
+$$
+Often this is more interpretable on a log scale as $2\log(BF)$\,,
+which we can compute as
+
+\subsection{Model Averaging Algorithm}
+
+Here we briefly describe the model averaging idea. The MCMC samples
+include a wide variety of models, indexed by $\gamma$. The 1-D and 2-D
+scans first compile a selected diagnostic for each sample (also known
+as an iteration). That is, at each genome position, or pair of
+positions, we average the values for samples that include that
+position, i.e. have $\gamma=1$ at that position. The posterior is
+simply an average of the $\gamma$ samples at each position.
+
+These samples are kept for each model component, either in terms of
+the un-aggregated Cockerham (1954) partition or in terms of {\tt main}
+effects and {\tt epistasis}, and for the {\tt sum} of these
+components. There are some mechanics involved. For instance, for 
+1-D averages involving epistasis, we want to count each pair for both
+loci, and for 2-D averages, we want to count epistatic effects
+separately at each locus. But these are details that can be found by
+looking at the code if interested.
+
+Chromosome summaries, or summaries within regions of chromosomes, are
+found as weighted averages of these per-position summaries. The
+weights are naturally the number of MCMC samples per position. At
+present the code does not separate out multiple loci on a chromosome
+[next freeze].
+
+With moderate MCMC sample sizes, the 1-D and 2-D scans can be
+rather rough, or jagged. We have found nearest neighbor smoothing to
+be helpful. That is, a position is equally weighted against the sum of
+its neighbors, accounting for number of MCMC samples. This can be
+repeated several times (e.g. {\tt smooth = 3}) to further local
+smoothing. 
+
+\section{Summary}
+
+In this overview, we have explored the use of many of the Bayesian
+interval mapping routines. Through examples using the {\tt hyper}
+experimental data, we have demonstrated the key steps in 
+identifying both main and epistatic effects.  Further information on using 
+using {\tt R/qtlbim} to explore the {\tt hyper} data set can be found
+in the {\tt prototype.qtl.hyper.slides} vignette.
+In order to view the vignette, simply type 
+\begin{Schunk}
+\begin{Sinput}
+> vignette(topic="prototype.qtl.hyper.slides",package="qtlbim")
+\end{Sinput}
+\end{Schunk}
+at the R prompt.
+
+\section*{References}
+
+Broman KW (2001) Review of statistical methods for QTL mapping in
+experimental crosses. Lab Animal 30(7): 44-52. 
+
+Broman KW, Wu H, Sen S, Churchill GA (2003) R/qtl: QTL mapping in
+experimental crosses. Bioinformatics 19: 889-890.
+
+Cockerham CC (1954) An extension of the concept of partitioning
+hereditary variance for analysis of covariances among relatives when
+epistasis is present. Genetics 39: 859-882. 
+
+Haley C, Knott S (1992) A simple regression method for mapping
+quantitative trait loci in line crosses using flanking
+markers. Heredity 69: 315-324.
+
+Jiang C, Zeng ZB (1997) Mapping quantitative trait loci with dominant
+and missing markers in various crosses from two inbred lines. Genetica
+101: 47-58.
+
+Kao CH, Zeng ZB (2002) Modeling epistasis of quantitative trait loci
+using Cockerham's model. Genetics 160: 1243-1261.
+
+Manichaikul A, Moon JY, Sen S, Yandell BS, Broman KW (2008)
+A model selection approach for the identification of quantitative
+trait loci in experimental crosses. Genetics (submitted).
+
+Morton NE (1995) LODs past and present. Genetics 140: 7-12.
+
+Newton MA, Raftery AE (1994) Approximate Bayesian inference by the
+weighted likelihood bootstrap (with Discussion). Journal of the Royal
+Statistical Society, series B, 56, 3-48.
+
+Sen S, Churchill GA (2001) A statistical framework for quantitative
+trait mapping. Genetics 159: 371-387. 
+
+Sugiyama F, Churchill GA, Higgens DC, Johns C, Makaritsis KP, Gavras
+H, Paigen B (2001) Concordance of murine quantitative trait loci for
+salt-induced hypertension with rat and human loci. Genomics 71: 70-77.
+
+Wright FA, Kong A (1997) Linkage mapping in experimental crosses: the
+robustness of single-gene models. Genetics 146: 417-425. 
+
+Yandell BS, Mehta T, Banerjee S, Shriner D, Venkataraman R, Moon JY,
+Neely WW, Wu H, von Smith R, Yi N (2007) R/qtlbim: QTL with Bayesian
+interval mapping in experimental crosses. Bioinformatics 23: 641-643.
+
+Yi N, Banerjee S, Shriner D, Pomp D, Yandell BS (2007a) Bayesian
+mapping of genome-wide interacting QTL for ordinal traits. Genetics
+176: 1855-1864.
+
+Yi N, Shriner D, Banerjee S, Mehta T, Pomp D, Yandell BS (2007b)
+Efficient strategies for Bayesian mapping of genome-wide interacting
+QTL. Genetics 176: 1865-1877.
+
+Yi N, Yandell BS, Churchill GA, Allison DB, Eisen EJ, Pomp D (2005)
+Bayesian model selection for genome-wide epistatic quantitative trait
+loci analysis. Genetics 170: 1333-1344.
+
+\end{document}

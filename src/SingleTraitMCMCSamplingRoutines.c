@@ -2,17 +2,18 @@
 // Functions relevant to single trait analyses
 //********************************************************************
 
-#include <stdio.h>
-#include <math.h>
+#include "GlobalVars.h"
+#include "GlobalVars_SingleTrait.h"
+#include "StatUtils.h"
+#include "SingleTraitMCMCSamplingRoutines.h"
 
 #include <R.h>
 #include <Rmath.h>
 #include <R_ext/Random.h>
 #include <R_ext/Utils.h>
 
-#include "GlobalVars.h"
-#include "StatUtils.h"
-#include "SingleTraitMCMCSamplingRoutines.h"
+#include <stdio.h>
+#include <math.h>
 
 
 

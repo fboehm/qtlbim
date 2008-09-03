@@ -4,6 +4,7 @@
 \alias{print.qb.arch}
 \alias{qb.arch.default}
 \alias{qb.arch.step.fitqtl}
+\alias{qb.arch.qb.BestPattern}
 \title{Build genetic architecture with chromosomes, positions and
   epistatic pairs.}
 \description{
@@ -16,6 +17,7 @@ QTL from MCMC samples.
 qb.arch(object, \dots)
 \method{qb.arch}{default}(object, chr, pos, tolerance = 10, \dots)
 \method{qb.arch}{step.fitqtl}(object, main, epistasis, \dots)
+\method{qb.arch}{qb.BestPattern}(object, \dots)
 \method{summary}{qb.arch}(object, \dots)
 \method{print}{qb.arch}(x, \dots)
 }
@@ -52,7 +54,7 @@ main chromosomes and epistatic pairs.
 }
 \references{http://www.qtlbim.org}
 \author{Brian S. Yandell}
-\seealso{\code{\link{step.fitqtl}}, \code{\link{qb.sweave}}}
+\seealso{\code{\link{step.fitqtl}}, \code{\link{qb.sweave}}, \code{\link{qb.best}}}
 
 \examples{
 data(qbExample)

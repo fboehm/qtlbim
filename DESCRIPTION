@@ -1,6 +1,6 @@
 Package: qtlbim
-Version: 1.7.7
-Date: 2008-04-23
+Version: 1.8.1
+Date: 2008-09-03
 Author: Brian S. Yandell <yandell@stat.wisc.edu>
   and Nengjun Yi <nyi@ms.soph.uab.edu>,
   with contributions from
@@ -11,7 +11,7 @@ Author: Brian S. Yandell <yandell@stat.wisc.edu>
 Title: QTL Bayesian Interval Mapping
 Description: Functions for model selection for genetic architecture.
 Maintainer: Brian S. Yandell <yandell@stat.wisc.edu>
-Depends: stats, qtl (>= 1.0.5), lattice, coda, tools, MASS
+Depends: stats, qtl (>= 1.0.8), lattice, coda, tools, MASS
 License: GPL (>= 2)
 URL: http://www.qtlbim.org
-Packaged: Wed Apr 23 10:59:14 2008; yandell
+Packaged: Wed Sep  3 19:53:09 2008; yandell

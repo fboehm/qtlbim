@@ -37,7 +37,7 @@
 
 
 ##############################################################################
-print.qb <- function(x, ...) print(summary(x))
+print.qb <- function(x, ...) summary(x)
 ##############################################################################
 summary.qb <- function(object, cutoff = 1, ...)
 {
@@ -58,10 +58,12 @@ summary.qb <- function(object, cutoff = 1, ...)
         "\n(use qb.remove to remove).\n")
 
   cross <- qb.cross(object, genoprob = FALSE)
-  cat("Trait", names(cross$pheno)[qb.get(object, "pheno.col")],
-      "(", qb.get(object, "pheno.col"), ") treated as",
+  pheno.col <- qb.get(object, "pheno.col")
+  cat(paste("Trait", ifelse(length(pheno.col) == 1, "", "s"), sep = ""),
+      paste(names(cross$pheno)[pheno.col], collapse = ","),
+      "(", paste(pheno.col, collapse = ","), ") treated as",
       qb.get(object, "trait"), ".\n")
-
+  
   nfixcov <- qb.get(object, "nfixcov")
   nrancov <- qb.get(object, "nrancov")
   covar <- qb.get(object, "covar")
@@ -103,7 +105,7 @@ summary.qb <- function(object, cutoff = 1, ...)
   qb.exists(object)
   
   ## Summaries of results.
-  iterdiag <- qb.get(object, "iterdiag")
+  iterdiag <- qb.get(object, "iterdiag", ...)
   cat("\nDiagnostic summaries:\n")
   print(apply(iterdiag[ , -1], 2, summary))
 
@@ -112,9 +114,9 @@ summary.qb <- function(object, cutoff = 1, ...)
 
   if(qb.get(object, "epistasis")) {
     cat("\nPercentages for number of epistatic pairs detected:\n")
-    print(qb.pair.nqtl(object, cutoff))
+    print(qb.pair.nqtl(object, cutoff, ...))
     cat("\nPercentages for common epistatic pairs:")
-    print(qb.pair.posterior(object, cutoff, 15))
+    print(qb.pair.posterior(object, cutoff, 15, ...))
   }
   ## Need to add covariate stuff here.
   invisible()
@@ -157,34 +159,6 @@ qb.prior <- function(qbObject, range, mean = qb.get(qbObject, "mean.nqtl"))
   pr
 }
 
-
-##############################################################################
-## qb.match
-##       This is a private function.  qb.match is currently
-#  not being called within the qtlbim package.
-##
-## arguments:
-##     qb           An object of class qb.  This object will have been
-##                   produced by an MCMC run (either the reversible jump
-##                   MCMC or Nengjun Yi's algorithm in bmapqtl.
-##     pattern       A sequence of ????.  The "pattern" argument must be
-##                   suitable as an argument to the built-in table function.
-## returns:
-##     
-##
-
-qb.match <- function(qbObject, pattern)
-{
-  mypat <- paste(pattern, collapse = ",", sep = "")
-  mainloci <- qb.get(qbObject, "mainloci")
-  counts <- tapply(mainloci$chrom, mainloci$niter, function(x) table(x),
-                   simplify = FALSE)
-  patfn <- function(x) sum(x) ## Just a placeholder for now.
-  patterns <- unlist(lapply(counts, patfn))
-  as.numeric(names(counts)[!is.na(match(patterns, mypat))])
-}
-##############################################################################
-
 ##############################################################################
 ## plot.qb
 ##       This is a generic function for plotting qb objects.
@@ -196,7 +170,7 @@ qb.match <- function(qbObject, pattern)
 
 plot.qb <- function(x, ask = dev.interactive(), verbose = TRUE, ...)
 {
-  nqtl <- qb.nqtl(x)
+  nqtl <- qb.nqtl(x, ...)
   if(max(nqtl) == 0)
     stop("no QTL found in MCMC runs")
   
@@ -280,7 +254,7 @@ qb.loci <- function(qbObject, loci = c("main", "epistasis", "GxE"),
 
   out.list <- list()
   for(element in loci) {
-    out <- qb.get(qbObject, elements[element])
+    out <- qb.get(qbObject, elements[element], ...)
     if(is.null(out))
       break
     if(0 == nrow(out))
@@ -417,9 +391,9 @@ summary.qb.loci <- function(object, digit = 1, ...)
 ##############################################################################
 print.qb.loci <- function(x, ...) invisible(print(summary(x, ...)))
 ##############################################################################
-qb.numqtl <- function(qbObject)
+qb.numqtl <- function(qbObject, ...)
 {
-  iterdiag <- qb.get(qbObject, "iterdiag")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
   n.iter <- qb.niter(qbObject)
 
   ## Posterior number of QTL.
@@ -443,13 +417,13 @@ qb.numqtl <- function(qbObject)
   tmp
 }
 ##############################################################################
-qb.pattern <- function(qbObject, cutoff = 1, nmax = 15, epistasis = TRUE)
+qb.pattern <- function(qbObject, cutoff = 1, nmax = 15, epistasis = TRUE, ...)
 {
-  iterdiag <- qb.get(qbObject, "iterdiag")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
   n.iter <- qb.niter(qbObject)
 
-  mainloci <- qb.get(qbObject, "mainloci")
-  pairloci <- qb.get(qbObject, "pairloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
+  pairloci <- qb.get(qbObject, "pairloci", ...)
   pattern <- qb.makepattern(qbObject, epistasis, iterdiag = iterdiag,
                             mainloci = mainloci, pairloci = pairloci)
                            
@@ -597,23 +571,23 @@ qb.BayesFactor <- function(qbObject,
                            items = c("nqtl","pattern","chrom","pairs"),
                            cutoff.pattern = ifelse(epistasis, 0.25, 0.5),
                            cutoff.pairs = 1, nmax = 15,
-                           epistasis = TRUE)
+                           epistasis = TRUE, ...)
 {
   qb.exists(qbObject)
   
   assess <- list()
 
   if(any(pmatch(tolower(items), "nqtl", nomatch = 0)))
-    assess$nqtl <- qb.numqtl(qbObject)
+    assess$nqtl <- qb.numqtl(qbObject, ...)
 
   if(any(pmatch(tolower(items), "pattern", nomatch = 0)))
-    assess$pattern <- qb.pattern(qbObject, cutoff.pattern, nmax, epistasis)
+    assess$pattern <- qb.pattern(qbObject, cutoff.pattern, nmax, epistasis, ...)
 
   if(any(pmatch(tolower(items), "chrom", nomatch = 0)))
-    assess$chrom <- qb.chrom(qbObject)
+    assess$chrom <- qb.chrom(qbObject, ...)
 
   if(any(pmatch(tolower(items), "pairs", nomatch = 0)))
-    assess$pairs <- qb.pairs(qbObject, cutoff.pairs, nmax)
+    assess$pairs <- qb.pairs(qbObject, cutoff.pairs, nmax, ...)
 
   class(assess) <- c("qb.BayesFactor", "list")
   assess
@@ -662,7 +636,7 @@ qb.diag <- function(qbObject, items= c("mean","envvar","var","herit"), ...)
 {
   qb.exists(qbObject)
   
-  iterdiag <- qb.get(qbObject, "iterdiag")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
   nhist <- length(items)
   diag <- matrix(NA, qb.niter(qbObject), nhist + 1)
   dimnames(diag) <- list(NULL, c(items, "nqtl"))

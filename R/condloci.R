@@ -19,12 +19,13 @@
 ## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ##
 ##############################################################################
+## This routine is not used. drop?
 qb.condloci <- function(qbObject, chr = 1, cutoff = 25, nqtl = uqtl[nuqtl],
-                        use.qtl = FALSE, individual = TRUE)
+                        use.qtl = FALSE, individual = TRUE, ...)
 {
   niter <- qb.niter(qbObject)
   
-  mainloci <- qb.get(qbObject, "mainloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   mainloci <- mainloci[mainloci$chrom == chr, c("niter","nqtl","locus")]
   if(!nrow(mainloci))
     return(NULL)
@@ -162,7 +163,7 @@ plot.qb.condloci <- function(x, merge = TRUE, jitter = 0.5, ...)
 ##############################################################################
 qb.epimodes <- function(qbObject, cutoff = 1, nqtl = nqtl.est,
                         n.iter = qb.niter(qbObject),
-                        pairloci = qb.get(qbObject, "pairloci"), ...)
+                        pairloci = qb.get(qbObject, "pairloci", ...), ...)
 {
   pairloci <- pairloci[pairloci$chrom1 == pairloci$chrom2, ]
   if(!nrow(pairloci))
@@ -266,7 +267,7 @@ qb.epimodes <- function(qbObject, cutoff = 1, nqtl = nqtl.est,
 ##############################################################################
 qb.mainmodes <- function(qbObject, cutoff = 25, nqtl = NULL,
                         n.iter = qb.niter(qbObject),
-                        mainloci = qb.get(qbObject, "mainloci"), ...)
+                        mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
   geno.names <- qb.geno.names(qbObject)
   chrom.names <- ordered(geno.names[mainloci$chrom], geno.names)

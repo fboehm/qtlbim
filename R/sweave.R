@@ -40,7 +40,7 @@ qb.sweave <- function(cross, pheno.col = 1, n.iter = 3000, n.draws = 64,
   if(is.na(pheno.col))
     stop("invalid pheno.col")
   assign(".qb.pheno", pheno.col, ".GlobalEnv")
-  pheno.name <- names(cross$pheno)[pheno.col]
+  pheno.name <- qb.pheno.names( , cross)[pheno.col]
 
   assign(".qb.niter", n.iter, ".GlobalEnv")
   assign(".qb.draws", n.draws, ".GlobalEnv")
@@ -76,6 +76,7 @@ qb.sweave <- function(cross, pheno.col = 1, n.iter = 3000, n.draws = 64,
 ##   arch$chr.by.set   list with epistasis-connected chr in sets.
 #################################################3
 qb.arch <- function(object, ...) UseMethod("qb.arch")
+#################################################3
 qb.arch.default <- function(object, chr, pos, tolerance = 10, ...)
 {
   ## Merge main QTL and epistatic QTL into one list.
@@ -90,7 +91,11 @@ qb.arch.default <- function(object, chr, pos, tolerance = 10, ...)
     chr <- c(chr, t(object[, c("chr1","chr2")]))
     pos <- c(pos, t(object[, c("u.pos1","u.pos2")]))
   }
-
+  create.arch(chr, pos, type, n.pair, tolerance)
+}
+#################################################3
+create.arch <- function(chr, pos, type, n.pair, tolerance = 10)
+{
   o <- order(chr, pos)
   d <- abs(diff(pos[o])) <= tolerance & diff(unclass(factor(chr[o]))) == 0
   newpos <- unlist(tapply(pos[o], cumsum(1 - c(0, d)),
@@ -113,6 +118,30 @@ qb.arch.default <- function(object, chr, pos, tolerance = 10, ...)
     }
   }
   qb.archalt(arch)
+}
+#################################################3
+qb.arch.qb.BestPattern <- function(object, ...)
+{
+  ## Merge main QTL and epistatic QTL into one list.
+  ## Take some care with triplets, etc.
+  patterns <- split.pattern(object$patterns, epistasis = TRUE)
+  pairs <- as.matrix(patterns$epi[[1]])
+  n.pair <- ncol(pairs)
+  if(is.null(n.pair) | length(n.pair) == 0)
+    n.pair <- 0
+
+  best <- object$model[[1]] 
+  chr <- best$chrom
+  pos <- best$locus
+  
+  type <- rep(0, length(chr))
+  if(n.pair) {
+    type <- c(type, rep(seq(n.pair), rep(2, n.pair)))
+    tmp <- match(t(pairs),chr)
+    chr <- ordered(c(chr, chr[tmp]), levels(chr))
+    pos <- c(pos, pos[tmp])
+  }
+  create.arch(chr, pos, type, n.pair)
 }
 #################################################3
 qb.archalt <- function(arch)
@@ -201,10 +230,10 @@ qb.archpairs <- function(arch)
 qb.pairgroup <- function(arch, pairs = qb.archpairs(arch))
 {
   ## Chromosomes are now ordered factors. Change to character.
-  pairchr <- apply(pairs$chr, 2, as.character)
+  n.pair <- nrow(pairs$chr)
+  pairchr <- as.matrix(pairs$chr)
   
   ## All chr in pairs.
-  n.pair <- nrow(pairchr)
   cliques <- list()
   if(!is.null(n.pair)) {
     cliques[[1]] <- sort(unique(unlist(pairchr[1,])))

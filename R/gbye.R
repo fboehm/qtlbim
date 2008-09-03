@@ -1,5 +1,26 @@
+#####################################################################
+##
+## $Id: gbye.R,v 1.7.2.8 2006/12/06 15:26:31 byandell Exp $
+##
+##     Copyright (C) 2008 Brian S. Yandell
+##
+## This program is free software; you can redistribute it and/or modify it
+## under the terms of the GNU General Public License as published by the
+## Free Software Foundation; either version 2, or (at your option) any
+## later version.
+##
+## These functions are distributed in the hope that they will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## The text of the GNU General Public License, version 2, is available
+## as http://www.gnu.org/copyleft or by writing to the Free Software
+## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+##
+##############################################################################
 qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
-                              gbye = qb.get(qbObject, "gbye"))
+                              gbye = qb.get(qbObject, "gbye", ...), ...)
 {
   if(is.null(gbye))
     return(invisible(NULL))
@@ -12,7 +33,7 @@ qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
 
   percent <- table(covar.names[gbye$covar], geno.names[gbye$chrom])
   np <- dimnames(percent)
-  np <- outer(np[[2]], np[[1]], paste, sep = ".")
+  np <- outer(np[[2]], np[[1]], paste, sep = ":")
   percent <- c(percent)
   o <- order(-percent)
   percent <- 100 * percent[o] / qb.niter(qbObject)
@@ -22,6 +43,7 @@ qb.gbye.posterior <- function(qbObject, covar = get.covar, cutoff = 1, nmax = 5,
     percent <- percent[seq(nmax)]
   round(percent)
 }
+##############################################################################
 qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
                          cutoff = 1, nmax = 5, cov.chr = names(post), ...)
 {
@@ -31,7 +53,7 @@ qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
   ## Set up object as in qb.epistasis.
   ## Set up plot or use plot.qb.epistasis.
 
-  gbye <- qb.get(qbObject, "gbye")
+  gbye <- qb.get(qbObject, "gbye", ...)
   if(is.null(gbye)) {
     cat("no GxE\n")
     return(invisible(NULL))
@@ -49,8 +71,8 @@ qb.intcov <- function(qbObject, covar = get.covar, effects = c("add","dom"),
 
   covar.names <- names(cross$pheno)[covar]
 
-  inter <- interaction(geno.names[gbye[, "chrom"]],
-                       covar.names[gbye[, "covar"]])
+  inter <- paste(geno.names[gbye[, "chrom"]],
+                 covar.names[gbye[, "covar"]], sep = ":")
   post <- qb.gbye.posterior(qbObject, covar, cutoff, nmax, gbye = gbye)
   if(!is.character(cov.chr))
     stop("cov.chr must be character")

@@ -1,12 +1,14 @@
-#include <math.h>
+#include "GlobalVars.h"
+#include "GlobalVars_SingleTrait.h"
+#include "StatUtils.h"
 
 #include <R.h>
 #include <Rmath.h>
 #include <R_ext/Random.h>
 #include <R_ext/Utils.h>
 
-#include "GlobalVars.h"
-#include "StatUtils.h"
+#include <math.h>
+
 
 double RANDOM()
 {
@@ -90,4 +92,25 @@ double TrunNormal(double T1,double T2,double B,double V)
 	if(p==0.5) yy=0;
 
 	return(B+sqrt(V)*yy);
+}
+
+
+/// Random generation from a m-dim multivariate normal N(mu,Sigma)
+void Multivariate_RNORM(double **sigma_cholesky,double *mu,int m,double *sample)
+{
+int i,j;
+double sum,*z,U,U0;
+z=malloc(m*sizeof(double));
+   for(i=0;i<m;i++)
+      {    ANORMAL(&U,&U0);
+            z[i] = U;
+       }     
+  
+   for(i=0;i<m;i++)
+      {    sum=0;     
+           for(j=0;j<m;j++) sum = sum + sigma_cholesky[i][j]*z[j];
+           sample[i] = mu[i] + sum;
+      }
+   free(z);
+return;
 }

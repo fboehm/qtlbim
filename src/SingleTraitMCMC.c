@@ -1,15 +1,16 @@
-#include <math.h>
-#include <time.h>
+#include "GlobalVars.h"
+#include "GlobalVars_SingleTrait.h"
+#include "StatUtils.h"
+#include "SingleTraitMCMCSamplingRoutines.h"
+#include "SingleTraitMCMC.h"
 
 #include <R.h>
 #include <Rmath.h>
 #include <R_ext/Random.h>
 #include <R_ext/Utils.h>
 
-#include "GlobalVars.h"
-#include "StatUtils.h"
-#include "SingleTraitMCMCSamplingRoutines.h"
-#include "SingleTraitMCMC.h"
+#include <math.h>
+#include <time.h>
 
 
 
@@ -505,19 +506,51 @@ if(EPISTASIS==1)
 
 if(GBYE==1)
 {
+	int T;
 	for(L1=0;L1<NFIXCOVA;L1++)
 	if(GBYE_FIX_INDEX[L1]==1)
 		for(L2=0;L2<NQTL;L2++)
-		if(GAMMA[L2]!=0)
+	//	if(GAMMA[L2]!=0)
 		{
 			if(GROUP==0)
 			{
 				for(K=0;K<NC;K++)
 				{
+					T=1;
 					double R=RANDOM();
 					if( (GBYE_FIX[L1][L2][K]==0&&R<=W_GBYE)||(GBYE_FIX[L1][L2][K]!=0&&R>W_GBYE) )
 					{
-						if(GBYE_FIX[L1][L2][K]==0&&R<=W_GBYE)
+						if(GAMMA[L2]==0) T=SamplingOnePosition(L2);
+						if(T!=0)
+						{
+							if(GBYE_FIX[L1][L2][K]==0&&R<=W_GBYE)
+							{
+								double T0=0,U,U0;
+								for(J=0;J<NU;J++)
+								{
+									ANORMAL(&U,&U0);
+									T0=T0+U*U;
+								}
+								TAU=(NU-2)*H*VP/(NU*V_FIX[L1]*CC[K]);
+								V_GBYE_FIX[L1][L2][K]=NU*TAU/T0;
+							}
+	
+							GBYE_FIX_Indicator_GROUP0(L1,L2,K);
+						}
+					}
+				}
+			}
+
+			if(GROUP==1)
+			{
+				T=1;
+				double R=RANDOM();
+				if( (GAMMA_GBYE[L1][L2]==0&&R<=W_GBYE)||(GAMMA_GBYE[L1][L2]!=0&&R>W_GBYE) )
+				{
+					if(GAMMA[L2]==0) T=SamplingOnePosition(L2);
+					if(T!=0)
+					{
+						if(GAMMA_GBYE[L1][L2]==0&&R<=W_GBYE)
 						{
 							double T0=0,U,U0;
 							for(J=0;J<NU;J++)
@@ -525,33 +558,12 @@ if(GBYE==1)
 								ANORMAL(&U,&U0);
 								T0=T0+U*U;
 							}
-							TAU=(NU-2)*H*VP/(NU*V_FIX[L1]*CC[K]);
-							V_GBYE_FIX[L1][L2][K]=NU*TAU/T0;
+							TAU=S*VP;
+							V_GBYE_FIX1[L1][L2]=NU*TAU/T0;
 						}
-	
-						GBYE_FIX_Indicator_GROUP0(L1,L2,K);
-					}
-				}
-			}
-
-			if(GROUP==1)
-			{
-				double R=RANDOM();
-				if( (GAMMA_GBYE[L1][L2]==0&&R<=W_GBYE)||(GAMMA_GBYE[L1][L2]!=0&&R>W_GBYE) )
-				{
-					if(GAMMA_GBYE[L1][L2]==0&&R<=W_GBYE)
-					{
-						double T0=0,U,U0;
-						for(J=0;J<NU;J++)
-						{
-							ANORMAL(&U,&U0);
-							T0=T0+U*U;
-						}
-						TAU=S*VP;
-						V_GBYE_FIX1[L1][L2]=NU*TAU/T0;
-					}
 					
-					GBYE_FIX_Indicator_GROUP1(L1,L2);
+						GBYE_FIX_Indicator_GROUP1(L1,L2);
+					}
 				}
 			}
 

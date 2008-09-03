@@ -10,7 +10,7 @@ multiple QTL. Variance components are averaged over genome
 loci. Covariates and GxE may be included.
 }
 \usage{
-qb.varcomp(qbObject, scan, aggregate = TRUE)
+qb.varcomp(qbObject, scan, aggregate = TRUE, \dots)
 \method{summary}{qb.varcomp}(object, \dots)
 \method{print}{qb.varcomp}(x, \dots)
 \method{plot}{qb.varcomp}(x, log = TRUE, percent = 5, cex, \dots)

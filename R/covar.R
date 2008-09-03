@@ -41,7 +41,8 @@
 ## Include covariate add and dom in plot.qb.effects.
 ## Need to add covariate names to bmapqtl element.
 ##############################################################################
-covar.mean <- function(qbObject, adjust.covar, verbose = FALSE)
+covar.mean <- function(qbObject, adjust.covar, verbose = FALSE,
+                       pheno.col = qb.get(qbObject, "pheno.col"))
 {
   nfixcov <- qb.get(qbObject, "nfixcov")
   nrancov <- qb.get(qbObject, "nrancov")
@@ -59,7 +60,7 @@ covar.mean <- function(qbObject, adjust.covar, verbose = FALSE)
     cross <- qb.cross(qbObject, genoprob = FALSE)
     covar.name <- names(cross$pheno)[qb.get(qbObject, "covar")]
     if(nfixcov > 0) {
-      pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
+      pheno.name <- names(cross$pheno)[pheno.col[1]]
       use.value <- cross$pheno[, pheno.name]
       use.value <- !is.na(use.value) & abs(use.value) != Inf
       tmp <- cross$pheno[, covar.name[seq(nfixcov)], drop = FALSE]
@@ -112,7 +113,7 @@ covar.var <- function(qbObject)
   cov(as.matrix(cross$pheno[, covar.name]), use = "pair")
 }
 ##############################################################################
-qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
+qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE, ...)
 {
   qb.exists(qbObject)
   
@@ -147,7 +148,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
   }
   if(nfixcov + nrancov)
     covar.name <- names(qb.cross(qbObject, genoprob = FALSE)$pheno)[qb.get(qbObject, "covar")]
-  iterdiag <- qb.get(qbObject, "iterdiag")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
   n.iter <- nrow(iterdiag)
 
   if(aggregate) {
@@ -193,7 +194,7 @@ qb.varcomp <- function(qbObject, scan = scans, aggregate = TRUE)
 
   ## Covariates.
   if(nfixcov + nrancov & any(match(scan, c("fixcov","rancov"), nomatch = 0))) {
-    covariate <- as.matrix(qb.get(qbObject, "covariates"))
+    covariate <- as.matrix(qb.get(qbObject, "covariates", ...))
     
     ## Fixed covariate variance components.
     if(nfixcov & any(scan == "fixcov")) {
@@ -305,25 +306,25 @@ summary.qb.varcomp <- function(object, ...)
 ##############################################################################
 print.qb.varcomp <- function(x, ...) print(summary(x, ...))
 ##############################################################################
-qb.meancomp <- function(qbObject, adjust.covar = NA)
+qb.meancomp <- function(qbObject, adjust.covar = NA, ...)
 {
   qb.exists(qbObject)
   
   ## Mean components: grand mean and covariates.
 
   ## Get grand mean.
-  data <- as.matrix(qb.get(qbObject, "iterdiag")$mean)
+  data <- as.matrix(qb.get(qbObject, "iterdiag", ...)$mean)
   dimnames(data) <- list(NULL, "grand.mean")
 
   nfixcov <- qb.get(qbObject, "nfixcov")
   if(nfixcov) {
     ## Set up mean adjusted for covariates.
-    covar.means <- covar.mean(qbObject, adjust.covar)[seq(nfixcov)]
+    covar.means <- covar.mean(qbObject, adjust.covar, ...)[seq(nfixcov)]
     covar.name <- names(covar.means)
 
     ## Get Covariate main effect and grand mean.
     data <- cbind(data,
-                  as.matrix(qb.get(qbObject, "covariates"))[, seq(nfixcov)])
+                  as.matrix(qb.get(qbObject, "covariates", ...))[, seq(nfixcov)])
     dimnames(data) <- list(NULL, c("grand.mean", covar.name))
 
     if(any(abs(covar.means) > 10^-6)) {
@@ -408,14 +409,14 @@ qb.covar <- function(qbObject, element = "add", covar = 1,
     qbObject <- subset(qbObject, chr = chr)
 
   ## Set up mean adjusted for covariates.
-  covar.means <- covar.mean(qbObject, adjust.covar)
+  covar.means <- covar.mean(qbObject, adjust.covar, ...)
   covar.name <- names(covar.means)
 
   ## Get GxE fixed effects for Covariate covar.
-  gbye <- qb.get(qbObject, "gbye")
+  gbye <- qb.get(qbObject, "gbye", ...)
 
   ## Get mainloci element.
-  mainloci <- qb.get(qbObject, "mainloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   data <- data.frame(main = mainloci[[element]])
 
   ## Get GxE samples, match to mainloci.

@@ -21,7 +21,7 @@
 
 qb.coda <- function(qbObject,
                     element = c("iterdiag","mainloci","pairloci","covariates","gbye"),
-                    variables = variable.list[[element]])
+                    variables = variable.list[[element]], ...)
 {
   qb.exists(qbObject)
   
@@ -32,7 +32,7 @@ qb.coda <- function(qbObject,
                          covariates = "cov1",
                          gbye = c("n.gbye","chrom","add","dom"))
    element <- match.arg(element)
-   tmp <- qb.get(qbObject, element)
+   tmp <- qb.get(qbObject, element, ...)
    variables <- names(tmp)[match(variables, names(tmp), nomatch = 0)]
    if(length(variables))
       mcmc(tmp[, variables])

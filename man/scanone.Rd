@@ -11,7 +11,7 @@ components, non-epistatic variance components.
 qb.scanone(qbObject, epistasis = TRUE, scan, type.scan, covar, adjust.covar,
   chr, sum.scan = "yes", min.iter = 1, aggregate = TRUE, smooth = 3,
   weight = c("sqrt","count","none"), split.chr,
-  center.type = c("mode","mean","scan"), half = FALSE, verbose = FALSE)
+  center.type = c("mode","mean","scan"), half = FALSE, verbose = FALSE, \dots)
 }
 \arguments{
   \item{qbObject}{An object of class \code{qb}.}
@@ -40,6 +40,7 @@ qb.scanone(qbObject, epistasis = TRUE, scan, type.scan, covar, adjust.covar,
   \item{center.type}{Method to find QTL loci. See details.}
   \item{split.chr}{Split summary by multiple QTL per chromosome (see details).}
   \item{verbose}{ Give verbose feedback if \code{TRUE}.}
+  \item{\dots}{Additional arguments mostly ignored.}
 }
 
 \value{

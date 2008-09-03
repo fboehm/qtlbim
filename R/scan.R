@@ -20,7 +20,7 @@
 ##
 ##############################################################################
 qb.inter <- function(qbObject, x = pull.grid(qbObject, offset = TRUE),
-                     mainloci = qb.get(qbObject, "mainloci"))
+                     mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
   ## Create identifier of chrom.locus from mainloci into pseudomarker grid.
   inter <- ordered(paste(mainloci[, "chrom"], mainloci[, "locus"], sep = ":"),
@@ -90,10 +90,12 @@ qb.count <- function(stat, type.scan, n.iter, bf.prior)
 }
 ##############################################################################
 qb.nind.pheno <- function(qbObject,
-                          pheno.name = names(cross$pheno)[qb.get(qbObject, "pheno.col")],
+                          pheno.name = pheno.names[qb.get(qbObject, "pheno.col")[1]],
                           nfixcov, cross,
-                          covar.name = names(cross$pheno)[qb.get(qbObject, "covar")])
+                          covar.name = pheno.names[qb.get(qbObject, "covar")])
 {
+  pheno.names <- qb.pheno.names(qbObject, cross)
+  
   not.missing <- apply(cross$pheno[, pheno.name, drop = FALSE], 1,
                function(x) all(!is.na(x) & abs(x) != Inf))
   if(nfixcov) {
@@ -438,7 +440,8 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                        split.chr = qb.get(qbObject, "split.chr"),
                        center.type = c("mode","mean","scan"),
                        half = FALSE,
-                       verbose = FALSE)
+                       verbose = FALSE,
+                       ...)
 {
   type.scans <- c("heritability","LPD","LR","deviance","detection",
              "variance","estimate","cellmean","count","log10",
@@ -448,7 +451,7 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
 
   qb.commonone(qbObject, "scanone",, epistasis, scan, type.scan, covar,
                adjust.covar, chr, sum.scan, min.iter, aggregate,
-               smooth, weight, split.chr, center.type, half, verbose)
+               smooth, weight, split.chr, center.type, half, verbose, ...)
 }
 ###################################################################
 check.intcov <- function(intcov, nfixcov)
@@ -488,7 +491,8 @@ qb.commonone <- function(qbObject,
                          split.chr = qb.get(qbObject, "split.chr"),
                          center.type = c("mode","mean","scan"),
                          half = FALSE,
-                         verbose = FALSE)
+                         verbose = FALSE,
+                         pheno.col = qb.get(qbObject, "pheno.col")[1], ...)
 {
   qb.exists(qbObject)
   
@@ -571,7 +575,7 @@ qb.commonone <- function(qbObject,
 
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject, genoprob = FALSE)
-  pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
+  pheno.name <- qb.pheno.names(qbObject, cross)[pheno.col][1]
   nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
 
   ## Genotype names.
@@ -605,8 +609,8 @@ qb.commonone <- function(qbObject,
   }
   
   ## Get MCMC samples.
-  iterdiag <- qb.get(qbObject, "iterdiag")
-  mainloci <- qb.get(qbObject, "mainloci")
+  iterdiag <- qb.get(qbObject, "iterdiag", pheno.col = pheno.name)
+  mainloci <- qb.get(qbObject, "mainloci", pheno.col = pheno.name)
 
   ## No QTL at all.
   if(is.null(mainloci))
@@ -615,7 +619,7 @@ qb.commonone <- function(qbObject,
   iterdiag.nqtl <- qb.nqtl(qbObject, iterdiag, mainloci)
 
   ## Need pairloci earlier for slice?
-  pairloci <- qb.get(qbObject, "pairloci")
+  pairloci <- qb.get(qbObject, "pairloci", pheno.col = pheno.name)
   if(is.null(pairloci))
     epistasis <- FALSE
   else if(is.slice) {
@@ -638,7 +642,8 @@ qb.commonone <- function(qbObject,
   if(nfixcov) {
     ## Covariate means.
     covar.means <- covar.mean(qbObject, adjust.covar,
-                              verbose = verbose & (type.scan == "estimate"))
+                              verbose = verbose & (type.scan == "estimate"),
+                              pheno.col = pheno.col)
     
     ## Explained covariance for heritability.
     if(type.scan == "heritability") {
@@ -793,7 +798,7 @@ qb.commonone <- function(qbObject,
     cat("non-epistatic components ...\n")
   ## Get non-epistatic components: additive and dominance.
   gbye <- if(sum(intcov))
-    qb.get(qbObject, "gbye")
+    qb.get(qbObject, "gbye", pheno.col = pheno.name)
   else
     NULL
   reference <- qb.reference(qbObject, mainloci, iterdiag, inter, type.scan)
@@ -1135,12 +1140,13 @@ plot.qb.scanone <- function(x, chr = NULL,
 
   ## Fine subset that matches chr.
   ## Need to be tricky in case of split.chr not NULL.
-  chr.sub <- unclass(attr(x, "chr"))[match(x$chr, geno.names)] %in%
-    qb.find.chr(chr = chr, geno.names = levels(attr(x,"chr")))
+  chr <- qb.find.chr(chr = chr, geno.names = levels(attr(x,"chr")))
+  chr.sub <- unclass(attr(x, "chr"))[match(x$chr, geno.names)] %in% chr
 
   ## Automate separate plots by main, epistasis, sum.
   split.plots <- any(match(c("main","epistasis"), scan, nomatch = 0)) &
      length(scan.names) > 5
+
   if(split.plots) {
     scan.main <- scan.names[c(grep("add", scan.names),
                               grep("dom", scan.names))]
@@ -1271,6 +1277,10 @@ plot.qb.to.scanone <- function(x,
       names(cols) <- name.col
     }
     if(!is.null(supplied.col)) {
+      if(is.null(names(supplied.col))) {
+        n.col <- length(supplied.col)
+        names(supplied.col) <- array(x, n.col)
+      }
       tmp <- match(names(supplied.col), names(cols), nomatch = 0)
       if(any(tmp > 0))
         cols[tmp] <- supplied.col[tmp > 0]
@@ -1342,17 +1352,17 @@ plot.qb.to.scanone <- function(x,
   class(x) <- c("scanone", "data.frame")
 
   ## Add in breaks for split chromosomes.
+  ## Change chr from numeric to character.
   orig.chr <- attr(x, "chr")
   x$chr <- orig.chr[unclass(x$chr)]
   geno.names <- levels(orig.chr)
+  chr <- geno.names[chr]
   geno.names <- geno.names[geno.names %in% x$chr]
+  chr <- geno.names[geno.names %in% chr]
   x$chr <- ordered(x$chr, geno.names)
 
-  chr <- match(chr, geno.names)
-  chrs <- geno.names[chr]
-
   split.chr <- attr(x, "split.chr")
-  split.chr <- split.chr[names(split.chr) %in% chrs]
+  split.chr <- split.chr[names(split.chr) %in% chr]
   if(length(split.chr)) { ## Some chr to be plotted are split.
     split.x <-
       data.frame(chr = ordered(rep(names(split.chr), sapply(split.chr, length)),
@@ -1373,7 +1383,8 @@ plot.qb.to.scanone <- function(x,
     lodcolumn <- match(scani, names(x)) - 2
     if(i == 1)
       dimnames(x)[[2]][lodcolumn + 2] <- type.scan
-    plot(x, lodcolumn = lodcolumn, chr = chrs, ..., add = (i > 1) | add,
+    ## Call plot.scanone from R/qtl.
+    plot(x, lodcolumn = lodcolumn, chr = chr, ..., add = (i > 1) | add,
          ylim = ylim, main = main,
          col = col[scani], lty = lty[scani])
     if(i == 1) {
@@ -1390,7 +1401,7 @@ plot.qb.to.scanone <- function(x,
       mtext(sub, 1, 2, cex = 0.65)
 
   ## Annotate axis and add vertical split if one chr and it is split.
-  if(length(chrs) == 1) {
+  if(length(chr) == 1) {
     if(length(split.chr))
       abline(v = split.chr[[1]], col = "gray", lty = 2)
   }
@@ -1747,7 +1758,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
                        adjust.covar = NA,
                        chr = NULL,
                        min.iter = 1,
-                       verbose = FALSE)
+                       verbose = FALSE, ...)
 {
   qb.exists(qbObject)
   
@@ -1767,7 +1778,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   intcov <- as.logical(qb.get(qbObject, "intcov"))
   intcov <- check.intcov(intcov, nfixcov)
 
-  pairloci <- qb.get(qbObject, "pairloci")
+  pairloci <- qb.get(qbObject, "pairloci", ...)
   if(is.null(pairloci))
     epistasis <- FALSE
 
@@ -1798,7 +1809,12 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   
   ## Number of individuals for phenotype.
   cross <- qb.cross(qbObject, genoprob = FALSE)
-  pheno.name <- names(cross$pheno)[qb.get(qbObject, "pheno.col")]
+  tmp <- list(...)
+  if("pheno.col" %in% names(tmp))
+    pheno.col <- tmp$pheno.col
+  else
+    pheno.col <- qb.get(qbObject, "pheno.col")
+  pheno.name <- qb.pheno.names(qbObject, cross)[pheno.col[1]]
   nind.pheno <- qb.nind.pheno(qbObject, pheno.name, nfixcov, cross)
 
   ## Genotype names.
@@ -1808,8 +1824,8 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   gc()
   
   ## Get MCMC samples.
-  iterdiag <- qb.get(qbObject, "iterdiag")
-  mainloci <- qb.get(qbObject, "mainloci")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   if(is.null(mainloci))
     return(NULL)
   
@@ -1855,7 +1871,8 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   if(nfixcov) {
     ## Covariate means.
     covar.means <- covar.mean(qbObject, adjust.covar,
-                              verbose = verbose & (any(type.scan == "estimate")))
+                              verbose = verbose & (any(type.scan == "estimate")),
+                              ...)
 
     ## Explained covariance for heritability.
     if(any(type.scan == "heritability"))
@@ -1991,7 +2008,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
     ## Loop over all interacting covariates.
     if(sum(intcov)) {
       ## Get GxE samples.
-      gbye <- qb.get(qbObject, "gbye")
+      gbye <- qb.get(qbObject, "gbye", ...)
       
       cov.val <- rep(0, nrow(mainloci))
       covars <- seq(nfixcov)[intcov]
@@ -2217,9 +2234,9 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   }
 
   qb.scan$grid <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
-  qb.scan$iterdiag <- qb.get(qbObject, "iterdiag")
-  qb.scan$mainloci <- qb.get(qbObject, "mainloci")
-  qb.scan$pairloci <- qb.get(qbObject, "pairloci")
+  qb.scan$iterdiag <- iterdiag
+  qb.scan$mainloci <- mainloci
+  qb.scan$pairloci <- pairloci
 
   ## Assign attributes.
   attr(qb.scan, "class") <- c("qb.scantwo", "list")

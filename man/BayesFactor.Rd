@@ -12,7 +12,7 @@ pattern of QTL, chromosomes and pairs of chromosomes showing epistasis.
 \usage{
 qb.bf(\dots)
 qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
-  cutoff.pattern, cutoff.pairs = 1, nmax = 15, epistasis = TRUE)
+  cutoff.pattern, cutoff.pairs = 1, nmax = 15, epistasis = TRUE, \dots)
 \method{plot}{qb.BayesFactor}(x, \dots)
 \method{summary}{qb.BayesFactor}(object, sort = TRUE, digits = 3, \dots)
 \method{print}{qb.BayesFactor}(x, \dots)

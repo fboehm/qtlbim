@@ -9,7 +9,7 @@ Examine grand mean and covariate Monte Carlo samples to glean estimates
 of data center and importance of covariates.
 }
 \usage{
-qb.meancomp(qbObject, adjust.covar)
+qb.meancomp(qbObject, adjust.covar, \dots)
 \method{summary}{qb.meancomp}(object, percent = 5, \dots)
 \method{print}{qb.meancomp}(x, \dots)
 \method{plot}{qb.meancomp}(x, covar, percent = 5, cex, \dots)

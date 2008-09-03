@@ -7,7 +7,7 @@ chromosome pattern of QTL, using exact match or inclusive subsetting.
 }
 \usage{
 \method{subset}{qb}(x, nqtl=1, pattern=NULL, exact=FALSE, chr,
-  region, offset = TRUE, restrict.pair = TRUE, pheno.id = 1, \dots)
+  region, offset = TRUE, restrict.pair = TRUE, pheno.col, \dots)
 }
 \arguments{
   \item{x}{ object of class \code{qb} }
@@ -22,7 +22,7 @@ chromosome pattern of QTL, using exact match or inclusive subsetting.
     position if \code{TRUE}; otherwise they are in distance from first marker}
   \item{restrict.pair}{Restrict \code{chr} and \code{region} selection to
     linked loci all in selected subset.}
-  \item{pheno.id}{Numeric or character identifier for phenotype. Useful
+  \item{pheno.col}{Numeric or character identifier for phenotype. Useful
     eventually for multiple traits.}
   \item{\dots}{additional arguments to \code{\link[base]{subset}}}
 }

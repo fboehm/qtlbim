@@ -6,7 +6,7 @@ This function creates an object of class \code{\link[coda]{mcmc}} from
 an object of class \code{qb} produced by the package \code{R/qtlbim}.
 }
 \usage{
-qb.coda(qbObject, element, variables)                            
+qb.coda(qbObject, element, variables, \dots)
 }
 
 \arguments{
@@ -19,6 +19,7 @@ qb.coda(qbObject, element, variables)
   \item{variables}{ A vector of integers specifying the columns or
     column names of \code{element} to be considered. Details about the
     columns can be found in \code{\link{qb.mcmc}}}
+  \item{\dots}{Additional arguments to pass along (mostly ignored).}
 }
 \details{
 This package requires the package \code{coda}.

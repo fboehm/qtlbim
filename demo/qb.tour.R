@@ -1,3 +1,0 @@
-library(qtlbim)
-
-qb.demo()

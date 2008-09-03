@@ -86,9 +86,12 @@ qb.sim.cross(len = rep(100,20), n.mar = 11, eq.spacing = TRUE,
   
 }
 \value{
-  \code{qb.sim.cross} will returns an object of class \code{cross}.
-  See \code{\link[qtl]{read.cross}} for details. In addition, a component
-  \code{qtl} of class \code{qb.sim} is added which is a list of atmost 6
+  \code{qb.sim.cross} returns an object of class \code{cross}
+  (see \code{\link[qtl]{read.cross}} for details) with two additional
+  components, \code{qtl} and \code{gvalue}.
+  \code{gvalue} is a vector of predicted values of the same length as
+  the phenotype {\tt pheno.normal}.  
+  \code{qtl} is of class \code{qb.sim} is added which is a list of atmost 6
   components depending on the options specified.
    
           \item{geno}{is a matrix of true QTL genotypes for every

@@ -23,9 +23,8 @@
 
 ##############################################################
 qb.locus <- function(qbObject, chr = 1, n.iter = qb.niter(qbObject),
-  mainloci = qb.get(qbObject, "mainloci"))
+  mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
-  mainloci <- qb.get(qbObject, "mainloci")
   count <- table(tapply(mainloci[, "chrom"], mainloci[, "niter"], 
     function(x, y) sum(x == y),
     chr))
@@ -35,10 +34,10 @@ qb.locus <- function(qbObject, chr = 1, n.iter = qb.niter(qbObject),
 }
 ##############################################################
 qb.loci <- function(qbObject, chr = sort(unique(mainloci[, "chrom"])),
-  threshold = 25)
+  threshold = 25, ...)
 {
   n.iter <- qb.niter(qbObject)
-  mainloci <- qb.get(qbObject, "mainloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   counts <- matrix(0, length(chr), qb.get(qbObject, "max.nqtl"))
   chrs <- as.character(chr) ## could get names from cross$geno
   dimnames(counts) <- list(chrs, as.character(seq(ncol(counts)) - 1))
@@ -62,12 +61,12 @@ qb.multloci <- function(qbObject, chr = 1, cutoff = 25, nqtl = NULL, ...)
   res <- qb.mainmodes(subset(qbObject, chr = chr), cutoff, nqtl, ...)
 
   ## Main loci on chromosome chr.
-  tmp <- qb.get(qbObject, "mainloci")[, c("niter", "chrom", "locus")]
+  tmp <- qb.get(qbObject, "mainloci", ...)[, c("niter", "chrom", "locus")]
   tmp <- tmp[tmp[, "chrom"] == chr, c("niter", "locus")]
   res$mainloci <- tmp
 
   ## Epistatic pairs with both loci on chr.
-  tmp <- qb.get(qbObject, "pairloci")
+  tmp <- qb.get(qbObject, "pairloci", ...)
   tmp <- tmp[, c("niter", "chrom1", "chrom2", "locus1", "locus2")]
   tmp <- tmp[tmp[, "chrom1"] == chr & tmp[, "chrom2"] == chr,
              c("niter", "locus1", "locus2")]

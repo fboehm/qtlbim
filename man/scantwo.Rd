@@ -10,7 +10,7 @@ components, epistatic and non-epistatic variance components.
 \usage{
 qb.scantwo(qbObject, epistasis = TRUE, scan, type.scan,
   upper.scan = "epistasis", lower.scan = "full", covar,
-  adjust.covar, chr, min.iter = 1, verbose = FALSE)
+  adjust.covar, chr, min.iter = 1, verbose = FALSE, \dots)
 }
 \arguments{
   \item{qbObject}{An object of class \code{qb}.}
@@ -33,6 +33,7 @@ qb.scantwo(qbObject, epistasis = TRUE, scan, type.scan,
     iterations is at least \code{min.iter}; default is to include all
     (\code{min.iter} = 1).}
   \item{verbose}{Give verbose feedback if \code{TRUE}.}
+  \item{\dots}{Additional arguments mostly ignored.}
 }
 \value{
 Returns an object of class \code{qb.scantwo} (a data frame) containing

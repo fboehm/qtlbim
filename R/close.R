@@ -231,7 +231,7 @@ qb.splititer <- function(mainloci, pairloci = NULL, splits)
   var.names <- grep("^var", names(mainloci))
   out$variance <- apply(as.matrix(mainloci[, var.names]), 1, sum)
   chr.pos <- paste(out$chrom, out$locus, sep = ":")
-  if(!is.null(pairloci)) {
+  if(!is.null(pairloci)) if(nrow(pairloci)) {
     index <- paste(out$niter, chr.pos, sep = ":")
     var.names <- grep("^var", names(pairloci))
     pair.var <- apply(as.matrix(pairloci[, var.names]), 1, sum) / 2
@@ -252,8 +252,10 @@ qb.splititer <- function(mainloci, pairloci = NULL, splits)
 qb.close <- function(qbObject, target = NULL, epistasis = TRUE,
                      signed = FALSE,
                      score.type = c("sq.atten","attenuation","variance",
-                       "recombination", "distance"))
+                       "recombination", "distance"), ...)
 {
+  qb.exists(qbObject)
+  
   score.type <- match.arg(score.type)
 
   if(is.null(target))
@@ -285,16 +287,16 @@ qb.close <- function(qbObject, target = NULL, epistasis = TRUE,
   }
   
   ## Get loci samples and split by iteration number.
-  mainloci <- qb.get(qbObject, "mainloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   if(epistasis)
-    pairloci <- qb.get(qbObject, "pairloci")
+    pairloci <- qb.get(qbObject, "pairloci", ...)
   else
     pairloci <- NULL
   epistasis <- !is.null(pairloci)
 
   ## Score each sample against target.
   out <- qb.nulldist(target, signed, score.type)
-  iterdiag <- qb.get(qbObject, "iterdiag")
+  iterdiag <- qb.get(qbObject, "iterdiag", ...)
   n.iter <- qb.niter(qbObject)
   out <- out[rep(1, n.iter), ]
 
@@ -308,7 +310,7 @@ qb.close <- function(qbObject, target = NULL, epistasis = TRUE,
   out[row.names(tmp), ] <- tmp
 
   ## Pattern of sampled QTL per iteration.
-  out$pattern <- qb.makepattern(qbObject, epistasis, mainloci = mainloci)
+  out$pattern <- qb.makepattern(qbObject, epistasis, mainloci = mainloci, ...)
   
   ## Number of sampled QTL per iteration.
   out$n.qtl <- rep(0, n.iter)
@@ -355,9 +357,13 @@ summary.qb.close <- function(object,
   tmp2 <- paste(object$n.qtl, object$pattern, sep = "@")
   pct <- table(tmp2) * 100 / nrow(object)
   maxpct <- max(pct)
+
+  ## Make sure cutoff allows for at least one entry.
+  if(maxpct <= cutoff){
+    warning(paste("best pattern cutoff =", cutoff, "too large: max percent =", signif(maxpct, 3)))
+    cutoff <- maxpct - 1e-6
+  }
   pct <- rev(sort(pct[pct > cutoff]))
-  if(!length(pct))
-    stop(paste("cutoff =", cutoff, "too large: max percent =", signif(maxpct, 3)))
 
   ## Summarize score on most common subset.
   tmp <- !is.na(match(tmp2, names(pct)))
@@ -395,7 +401,7 @@ plot.qb.close <- function(x, category = c("pattern", "nqtl"),
   else
     category <- match.arg(category)
   switch(category,
-         nqtl = print(bwplot(ordered(n.qtl) ~ score, x, xlab = xlab, ...)),
+         nqtl = print(bwplot(ordered(n.qtl) ~ score, x, xlab = xlab, ...), ...),
          pattern = {
            ## For pattern, want to ideally aggregate I think.
            ## At very least, only consider more frequent QTL.
@@ -410,7 +416,7 @@ plot.qb.close <- function(x, category = c("pattern", "nqtl"),
            tmp <- !is.na(match(tmp2, names(pct)))
            data <- data.frame(score = x$score[tmp], pattern = tmp2[tmp])
            tmp <- match(data$pattern, names(pct))
-           tmp2 <- paste(names(pct), "\n(", round(pct, 1), "%)", sep = "")
+           tmp2 <- paste(names(pct), " (", round(pct, 1), "%)", sep = "")
            data$pattern <- if(sort.pattern == "percent")
              ordered(tmp2[tmp], tmp2)
            else {
@@ -418,7 +424,7 @@ plot.qb.close <- function(x, category = c("pattern", "nqtl"),
                                         data$pattern, mean))[names(pct)])
              ordered(tmp2[tmp], tmp2[o])
            }
-           print(bwplot(pattern ~ score, data, xlab = xlab, ...))
+           print(bwplot(pattern ~ score, data, xlab = xlab, ...), ...)
          })
 }
 #######################################################################
@@ -426,21 +432,20 @@ qb.patterniter <- function(qbObject,
                            epistasis = TRUE,
                            category = "pattern",
                            cutoff = ifelse(epistasis, 0.25, 0.5),
-                           mainloci = qb.get(qbObject, "mainloci"))
+                           mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
   if(category == "pattern") {
     ## Pattern of sampled QTL per iteration.
-    pattern <- qb.makepattern(qbObject, epistasis, mainloci = mainloci)
+    pattern <- qb.makepattern(qbObject, epistasis, mainloci = mainloci, ...)
   }
   else
-    pattern <- qb.nqtl(qbObject, mainloci = mainloci)
+    pattern <- qb.nqtl(qbObject, mainloci = mainloci, ...)
 
-  ## Restrict to most common patterns.
+  ## Restrict to most common patterns. Reset cutoff if too large.
   pct <- table(pattern) * 100 / length(pattern)
-  pct <- rev(sort(pct[pct > cutoff]))
-  if(!length(pct))
-    stop(paste("cutoff =", cutoff, "too large: max percent =",
-               signif(max(pct), 3)))
+  if(max(pct) < cutoff)
+    cutoff <- max(pct)
+  pct <- rev(sort(pct[pct >= cutoff]))
 
   n.pat <- length(pct)
   if(n.pat == 1)
@@ -456,10 +461,10 @@ qb.patterniter <- function(qbObject,
 }
 #######################################################################
 qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
-                          mainloci = qb.get(qbObject, "mainloci"),
+                          mainloci = qb.get(qbObject, "mainloci", ...),
                           include = c("nested","all","exact"),
                           center = c("median","mean"),
-                          level = 5)
+                          level = 5, ...)
 {
   center <- match.arg(center)
   if(level <= 0 | level >= 100)
@@ -469,7 +474,7 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
   restrict <- !is.na(match(pattern, names(pct)))
 
   if(epistasis)
-    pairloci <- qb.get(qbObject, "pairloci")
+    pairloci <- qb.get(qbObject, "pairloci", ...)
   else
     pairloci <- NULL
 
@@ -534,10 +539,14 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
   }
   else {
 
-    ## Find patterns that match each target.
+    ## Find patterns that match each target. Watch out for NULL.
     patterns <- unique(pattern)
     targets <- unique(pattern[restrict])
-    pattern.sumpat <- rep(targets, table(sumpat[, "niter"]))
+    tmp <- rep(0, length(targets))
+    tmp2 <- targets == "NULL"
+    if(any(!tmp2))
+      tmp[!tmp2] <- table(sumpat[, "niter"])
+    pattern.sumpat <- rep(targets, tmp)
    
     if(include == "nested") {
       matches <- qb.match.pattern(qbObject, targets = targets,
@@ -599,7 +608,7 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
   sumpat
 }
 #######################################################################
-find.splits <- function(qbObject, mainloci = qb.get(qbObject, "mainloci"))
+find.splits <- function(qbObject, mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
   grid <- pull.grid(qbObject, offset = TRUE)
   new.chr <- qb.chrsplit(grid, mainloci,
@@ -620,6 +629,8 @@ qb.BestPattern <- function(qbObject,
                            center = c("median","mean"),
                            level = 5, ...)
 {
+  qb.exists(qbObject)
+  
   include <- match.arg(include)
   center <- match.arg(center)
 
@@ -627,12 +638,12 @@ qb.BestPattern <- function(qbObject,
   score.type <- match.arg(score.type)
   signed <- FALSE
 
-  mainloci <- qb.get(qbObject, "mainloci")
+  mainloci <- qb.get(qbObject, "mainloci", ...)
   
   tmp <- qb.patterniter(qbObject, epistasis, category, cutoff, mainloci)
 
   sumpat <- qb.patternave(qbObject, epistasis, tmp$pattern, tmp$nqtl,
-                          tmp$pct, mainloci, include, center, level)
+                          tmp$pct, mainloci, include, center, level, ...)
 
   patterns <- attr(sumpat, "pattern")
   n.pat <- length(patterns)
@@ -640,13 +651,17 @@ qb.BestPattern <- function(qbObject,
   pct <- tmp$pct[patterns]
   niter <- names(nqtl)
 
-  ## Split patterns into list. Add attributes.
+  ## Split patterns into list. Add attributes. Be carefull about NULL.
   model <- split(data.frame(sumpat), sumpat[,"niter"])
-  names(model) <- patterns
-  best <- model[[which.max(pct)]]
+  names(model) <- patterns[patterns != "NULL"]
+  tmp <- which.max(pct)[1]
+  if(patterns[tmp] == "NULL")
+    best <- NULL
+  else
+    best <- model[[which.max(pct[patterns != "NULL"])]]
 
   conf <- split(data.frame(attr(sumpat, "conf")), sumpat[, "niter"])
-  names(conf) <- patterns
+  names(conf) <- patterns[patterns != "NULL"]
 
   ## Add confidence intervals and drop niter.
   for(i in names(model)) {
@@ -661,13 +676,15 @@ qb.BestPattern <- function(qbObject,
   score <- rep(qb.nulldist(NULL, signed, score.type)$score,
                length(nqtl))
   names(score) <- names(nqtl)
-  tmp <- c(qb.archdist(sumpat, best, FALSE, score.type)$score)
-  names(tmp) <- names(nqtl)[nqtl > 0]
-  score[names(tmp)] <- tmp
-  names(nqtl) <- names(score) <- patterns
+  if(!is.null(best)) {
+    tmp <- c(qb.archdist(sumpat, best, FALSE, score.type)$score)
+    names(tmp) <- names(nqtl)[nqtl > 0]
+    score[names(tmp)] <- tmp
+    names(nqtl) <- names(score) <- patterns
+  }
 
   ## Order model by score, then pct.
-  model <- model[order(-score, -pct)]
+  model <- model[order(-score[patterns != "NULL"], -pct[patterns != "NULL"])]
   ## Everthing else has its own order.
 
   out <- list(sumpat = sumpat, patterns = patterns, nqtl = nqtl, pct = pct,
@@ -684,6 +701,8 @@ qb.patterndist <- function(qbBestObject,
                            max.qtl = n.qtl,
                            use = c("complete","pairwise"), ...)
 {
+  ## Need to use special care with NULL pattern.
+  
   use <- match.arg(use)
   sumpat <- qbBestObject$sumpat
   signed <- attr(qbBestObject, "signed")
@@ -719,15 +738,9 @@ qb.patterndist <- function(qbBestObject,
   for(i in seq(n.pat - 1)) {
     if(qbBestObject$nqtl[i] > 0) {
       tmp <- sumpat[, "niter"] == qbBestObject$niter[i]
-      target <- sumpat[tmp, ]
-      if(sum(tmp) == 1)
-        target <- t(as.matrix(target))
-
-      if(any(!tmp)) {
-        sumpat <- sumpat[!tmp, ]
-        if(sum(!tmp) == 1)
-          sumpat <- t(as.matrix(sumpat))
-      }
+      target <- sumpat[tmp,, drop = FALSE]
+      if(any(!tmp))
+        sumpat <- sumpat[!tmp,, drop = FALSE]
       else
         sumpat <- NULL
     }
@@ -761,6 +774,7 @@ qb.patterndist <- function(qbBestObject,
     patdist[i.pat + seq(n.dist)] <- dist$score
     i.pat <- i.pat + n.dist
   }
+
   if(score.type == "attenuation" | score.type == "sq.atten")
     patdist <- 1 - patdist
 
@@ -814,7 +828,7 @@ plot.qb.BestPattern <- function(x, type = c("mds","hclust"),
                     "c@p" = paste(cluster, names(x$pct), sep = "@"),
                     "n@p" = paste(x$nqtl, names(x$pct), sep = "@"),
                     "c@n@p" = paste(cluster, x$nqtl, names(x$pct), sep = "@"))
-  
+
   switch(type,
          mds = {
            mds <- cmdscale(x$dist, eig = TRUE)
@@ -865,18 +879,25 @@ summary.qb.BestPattern <- function(object, method = "complete",
                             cluster = cutree(hc, k = cluster))[hc$order, ]
   out$summary <- out$summary[order(-out$summary$score, -out$summary$percent), ]
 
+  ## Need to use [patterns != "NULL"] below to get this right.
+  pattern.null <- names(object$pct) == "NULL"
   if(n.best == 1) {
     tmp <- which.max(object$score)[1]
-    out$best <- object$model[[tmp]]
+    if(pattern.null[tmp])
+      out$best <- NULL
+    else {
+      out$best <- object$model[[which.max(object$score[!pattern.null])]]
 
-    ## Reduce to significant digits.
-    out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")] <-
-      signif(out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")], 3)
-    out$best[, c("locus","locus.LCL","locus.UCL")] <-
-      signif(out$best[, c("locus","locus.LCL","locus.UCL")], 5)
+      ## Reduce to significant digits.
+      out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")] <-
+        signif(out$best[, c("n.qtl","variance","variance.LCL","variance.UCL")], 3)
+      out$best[, c("locus","locus.LCL","locus.UCL")] <-
+        signif(out$best[, c("locus","locus.LCL","locus.UCL")], 5)
+    }
   }
   else {
-    tmp <- order(-object$score)[seq(n.best)]
+    ## If picking more than one, skip over NULL pattern.
+    tmp <- order(-object$score[!pattern.null])[seq(min(n.best, sum(!pattern.null)))]
     out$best <- object$model[tmp]
 
     ## Reduce to significant digits.

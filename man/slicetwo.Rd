@@ -9,10 +9,10 @@ These routines refine QTL positions for epistatic pairs and show plots
 to reveal the nature of epistasis.
 }
 \usage{
-qb.slicetwo(qbObject, chr, pos, type.scan = "2logBF", width = 10)
+qb.slicetwo(qbObject, chr, pos, type.scan = "2logBF", width = 10, \dots)
 \method{summary}{qb.slicetwo}(object, \dots)
 \method{print}{qb.slicetwo}(x, \dots)
-\method{plot}{qb.slicetwo}(x, byrow = TRUE, figs, auto.par = TRUE, \dots)
+\method{plot}{qb.slicetwo}(x, byrow = TRUE, figs, auto.par = TRUE, col, lty, \dots)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,6 +28,7 @@ qb.slicetwo(qbObject, chr, pos, type.scan = "2logBF", width = 10)
       "effects", "cellmean", "effectplot")} is default.}
   \item{auto.par}{Automatic setting of plot parameters for multiple
     plots if \code{TRUE}.}
+  \item{col,lty}{colors and line types for cellmean and interaction plots}
   \item{\dots}{Extra plot options.}
 }
 \references{ \url{http://www.qtlbim.org} }

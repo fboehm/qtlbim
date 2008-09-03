@@ -20,15 +20,15 @@
 ## 
 ##############################################################################
 qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15,
-                              pairloci = qb.get(qbObject, "pairloci"))
+                              pairloci = qb.get(qbObject, "pairloci", ...), ...)
 {
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
     return(invisible(NULL))
   }
   geno.names <- qb.geno.names(qbObject)
-  percent <- rev(sort(table(interaction(geno.names[pairloci[, "chrom1"]],
-                                        geno.names[pairloci[, "chrom2"]]))))
+  percent <- rev(sort(table(paste(geno.names[pairloci[, "chrom1"]],
+                                  geno.names[pairloci[, "chrom2"]], sep = ":"))))
   percent <- 100 * percent / qb.niter(qbObject)
   percent <- percent[ percent >  cutoff ]
   if(length(percent) > nmax)
@@ -37,7 +37,7 @@ qb.pair.posterior <- function(qbObject, cutoff = 1, nmax = 15,
 }
 ##############################################################################
 qb.pair.nqtl <- function(qbObject, cutoff = 1,
-  pairloci = qb.get(qbObject, "pairloci"))
+  pairloci = qb.get(qbObject, "pairloci", ...), ...)
 {
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
@@ -50,11 +50,11 @@ qb.pair.nqtl <- function(qbObject, cutoff = 1,
   round(pairs[ pairs > cutoff ])
 }
 ##############################################################################
-qb.pairloci <- function(qbObject, chr)
+qb.pairloci <- function(qbObject, chr, ...)
 {
   qb.exists(qbObject)
   
-  pairloci <- qb.get(qbObject, "pairloci")
+  pairloci <- qb.get(qbObject, "pairloci", ...)
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
     return(invisible(NULL))
@@ -125,7 +125,7 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
 {
   qb.exists(qbObject)
   
-  pairloci <- qb.get(qbObject, "pairloci")
+  pairloci <- qb.get(qbObject, "pairloci", ...)
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
     return(invisible(NULL))
@@ -133,8 +133,8 @@ qb.epistasis <- function(qbObject, effects = c("aa","ad","da","dd"),
 
   ## Identify pairs of chromosomes with interacting QTL.
   geno.names <- qb.geno.names(qbObject)
-  inter <- interaction(geno.names[pairloci[, "chrom1"]],
-                       geno.names[pairloci[, "chrom2"]])
+  inter <- paste(geno.names[pairloci[, "chrom1"]],
+                 geno.names[pairloci[, "chrom2"]], sep = ":")
   post <- qb.pair.posterior(qbObject, cutoff, pairloci = pairloci)
   if(length(post) > maxpair)
     post <- post[seq(maxpair)]
@@ -208,10 +208,10 @@ plot.qb.epistasis <- function(x, effects = names(x)[-length(x)],
   }
 }
 ##############################################################################
-qb.chrom <- function(qbObject)
+qb.chrom <- function(qbObject, ...)
 {
   geno.names <- qb.geno.names(qbObject)
-  chrom <- c(table(geno.names[qb.get(qbObject, "mainloci")$chrom]))[geno.names]
+  chrom <- c(table(geno.names[qb.get(qbObject, "mainloci", ...)$chrom]))[geno.names]
   maplen <- unlist(lapply(pull.map(qb.cross(qbObject, genoprob = FALSE)),
                            function(x) diff(range(x))))
   niter <- qb.niter(qbObject)
@@ -227,9 +227,9 @@ qb.chrom <- function(qbObject)
   assess
 }
 ##############################################################################
-qb.pairs <- function(qbObject, cutoff = 1, nmax = 15)
+qb.pairs <- function(qbObject, cutoff = 1, nmax = 15, ...)
 {
-  pairloci <- qb.get(qbObject, "pairloci")
+  pairloci <- qb.get(qbObject, "pairloci", ...)
   if(is.null(pairloci)) {
     cat("no epistatic pairs\n")
     return(invisible(NULL))
@@ -237,8 +237,8 @@ qb.pairs <- function(qbObject, cutoff = 1, nmax = 15)
   npair <- qb.pair.nqtl(qbObject, cutoff, pairloci)
   niter <- qb.niter(qbObject)
   geno.names <- qb.geno.names(qbObject)
-  inter <- interaction(geno.names[pairloci[, "chrom1"]],
-                       geno.names[pairloci[, "chrom2"]])
+  inter <- paste(geno.names[pairloci[, "chrom1"]],
+                 geno.names[pairloci[, "chrom2"]], sep = ":")
   posterior <- rev(sort(table(inter))) / niter
   posterior <- posterior[ posterior > cutoff / 100 ]
   posterior[posterior > 1] <- 1

@@ -32,7 +32,7 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
                         weight = c("sqrt","count","none"),
                         split.chr = attr(qbObject, "split.chr"),
                         center.type = c("mode","mean","scan"),
-                        verbose = FALSE)
+                        verbose = FALSE, ...)
 {
   type.scans <- c("heritability","LPD","LR","deviance","detection",
              "variance","estimate","cellmean","count","log10",
@@ -42,7 +42,7 @@ qb.sliceone <- function(qbObject, slice, epistasis = TRUE,
 
   out <- qb.commonone(qbObject, "sliceone", slice, epistasis, scan, type.scan, covar,
                       adjust.covar, chr, sum.scan, min.iter, aggregate,
-                      smooth, weight, split.chr, center.type,, verbose)
+                      smooth, weight, split.chr, center.type,, verbose, ...)
   ## Somehow we lose the slice column in this.
   class(out) <- c("qb.sliceone", class(out))
   out
@@ -95,29 +95,30 @@ cellmean.plot <- function(x, col = cols, ..., scan, auto.par = TRUE)
       on.exit(par(tmpar))
     }
     cols <- c("blue","green")
-    plot.qb.scanone(x, ..., scan = c("AA","HA"),
-                    col = c("blue","purple"))
-    plot.qb.scanone(x, ..., scan = c("AH","HH"),
-                    col = c("blue","purple"))
+    names(col) <- scans <- c("AA","HA")
+    plot.qb.scanone(x, ..., scan = scans, col = col)
+    names(col) <- scans <- c("AH","HH")
+    plot.qb.scanone(x, ..., scan = scans, col = col)
   }
   else {
     if(auto.par) {
       tmpar <- par(mfcol=c(3,1), mar = c(4.1,4.1,3.1,0.1))
       on.exit(par(tmpar))
     }
-    plot.qb.scanone(x, ..., scan = c("AA","HA","BA"),
-                    col = c("blue","purple","red"))
-    plot.qb.scanone(x, ..., scan = c("AH","HH","BH"),
-                    col = c("blue","purple","red"))
-    plot.qb.scanone(x, ..., scan = c("AB","HB","BB"),
-                    col = c("blue","purple","red"))
+    cols <- c("blue","green","red")
+    names(col) <- scans <- c("AA","HA","BA")
+    plot.qb.scanone(x, ..., scan = scans, col = col)
+    names(col) <- scans <- c("AH","HH","BH")
+    plot.qb.scanone(x, ..., scan = scans, col = col)
+    names(col) <- scans <- c("AB","HB","BB")
+    plot.qb.scanone(x, ..., scan = scans, col = col)
   }
 }
 ######################################################
-qb.slicetwo <- function(qbObject, chr, pos, type.scan = "2logBF", width = 10)
+qb.slicetwo <- function(qbObject, chr, pos, type.scan = "2logBF", width = 10, ...)
 {
   qb.exists(qbObject)
-  if(is.null(qb.get(qbObject, "pairloci")))
+  if(is.null(qb.get(qbObject, "pairloci", ...)))
     stop("slicetwo not possible without epistasis")
   
   qb.name <- deparse(substitute(qbObject))
@@ -139,7 +140,7 @@ qb.slicetwo <- function(qbObject, chr, pos, type.scan = "2logBF", width = 10)
                                  start = pos[3-i] - width,
                                  end = pos[3-i] + width),
                                sum.scan = "no",
-                               type.scan = type.scan, scan = "epistasis")
+                               type.scan = type.scan, scan = "epistasis", ...)
     
     ## Slice of Cockerham parameter estimates.
     tmp <- qb.sliceone(qbObject, chr=chr[i],
@@ -147,7 +148,7 @@ qb.slicetwo <- function(qbObject, chr, pos, type.scan = "2logBF", width = 10)
                          start = pos[3-i] - width,
                          end = pos[3-i] + width),
                        type.scan = "estimate", scan = "epistasis",
-                       aggregate = FALSE, sum.scan = "no")
+                       aggregate = FALSE, sum.scan = "no", ...)
     
     ## Slice of Cell means.
     tmp2 <-
@@ -155,21 +156,18 @@ qb.slicetwo <- function(qbObject, chr, pos, type.scan = "2logBF", width = 10)
                slice=c(chr=chr[3-i],
                  start = pos[3-i] - width,
                  end = pos[3-i] + width),
-               type.scan = "cellmean", sum.scan = "no")
+               type.scan = "cellmean", sum.scan = "no", ...)
 
     vars <- names(tmp)[-(1:2)]
     vars <- vars[-length(vars)]
     cells <- names(tmp2)[-(1:2)]
     attrs <- attributes(slice[[ii]])
-    slice[[ii]] <- cbind(slice[[ii]][,c("chr","pos","epistasis")],
-                             tmp[, vars, drop = FALSE],
-                             tmp2[, cells, drop = FALSE])
-    names(slice[[ii]]) <- c("chr","pos", attrs$type.scan, vars, cells)
-    ## We messed up the attributes. Reassign them (carefully).
-    for(j in names(attrs))
-      if(is.null(attr(slice[[ii]], j)))
-        attr(slice[[ii]], j) <- attrs[[j]]
-    class(slice[[ii]]) <- attrs$class
+    slice[[ii]]$slice <- NULL
+    names(slice[[ii]])[3] <- attr(slice[[ii]], "type.scan")
+    for(i in vars)
+      slice[[ii]][[i]] <- tmp[[i]]
+    for(i in cells)
+      slice[[ii]][[i]] <- tmp2[[i]]
 
     ## Set up metadata needed for summary, plot.
     attr(slice[[ii]], "type.scans") <- c(obj = attr(slice[[ii]], "type.scan"),
@@ -205,6 +203,7 @@ print.qb.slicetwo <- function(x, ...) print(summary(x, ...))
 plot.qb.slicetwo <- function(x, byrow = TRUE,
                              figs = fig.options,
                              auto.par = TRUE,
+                             col = cols, lty = 1,
                              ...)
 {
   ## Just fixed this problem with summary.qb.scanone
@@ -221,13 +220,15 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
   if(is.bc) {
     scans <- c("AA","AH","HA","HH")
     cols <- c("blue","purple","green","red")
-    names(cols) <- scans
+    col <- array(col, 4)
+    names(col) <- scans
   }
   else {
     scans <- list(A = c("AA","HA","BA"),
                   H = c("AH","HH","BH"),
                   B = c("AB","HB","BB"))
     cols <- c("blue","purple","red")
+    col <- array(col, 3)
     names(cols) <- names(scans)
   }
   fig.options <- c("profile", "effects", "cellmean", "effectplot")
@@ -286,16 +287,14 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
       attr(slice.object, "scan") <- attr(x[[ii]], "scans")[[3]]
       attr(slice.object, "reference") <- attr(x[[ii]], "refs")[3]
       if(is.bc) {
-        if(epistasis) {
-          plot(slice.object, scan = scans[c(1,i+1,4-i,4)],
-               col = cols[c(1,i+1,4-i,4)],
-               main = paste(type.scan, chrbychr))
-        }
-        else {
-          plot(slice.object, scan = scans[c(1,4)],
-               col = cols[c(1,4)],
-               main = paste(type.scan, chrbychr))
-        }
+        index <- if(epistasis)
+          c(1,i+1,4-i,4)
+        else
+          c(1,4)
+        ltys <- array(lty, 4)
+        plot(slice.object, scan = scans[index],
+             col = col[index], lty = ltys[index],
+             main = paste(type.scan, chrbychr))
         abline(v = pos[i], lty = 2, col = "red")
       }
       else {
@@ -304,8 +303,8 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
           tmp <- "A"
         for(j in tmp) {
           if(epistasis)
-            names(cols) <- paste(tmp, j, sep = "")
-          plot(slice.object, scan = scans[[j]], col = cols,
+            names(col) <- paste(tmp, j, sep = "")
+          plot(slice.object, scan = scans[[j]], col = col,
                main = paste(type.scan,
                  ifelse(epistasis, paste("slice =", j), ""),
                  chrbychr))
@@ -314,7 +313,10 @@ plot.qb.slicetwo <- function(x, byrow = TRUE,
       }
     }
     if(is.effectplot) {
-      effectplot(cross, attr(x, "pheno.col"),
+      cols <- col
+      if(is.bc)
+        cols <- col[c(1, length(col))]
+      effectplot(cross, attr(x, "pheno.col"), col = cols,
                  mname1 = markers[i], mname2 = markers[3-i],
                  main = paste("interaction plot", chrbychr))
     }

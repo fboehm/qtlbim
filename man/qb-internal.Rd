@@ -1,4 +1,4 @@
-\name{qb.get}
+\name{qb-internal}
 \alias{covar.mean}
 \alias{pull.grid}
 \alias{pull.loci}
@@ -15,17 +15,17 @@
   namespace for technical use.
 }
 \usage{
-covar.mean(qbObject, adjust.covar, verbose = FALSE)
+covar.mean(qbObject, adjust.covar, verbose = FALSE, pheno.col)
 pull.grid(qbObject, offset, spacing, mask.region, cross, step,
   off.end, stepwidth, \dots)
 pull.loci(cross, step, off.end, stepwidth, region)
 qb.cross(qbObject, genoprob = TRUE, \dots)
 qb.cross.class(qbObject)
 qb.demo()
-qb.get(qbObject, element, pheno.id = 1, warn = TRUE, \dots)
+qb.get(qbObject, element, pheno.col, warn = TRUE, \dots)
 qb.load(cross, qbObject, dir, file)
 qb.save(cross, qbObject, dir, Name)
-qb.reorder(qbObject, warn = FALSE)
+qb.reorder(qbObject, warn = FALSE, pheno.col)
 }
 \arguments{
   \item{qbObject}{Object of class \code{qb}.}
@@ -51,7 +51,7 @@ qb.reorder(qbObject, warn = FALSE)
     \code{\link{qb.model}} or \code{\link{qb.mcmc}}, or it is one of the
     MCMC sample files in \code{output.dir}, from \code{c("iterdiag",
       "mainloci", "pairloci", "covariates", "gbye")}.}
-  \item{pheno.id}{Numeric or character identifier for phenotype. Useful
+  \item{pheno.col}{Numeric or character identifier for phenotype. Useful
     eventually for multiple traits.}
   \item{warn}{Warn user if \code{qbObject} is legacy format if \code{TRUE}.}
   \item{dir}{Character string name of directory for load if \code{qbObject}

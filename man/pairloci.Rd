@@ -9,7 +9,7 @@ Summaries and detailed scatterplot showing all MCMC samples for
 epistatic pairs for selected chromosomes.
 }
 \usage{
-qb.pairloci(qbObject, chr)
+qb.pairloci(qbObject, chr, \dots)
 \method{plot}{qb.pairloci}(x, main, cex = 0.75, \dots )
 \method{print}{qb.pairloci}(x, \dots )
 \method{summary}{qb.pairloci}(object, \dots )

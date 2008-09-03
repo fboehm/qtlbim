@@ -37,7 +37,6 @@ int CHL;           // max number of grids
 //*****************************************************************************************
 // these parameters are passed from R function bmq.mcmc
 
-double *Y;             // phenotypic data
 int CATEGORY;          // 1: normal data; 2: binary data; 3:ordinal data
 int CN;                // Categories # for binary or ordinal data
 
@@ -92,45 +91,10 @@ double W_MAIN;          // prior for main effect indicator
 double W_EPISTASIS;     // prior for epistatic effect indicator
 double W_GBYE;          // prior for g by e indicator
 
-double  **VMAIN;         // prior variance of main effects
-double ****VEPISTASIS;    // prior variance of epistatic effects
-double ***V_GBYE_FIX;    // prior variance of g-by-e effects
-
-double  *VMAIN1;         // prior variance of main effects
-double **VEPISTASIS1;    // prior variance of epistatic effects
-double **V_GBYE_FIX1;    // prior variance of g-by-e effects
-
-//*********************************************************************************
-// genetic model parameters
-
-double AMU;             // overall mean
-double *VE;              // residual variance
-double  **MAIN;         // main effects
-double ****EPISTATIC;   // epistatic effects
-
-double *GVALUE;         // genotypic valyes
-int **GENO;             // QTL genotypes
-double ***COEF;         // coefficients of QTL main effects
 
 //*********************************************************************************
 // QTL positions, genetic effects indicators
-
-int *QLOC;             // QTL position indicators, position is GRID[QCHR[L]][QLOC[L]] 
-int *QCHR;             // chromosomes that QTL locate
-int *CHRQTL;           // QTL number at each chromosome 
-
-int *GAMMA;            // QTL indicators
-int *GAMMA_MAIN;       // main effects indicators
-int **GAMMA_EPISTASIS; // epistatic effects indicators 
-
-//**********************************************************************************
-// environmental covariate parameters
-
-double  *FIX;         // effects of fixed covariates 
-double  **RAN;        // effects of random covariates
-double  *VRAN;        // variances of random covariates
-double ***GBYE_FIX;   // interactions of QTL main effects and fixed covariates
-double  **GAMMA_GBYE; // g-by-e indicators
+int *CHRQTL;           // QTL number at each chromosome
 
 //**********************************************************************************
 
@@ -143,14 +107,13 @@ double  *X;
 
 //**********************************************************************************
 
+double *CENSOR_LO;
+double *CENSOR_HI;   
+
 char iterfile[100];
 char pairfile[100];
 char mainfile[100];
 char gbyefile[100];
 char covfile[100];
 char devfile[100];
-
-//**********************************************************************************
-
-double *CENSOR_LO;
-double *CENSOR_HI;   
+char sigmafile[100];

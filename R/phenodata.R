@@ -19,31 +19,50 @@
 
 ##############################################################################
 qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"),
-                      censor = NULL, 
+                      censor = NULL,  
+                      
                       fixcov = c(0),rancov = c(0), 
                       boxcox = FALSE, standardize = FALSE, ... )                   
 {
   trait <- match.arg(trait)
+
+  if(is.character(pheno.col))
+    pheno.col <- find.pheno(cross, pheno.col)
+  if(is.character(fixcov))
+    fixcov <- find.pheno(cross, fixcov)
+  if(is.character(rancov))
+    rancov <- find.pheno(cross, rancov)
   
   qb.valid.phenoData(cross,pheno.col,trait,fixcov,rancov,censor)
   
-  yvalue = cross$pheno[,pheno.col]
+  yvalue = as.matrix(cross$pheno[,pheno.col])
+multiple.trait <- FALSE; multiple.type <- c("Traditional","SUR"); if(multiple.trait){
+   trait="normal"
+  } else 
 
   lamda = NULL
-  if( boxcox & ( length(yvalue[yvalue>0])!=length(yvalue) | trait!="normal" ) )
-    stop("The boxcox transformation cannot be used for this data")
-  if(boxcox & trait=="normal") {
-     require("MASS")
-     if( length(yvalue[yvalue>0])==length(yvalue) ) {   
-         BC = boxcox(yvalue ~ 1)
-         lamda = BC$x[ which.max(BC$y) ] 
-         if(lamda != 0) yvalue = (yvalue^lamda - 1)/lamda
-         else
-             yvalue = log10(yvalue)
-     }
+  if(boxcox)
+  {
+   lamda=rep(NA,length(pheno.col)) 
+   for(i in 1:length(pheno.col))
+   {
+      if(length(yvalue[yvalue[,i]>0,i])!=length(yvalue[,i]) | trait!="normal" ) 
+        warning(paste("The boxcox transformation cannot be used for",names(cross$pheno[pheno.col])[i]))
+      else {
+         require("MASS")
+             BC = boxcox(yvalue[,i] ~ 1)
+             lamda[i] = BC$x[ which.max(BC$y) ] 
+             if(lamda[i] != 0) yvalue[,i] = (yvalue[,i]^lamda[i] - 1)/lamda[i]
+             else
+                 yvalue[,i] = log10(yvalue[,i])
+       }
+     }  
   }
   if(standardize & trait=="normal")
-    yvalue = (yvalue - mean(yvalue, na.rm=T))/sd(yvalue, na.rm=T)
+  {
+  for(i in 1:length(pheno.col))
+    yvalue[,i] = (yvalue[,i] - mean(yvalue[,i], na.rm=T))/sd(yvalue[,i], na.rm=T)
+   } 
   ## Change missing to 999.
   yvalue[is.na(yvalue)] = 999
   ## Change infinite to 999
@@ -111,7 +130,7 @@ qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"
 
   data = list( pheno.col=pheno.col, yvalue=yvalue, trait=trait, censor=censor, ncategory=ncategory, 
                envi=envi, nfixcov=nfixcov, nrancov=nrancov, fixcoef=fixcoef, rancoef=rancoef, nran=nran, 
-               boxcox=boxcox, lamda=lamda, standardize=standardize,
+        boxcox=boxcox,boxcox.lambda=lamda, standardize=standardize,multiple.trait=multiple.trait,
                covar = c(fixcov, rancov) ) 
   gc()
   data
@@ -125,7 +144,7 @@ qb.data <- function( cross, pheno.col = 1, trait = c("normal","binary","ordinal"
 qb.valid.phenoData<-function(cross,pheno.col,trait,fixcov,rancov,censor){
     if(class(cross)[2] != "cross")
      stop("The first input variable is not an object of class cross",call.= FALSE)
-    if(is.na(as.integer(pheno.col)))
+    if(any(is.na(as.integer(pheno.col))))
      stop("Phenotype column should be an integer",call.=FALSE)
     if(length(na.omit(as.integer(fixcov)))<length(fixcov))
      stop("Fixed covariate column id should be a valid integer",call.=FALSE)

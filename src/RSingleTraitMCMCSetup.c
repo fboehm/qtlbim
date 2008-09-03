@@ -1,19 +1,16 @@
-
-
-//********************************************************************
-
-#include <stdio.h>
-#include <time.h>
-#include <math.h>
+#include "GlobalVars.h"
+#include "GlobalVars_SingleTrait.h"
+#include "RInterfaces.h"
+#include "SingleTraitMCMC.h"
 
 #include <R.h>
 #include <Rmath.h>
 #include <R_ext/Random.h>
 #include <R_ext/Utils.h>
 
-#include "GlobalVars.h"
-#include "RInterfaces.h"
-#include "SingleTraitMCMC.h"
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
 
 //***************************************************************************
 void RSingleTraitMCMCSetup(int *nind,int *nchr,int *ngen, int *nloci,double *loci,double *prob,

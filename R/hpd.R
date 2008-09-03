@@ -52,7 +52,7 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
 
   ## Get grid of pseudomarkers.
   grid <- pull.grid(qbObject, offset = TRUE)
-  niter <- unclass(table(qb.inter(qbObject, grid)))
+  niter <- unclass(table(qb.inter(qbObject, grid, ...)))
 
   ## Reduce to subset of chromosomes if given in ...
   tmp <- list(...)

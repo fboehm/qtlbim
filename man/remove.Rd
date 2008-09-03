@@ -12,7 +12,7 @@
   \code{qb} objects.
 }
 \usage{
-qb.legacy(qbObject, remove = FALSE)
+qb.legacy(qbObject, remove = FALSE, \dots)
 qb.remove(qbObject, verbose = TRUE, external.only = FALSE)
 qb.recover(cross, traitName, output.dir, n.thin = 40, n.burnin,
   algorithm = "M-H", genoupdate = FALSE, \dots)

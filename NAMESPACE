@@ -49,6 +49,11 @@ export(anova.step.fitqtl)
 export(sim.data)
 export(step.fitqtl)
 
+
+
+
+
+
 ## The following have S3 methods:
 export(plot.qb)
 
@@ -62,7 +67,6 @@ export(qb.covar)
 export(qb.diag)
 export(qb.epimodes)
 export(qb.epistasis)
-#export(qb.fdrone)
 export(qb.hpdone)
 export(qb.loci)
 export(qb.mainmodes)
@@ -82,6 +86,7 @@ export(qb.varcomp)
 
 S3method(qb.arch, default)
 S3method(qb.arch, step.fitqtl)
+S3method(qb.arch, qb.BestPattern)
 
 S3method(anova, step.fitqtl)
 
@@ -110,6 +115,8 @@ S3method(print, qb.BestPattern)
 S3method(summary, qb.BestPattern)
 S3method(print, summary.qb.BestPattern)
 
+
+
 S3method(plot, qb.confound)
 S3method(print, qb.confound)
 S3method(summary, qb.confound)
@@ -126,9 +133,6 @@ S3method(plot, qb.epistasis)
 S3method(print, qb.epistasis)
 S3method(summary, qb.epistasis)
 
-#S3method(plot, qb.fdrone)
-#S3method(print, qb.fdrone)
-#S3method(summary, qb.fdrone)
 
 S3method(plot, qb.hpdone)
 S3method(print, qb.hpdone)

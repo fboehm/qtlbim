@@ -10,7 +10,7 @@ architectures are to target architecture.
 \usage{
 qb.close(qbObject, target = NULL, epistasis = TRUE, signed = FALSE,
   score.type = c("sq.atten","attenuation","variance","recombination",
-  "distance"))
+  "distance"), \dots)
 \method{plot}{qb.close}(x, category = c("pattern", "nqtl"), xlab,
   cutoff, sort.pattern = c("percent","score"), \dots)
 \method{summary}{qb.close}(object, cutoff, digits = 0,
