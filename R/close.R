@@ -245,7 +245,8 @@ qb.splititer <- function(mainloci, pairloci = NULL, splits)
       out[tmp, "variance"] <- out[tmp, "variance"] + pair.var
     }
   }
-  out$chrom <- ordered(splits[chr.pos], unique(splits))
+  tmp <- levels(splits)
+  out$chrom <- ordered(tmp[out$chrom], tmp)
   out
 }
 #####################################################################

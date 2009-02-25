@@ -21,7 +21,12 @@ qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
   \item{qbObject}{An object of class \code{qb}.}
   \item{object}{Object of class \code{qb.BayesFactor}.}
   \item{x}{Object of class \code{qb.BayesFactor}.}
-  \item{items}{Items to include in model selection assessment.}
+  \item{items}{Items to include in model selection assessment. These are
+    \code{nqtl} = Number of QTLs;
+    \code{pattern} = Pattern of QTL across chromosomes as
+    comma-separated chromosome numbers and colon-separated chromosome pairs;
+    \code{chrom} = Chromosome;
+    \code{pairs} = Epistatic pairs of chromosomes.}
   \item{cutoff.pattern}{Percent cutoff for pattern inclusion in model
     selection. Default is 0.25 (0.5) if \code{epistasis} is \code{TRUE}
     (\code{FALSE}).} 
@@ -43,13 +48,7 @@ qb.BayesFactor(qbObject, items = c("nqtl","pattern","chrom","pairs"),
   model selection.  The Bayes factors are computed relative to the
   smallest term for each item, using the ratios of
   \code{posterior/prior}. Any pair of model terms can be compared as the
-  ratio of their Bayes factors. The \code{items} evaluated are:
-  \item{nqtl}{Number of QTLs.}
-  \item{pattern}{Pattern of QTL across chromosomes. Identifiers are
-    comma-separated chromosome numbers, with asterisk \code{n*} for
-    multiple QTL per chromosome.}
-  \item{chrom}{Chromosome.}
-  \item{pairs}{Epistatic pairs of chromosomes.}
+  ratio of their Bayes factors.
 }
 \value{
   List with \code{items}, each containing:

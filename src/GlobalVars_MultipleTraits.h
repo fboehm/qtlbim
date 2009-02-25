@@ -1,4 +1,5 @@
-/** @brief This file holds all the variables that are differently dimensioned for the multiple traits code.
+/** 
+@brief This file holds all the variables that are differently dimensioned for the multiple traits code.
  *  
  * @note None of the global variables in this file have been extern-ed. This is so that they do not conflict with
  * similarly named single-trait versions of these variables that have different dimensions.

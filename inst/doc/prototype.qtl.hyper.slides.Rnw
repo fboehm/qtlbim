@@ -233,7 +233,6 @@ cross.sub <- subset(cross, chr = unique(cross.arch$qtl$chr))
 n.draws
 cross.sub <- sim.geno(cross.sub, n.draws=n.draws, step=2, error=0.01)
 qtl <- makeqtl(cross.sub, as.character(cross.arch$qtl$chr), cross.arch$qtl$pos)
-cross.sub <- clean(cross.sub)
 @
 \end{frame}
 

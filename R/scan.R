@@ -19,12 +19,21 @@
 ## Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ##
 ##############################################################################
+## Need to watch out for extra digits in locus when matching up with grid.
+join.chr.pos <- function(chrom, locus, digits = 10)
+  paste(chrom, signif(locus, digits), sep = ":")
+make.chr.pos <- function(chrom, locus,
+                         level.chrom = chrom, level.locus = locus,
+                         levels = unique(join.chr.pos(level.chrom,
+                           level.locus, ...)),
+                         ...)
+  ordered(join.chr.pos(chrom, locus, ...), levels)
+##############################################################################
 qb.inter <- function(qbObject, x = pull.grid(qbObject, offset = TRUE),
                      mainloci = qb.get(qbObject, "mainloci", ...), ...)
 {
   ## Create identifier of chrom.locus from mainloci into pseudomarker grid.
-  inter <- ordered(paste(mainloci[, "chrom"], mainloci[, "locus"], sep = ":"),
-                   paste(x[, 1], x[, 2], sep = ":"))
+  inter <- make.chr.pos(mainloci[, "chrom"], mainloci[, "locus"], x[, 1], x[, 2])
   tmp <- is.na(inter)
   if(any(tmp)) {
     stop(paste("qb.scanone or qb.sliceone mismatch with grid:\n", sum(tmp),
@@ -329,18 +338,13 @@ qb.scanepis <- function(x, type.scan, is.bc, scans, scan.save, n.iter, bf.prior,
                           "2logBF", "BF", "nqtl")
 
   ## Index for epistasis.
-  epinter <- c(paste(pairloci[, "niter"],
-                     pairloci[, "chrom1"], pairloci[, "locus1"], sep = ":"),
-               paste(pairloci[, "niter"],
-                     pairloci[, "chrom2"], pairloci[, "locus2"], sep = ":"))
-  if(type.scan == "nqtl") {
-    nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"], sep = ":"),
-                   paste(pairloci[, "niter"], pairloci[, "chrom2"], sep = ":"))
-  }
-  tmp <- !duplicated(epinter)
-  epinter <- ordered(epinter, epinter[tmp])
+  nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"], sep = ":"),
+                 paste(pairloci[, "niter"], pairloci[, "chrom2"], sep = ":"))
+  epinter <- make.chr.pos(nqtl.pair,
+                          c(pairloci[, "locus1"], pairloci[, "locus2"]))
+
   ## epii identifies mainloci with epistatic pairs.
-  epii <- match(epinter[tmp],
+  epii <- match(unique(epinter),
                 paste(mainloci[, "niter"], inter, sep = ":"),
                 nomatch = 0)
 
@@ -1415,14 +1419,13 @@ qb.get.epis <- function(mainloci, pairloci, inter)
     return(NULL)
   
   ## Epistasis counter.
-  epinter <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"],
-                     pairloci[, "locus1"], sep = ":"),
-               paste(pairloci[, "niter"], pairloci[, "chrom2"],
-                     pairloci[, "locus2"], sep = ":"))
-  tmp <- !duplicated(epinter)
-  epinter <- ordered(epinter, epinter[tmp])
+  nqtl.pair <- c(paste(pairloci[, "niter"], pairloci[, "chrom1"], sep = ":"),
+                 paste(pairloci[, "niter"], pairloci[, "chrom2"], sep = ":"))
+  epinter <- make.chr.pos(nqtl.pair,
+                          c(pairloci[, "locus1"], pairloci[, "locus2"]))
+
   ## epii identifies mainloci with epistatic pairs.
-  epii <- match(epinter[tmp],
+  epii <- match(unique(epinter),
                 paste(mainloci[, "niter"], inter, sep = ":"),
                 nomatch = 0)
   tmp <- rep(0, length(inter))
@@ -1590,7 +1593,6 @@ qb.to.scanone <- function(x,
   mainloci <- x$mainloci
 
   ## Subset to selected chromosomes.
-#  chr <- qb.find.chr(chr = chr, geno.names = geno.names)
   chr.sub <- grid$chr %in% chr
   grid <- grid[chr.sub, ]
   mainloci <- mainloci[mainloci$chrom %in% chr, ]
@@ -2580,7 +2582,7 @@ qb.scantwo.smooth <- function(x, chr = NULL, smooth = 3, gridtwo, ...)
   weight <- attr(x, "weight")
 
   ## Force getting of 2-D sampling grid as well.
-  i.lower <- paste(gridtwo[3,], gridtwo[4, ], sep = ":")
+  i.lower <- gridtwo[3:4,]
 
   gridone <- x$grid
   mainloci <- x$mainloci
@@ -2611,10 +2613,10 @@ qb.scantwo.smooth <- function(x, chr = NULL, smooth = 3, gridtwo, ...)
   nmap <- sum(chr.sub)
 
   ## Get indices into lod matrix.
-  tmp <- unclass(ordered(paste(gridtwo[1,], gridtwo[2, ], sep = ":"),
-                         paste(gridone$chr, gridone$map, sep = ":")))
-  i.lower <- unclass(ordered(i.lower,
-                             paste(gridone$chr, gridone$map, sep = ":")))
+  tmp <- unclass(make.chr.pos(gridtwo[1,], gridtwo[2, ],
+                            gridone$chr, gridone$map))
+  i.lower <- unclass(make.chr.pos(i.lower[1,], i.lower[2,],
+                                gridone$chr, gridone$map))
   i.upper <- tmp + (i.lower - 1) * nmap
   i.lower <- i.lower + (tmp - 1) * nmap
   chr.sub2 <- !is.na(i.lower)

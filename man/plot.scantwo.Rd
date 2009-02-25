@@ -52,14 +52,14 @@ on the image.
 A non-null \code{slice} yields a 1-D view of the 2-D surface. The plots
 for slices use \code{\link[qtl]{plot.scantwo}}. The elements of the slice
 vector are:
-\item{chr}{Chromosome number to slice on.}
-\item{upper}{Focus on upper triangle of 2-D if \code{TRUE}.}
-\item{start}{Start position in chromosome \code{chr} (default = 0).}
-\item{end}{End position in chromosome \code{chr} (default = end of
-  chromosome).} 
-\item{weight}{Type of weighted mean across \code{chr} by number of MCMC
+\code{chr} = Chromosome number to slice on;
+\code{upper} = Focus on upper triangle of 2-D if \code{TRUE};
+\code{start} = Start position in chromosome \code{chr} (default = 0);
+\code{end} = End position in chromosome \code{chr} (default = end of
+  chromosome);
+\code{weight} = Type of weighted mean across \code{chr} by number of MCMC
   samples: 0 = unweigthed; 1 = uniform weighting; 2 = position-specific
-  weighting (default).}
+  weighting (default).
 }
 
 \references{ \url{http://www.qtlbim.org} }

@@ -689,12 +689,17 @@ subset.qb <- function(x, nqtl = 1, pattern = NULL, exact = FALSE, chr,
   
   ## Subset of regions in chromosomes.
   sub$region <- qb.get(x, "region")
+  cross.map <- pull.map(cross)
+  if(is.null(sub$region)) {
+    tmp <- names(cross.map)
+    sub$region <- data.frame(chr = ordered(tmp, tmp),
+                             start = sapply(cross.map, min),
+                             end = sapply(cross.map, max))
+  }
   if (!missing(region)) {
     region <- as.list(region)
     region$chr <- qb.find.chr(x, region$chr, cross = cross, sort.chr = FALSE)
     iters <- rep(TRUE, length(unique(mainloci$niter)))
-    if (!offset)
-      cross.map <- pull.map(cross)
     for(i in seq(length(region$chr))) {
       if (!offset) {
         region$start[i] <- region$start[i] + cross.map[[region$chr[i]]][1]
@@ -1252,9 +1257,11 @@ pull.loci <- function(cross,
   }
   loci <- lapply(cross$geno, tmpfn, step, off.end, stepwidth)
   if(!is.null(region)) {
-    for(i in region$chr)
-      loci[[i]] <- loci[[i]][loci[[i]] >= region$start[i] - 0.1 &
-                             loci[[i]] <= region$end[i] + 0.1]
+    for(i in region$chr) {
+      tmp <- (loci[[i]] >= region[i, "start"] - 0.1 &
+              loci[[i]] <= region[i, "end"] + 0.1)
+      loci[[i]] <- loci[[i]][tmp]
+    }
   }
   class(loci) <- "map"
   loci
@@ -1289,8 +1296,7 @@ pull.grid <- function (qbObject, offset = FALSE, spacing = FALSE,
   }
 
   ## Construct grid object with chr as first column.
-  grid <- data.frame(chr = rep(seq(grid.map), len),
-                     row.names = paste("c", names(pos), sep = ""))
+  grid <- data.frame(chr = rep(seq(grid.map), len))
 
   if (spacing) {
     ## If spacing, add columns for map (=pos), eq.spacing, xchr.
@@ -1320,5 +1326,10 @@ pull.grid <- function (qbObject, offset = FALSE, spacing = FALSE,
     ## Otherwise second column is pos.
     grid$pos <- pos
   }
+
+  ## Return grid points that are unique after roundoff.
+  tmp <- !duplicated(join.chr.pos(grid[, 1], grid[, 2]))
+  grid <- grid[tmp, ]
+  row.names(grid) <- paste("c", names(pos)[tmp], sep = "")
   grid
 }
