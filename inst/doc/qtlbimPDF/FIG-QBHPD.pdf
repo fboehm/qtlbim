@@ -2,10 +2,10 @@
 %Å‚Å„ÅœÅ”\r
 1 0 obj
 <<
-/CreationDate (D:20090227122524)
-/ModDate (D:20090227122524)
+/CreationDate (D:20090321170119)
+/ModDate (D:20090321170119)
 /Title (R Graphics Output)
-/Producer (R 2.9.0)
+/Producer (R 2.8.1)
 /Creator (R)
 >>
 endobj
@@ -71,7 +71,7 @@ S
 Q q 0.00 252.00 504.00 252.00 re W n
 BT
 0.000 0.000 0.000 rg
-/F3 1 Tf 14.00 0.00 -0.00 14.00 156.07 476.65 Tm [(2logBF of bp f) 20 (or sum+epistasis+main)] TJ
+/F3 1 Tf 14.00 0.00 -0.00 14.00 156.07 476.65 Tm (2logBF of bp for sum+epistasis+main) Tj
 ET
 BT
 /F2 1 Tf 12.00 0.00 -0.00 12.00 244.79 256.32 Tm (Chromosome) Tj
@@ -689,7 +689,7 @@ S
 Q q
 BT
 0.000 0.000 0.000 rg
-/F2 1 Tf 8.00 0.00 -0.00 8.00 209.65 270.72 Tm [(sum=b) 20 (lack, epistasis=pur) -30 (ple) 15 (, main=b) 20 (lue)] TJ
+/F2 1 Tf 8.00 0.00 -0.00 8.00 209.65 270.72 Tm (sum=black, epistasis=purple, main=blue) Tj
 ET
 Q q 59.04 311.04 443.52 148.32 re W n
 1.000 0.000 0.000 RG
@@ -764,7 +764,7 @@ S
 Q q 0.00 0.00 504.00 252.00 re W n
 BT
 0.000 0.000 0.000 rg
-/F3 1 Tf 14.00 0.00 -0.00 14.00 204.51 224.65 Tm [(cellmean of bp f) 20 (or H+A)] TJ
+/F3 1 Tf 14.00 0.00 -0.00 14.00 204.51 224.65 Tm (cellmean of bp for H+A) Tj
 ET
 BT
 /F2 1 Tf 12.00 0.00 -0.00 12.00 244.79 4.32 Tm (Chromosome) Tj
@@ -1226,7 +1226,7 @@ S
 Q q
 BT
 0.000 0.000 0.000 rg
-/F2 1 Tf 8.00 0.00 -0.00 8.00 249.69 18.72 Tm [(H=pur) -30 (ple) 15 (, A=b) 20 (lue)] TJ
+/F2 1 Tf 8.00 0.00 -0.00 8.00 249.69 18.72 Tm (H=purple, A=blue) Tj
 ET
 Q q 59.04 59.04 443.52 148.32 re W n
 0.745 0.745 0.745 RG
@@ -1243,7 +1243,7 @@ Q
 endstream
 endobj
 7 0 obj
-21069
+21005
 endobj
 3 0 obj
 <<
@@ -1290,14 +1290,14 @@ xref
 0000000000 65535 f 
 0000000021 00000 n 
 0000000163 00000 n 
-0000021435 00000 n 
-0000021518 00000 n 
+0000021371 00000 n 
+0000021454 00000 n 
 0000000212 00000 n 
 0000000292 00000 n 
-0000021414 00000 n 
-0000021610 00000 n 
-0000021867 00000 n 
-0000021963 00000 n 
+0000021350 00000 n 
+0000021546 00000 n 
+0000021803 00000 n 
+0000021899 00000 n 
 trailer
 <<
 /Size 11
@@ -1305,5 +1305,5 @@ trailer
 /Root 2 0 R
 >>
 startxref
-22065
+22001
 %%EOF

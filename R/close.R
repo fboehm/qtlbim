@@ -110,6 +110,7 @@ qb.archdist <- function(sample, target = NULL, signed = FALSE,
     target$chrom <- ordered(target$chrom, unique(as.character(target$chrom)))
     ## Need to consider matrix of rows[ii], cols[chr == chr[i]].
     ## If more than one, then need to sort out their interplay.
+    ## NB: This crashes if there are any missing values in target or sample.
     for(chri in levels(target[, "chrom"])) {
       ii <- target[, "chrom"] == chri
       n.ii <- sum(ii)
@@ -230,23 +231,23 @@ qb.splititer <- function(mainloci, pairloci = NULL, splits)
   names(out)[4] <- "variance"
   var.names <- grep("^var", names(mainloci))
   out$variance <- apply(as.matrix(mainloci[, var.names]), 1, sum)
-  chr.pos <- paste(out$chrom, out$locus, sep = ":")
+  chr.pos <- join.chr.pos(out$chrom, out$locus)
   if(!is.null(pairloci)) if(nrow(pairloci)) {
     index <- paste(out$niter, chr.pos, sep = ":")
     var.names <- grep("^var", names(pairloci))
     pair.var <- apply(as.matrix(pairloci[, var.names]), 1, sum) / 2
 
     for(i in 1:2) {
-      index1 <- paste(pairloci[, "niter"],
-                      pairloci[, paste("chrom", i, sep = "")],
-                      pairloci[, paste("locus", i, sep = "")],
-                      sep = ":")
+      index1 <- join.chr.pos(paste(pairloci[, "niter"],
+                                   pairloci[, paste("chrom", i, sep = "")],
+                                   sep = ":"),
+                             pairloci[, paste("locus", i, sep = "")])
       tmp <- match(index1, index)
       out[tmp, "variance"] <- out[tmp, "variance"] + pair.var
     }
   }
   tmp <- levels(splits)
-  out$chrom <- ordered(tmp[out$chrom], tmp)
+  out$chrom <- ordered(splits[chr.pos], tmp)
   out
 }
 #####################################################################
@@ -369,7 +370,7 @@ summary.qb.close <- function(object,
   ## Summarize score on most common subset.
   tmp <- !is.na(match(tmp2, names(pct)))
   tmp2 <- tmp2[tmp]
-  out[[3]] <- cbind(Percent = round(pct, 1),
+  out[[3]] <- cbind(Percent = signif(pct, 3),
                     tmpfn(object$score[tmp], tmp2)[names(pct), ])
   
   names(out) <- c(paste("target for score", attr(object, "score.type")),
@@ -565,6 +566,7 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
     ## Following will NOT get multiples in targets properly. Too bad.
     ## You can finess this by first splitting chromosomes.
 
+    tmpfn2 <- function(x, n) { ifelse(is.null(x), NA, x[n]) }
     for(i in targets) {
       chrs <- strsplit(i, ",", fixed = TRUE)[[1]]
       chrs <- chrs[chrs %in% splits]
@@ -580,9 +582,9 @@ qb.patternave <- function(qbObject, epistasis = TRUE, pattern, nqtl, pct,
 
         tmp2 <- tapply(itersi[, j], splitsi, quantile, level)
         conf[pattern.sumpat == i, paste(j, "LCL", sep = ".")][tmp > 0] <-
-          unlist(sapply(tmp2, function(x) x[1])[tmp])
+          unlist(sapply(tmp2, tmpfn2, 1)[tmp])
         conf[pattern.sumpat == i, paste(j, "UCL", sep = ".")][tmp > 0] <-
-          unlist(sapply(tmp2, function(x) x[2])[tmp])
+          unlist(sapply(tmp2, tmpfn2, 2)[tmp])
 
         if(j == "locus") {
           tmp2 <- c(table(splitsi))
@@ -614,7 +616,7 @@ find.splits <- function(qbObject, mainloci = qb.get(qbObject, "mainloci", ...), 
   grid <- pull.grid(qbObject, offset = TRUE)
   new.chr <- qb.chrsplit(grid, mainloci,
                          split.chr = qb.get(qbObject,"split.chr"))$chr
-  names(new.chr) <- paste(grid$chr, grid$pos, sep = ":")
+  names(new.chr) <- join.chr.pos(grid$chr, grid$pos)
   new.chr
 }
 #######################################################################
