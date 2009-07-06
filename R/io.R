@@ -475,7 +475,7 @@ qb.get.legacy <- function(qbObject, element,
                       step = step,
                       off.end = defaults$off.end,
                       stepwidth = defaults$stepwidth,
-                      warn = warn, ...)
+                      warn = warn, drop.duplicates = FALSE, ...)
     chrpos <- paste(grid$chr,
                     unlist(apply(as.matrix(table(grid$chr)), 1,
                                  function(x) {
@@ -519,7 +519,7 @@ qb.remove <- function(qbObject, verbose = TRUE, external.only = FALSE)
   if (any(dirname(tmp) != system.file("external", package = "qtlbim"))) {
     if (verbose)
       warning(paste("Removing external director", ifelse(length(tmp) == 1, "y ", "ies "),
-                    paste(tmp, collapse = ", ")),
+                    paste(tmp, collapse = ", "),sep=""),
               call. = FALSE, immediate. = TRUE)
     for(i in tmp)
       unlink(i, recursive = TRUE)
@@ -1273,6 +1273,7 @@ pull.grid <- function (qbObject, offset = FALSE, spacing = FALSE,
                        step = qb.get(qbObject, "step"),
                        off.end = qb.get(qbObject, "off.end"),
                        stepwidth = qb.get(qbObject, "stepwidth"),
+                       drop.duplicates = TRUE,
                        ...) 
 {
   ## Pull grid map of loci.
@@ -1327,9 +1328,14 @@ pull.grid <- function (qbObject, offset = FALSE, spacing = FALSE,
     grid$pos <- pos
   }
 
-  ## Return grid points that are unique after roundoff.
-  tmp <- !duplicated(join.chr.pos(grid[, 1], grid[, 2]))
-  grid <- grid[tmp, ]
-  row.names(grid) <- paste("c", names(pos)[tmp], sep = "")
+  if(drop.duplicates) {
+    ## Return grid points that are unique after roundoff.
+    tmp <- !duplicated(join.chr.pos(grid[, 1], grid[, 2]))
+    grid <- grid[tmp, ]
+    row.names(grid) <- paste("c", names(pos)[tmp], sep = "")
+  }
+  else
+    row.names(grid) <- paste("c", names(pos), sep = "")
+  
   grid
 }

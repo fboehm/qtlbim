@@ -17,7 +17,7 @@
 \usage{
 covar.mean(qbObject, adjust.covar, verbose = FALSE, pheno.col)
 pull.grid(qbObject, offset, spacing, mask.region, cross, step,
-  off.end, stepwidth, \dots)
+  off.end, stepwidth, drop.duplicates, \dots)
 pull.loci(cross, step, off.end, stepwidth, region)
 qb.cross(qbObject, genoprob = TRUE, \dots)
 qb.cross.class(qbObject)
@@ -38,6 +38,7 @@ qb.reorder(qbObject, warn = FALSE, pheno.col)
   \item{step}{Argument to \code{\link[qtl]{create.map}}.}
   \item{off.end}{Argument to \code{\link[qtl]{create.map}}.}
   \item{stepwidth}{Argument to \code{\link[qtl]{create.map}}.}
+  \item{drop.duplicates}{Drop duplicate chr.pos after roundoff if \code{TRUE}.}
   \item{region}{Argument to \code{\link[qtl]{create.map}}.}
   \item{genoprob}{Compute genotype probabilities with
     \code{\link{qb.genoprob}} if \code{TRUE}.}

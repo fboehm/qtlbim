@@ -2,10 +2,10 @@
 %Å‚Å„ÅœÅ”\r
 1 0 obj
 <<
-/CreationDate (D:20090321170036)
-/ModDate (D:20090321170036)
+/CreationDate (D:20090706123134)
+/ModDate (D:20090706123134)
 /Title (R Graphics Output)
-/Producer (R 2.8.1)
+/Producer (R 2.10.0)
 /Creator (R)
 >>
 endobj
@@ -71,7 +71,7 @@ S
 Q q
 BT
 0.000 0.000 0.000 rg
-/F3 1 Tf 14.00 0.00 -0.00 14.00 141.67 253.45 Tm (2logBF of bp for sum+epistasis+main) Tj
+/F3 1 Tf 14.00 0.00 -0.00 14.00 141.67 253.45 Tm [(2logBF of bp f) 20 (or sum+epistasis+main)] TJ
 ET
 BT
 /F2 1 Tf 12.00 0.00 -0.00 12.00 230.39 18.72 Tm (Chromosome) Tj
@@ -683,13 +683,13 @@ S
 Q q
 BT
 0.000 0.000 0.000 rg
-/F2 1 Tf 8.00 0.00 -0.00 8.00 195.25 33.12 Tm (sum=black, epistasis=purple, main=blue) Tj
+/F2 1 Tf 8.00 0.00 -0.00 8.00 195.25 33.12 Tm [(sum=b) 20 (lack, epistasis=pur) -30 (ple) 15 (, main=b) 20 (lue)] TJ
 ET
 Q
 endstream
 endobj
 7 0 obj
-10907
+10942
 endobj
 3 0 obj
 <<
@@ -735,15 +735,15 @@ xref
 0 11
 0000000000 65535 f 
 0000000021 00000 n 
-0000000163 00000 n 
-0000011273 00000 n 
-0000011356 00000 n 
-0000000212 00000 n 
-0000000292 00000 n 
-0000011252 00000 n 
-0000011448 00000 n 
-0000011705 00000 n 
-0000011801 00000 n 
+0000000164 00000 n 
+0000011309 00000 n 
+0000011392 00000 n 
+0000000213 00000 n 
+0000000293 00000 n 
+0000011288 00000 n 
+0000011484 00000 n 
+0000011741 00000 n 
+0000011837 00000 n 
 trailer
 <<
 /Size 11
@@ -751,5 +751,5 @@ trailer
 /Root 2 0 R
 >>
 startxref
-11903
+11939
 %%EOF

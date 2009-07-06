@@ -10,7 +10,7 @@ components, non-epistatic variance components.
 \usage{
 qb.scanone(qbObject, epistasis = TRUE, scan, type.scan, covar, adjust.covar,
   chr, sum.scan = "yes", min.iter = 1, aggregate = TRUE, smooth = 3,
-  weight = c("sqrt","count","none"), split.chr,
+  weight = c("sqrt","count","none","atten","ratten"), split.chr,
   center.type = c("mode","mean","scan"), half = FALSE, verbose = FALSE, \dots)
 }
 \arguments{

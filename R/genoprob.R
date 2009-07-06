@@ -29,7 +29,8 @@ qb.genoprob <- function(cross, map.function = map.functions, step = 2,
   map.function <- match.arg(tolower(map.function[1]), map.function)
 
   ## First make sure QTL are not too close.
-  if(any(sapply(pull.map(cross), function(x) max(diff(x))) < tolerance))
+  if(any(sapply(pull.map(cross), function(x)
+                ifelse(length(x) > 1, max(diff(x)) < tolerance, FALSE))))
     cross <- jittermap(cross, tolerance)
   
   ## Call R/qtl routine calc.genoprob for calculations.

@@ -12,7 +12,7 @@ Generic summary and plot can be used for display.
 \usage{
 qb.sliceone(qbObject, slice, epistasis = TRUE, scan, type.scan, covar,
   adjust.covar, chr, sum.scan = "yes", min.iter = 1,
-  aggregate = TRUE, smooth = 3, weight = c("sqrt","count","none"),
+  aggregate = TRUE, smooth = 3, weight = c("sqrt","count","none","atten","ratten"),
   split.chr, center.type = c("mode","mean","scan"), verbose = FALSE, \dots)
 \method{summary}{qb.sliceone}(object, chr, \dots)
 \method{print}{qb.sliceone}(x, \dots)

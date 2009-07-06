@@ -1,6 +1,6 @@
 Package: qtlbim
-Version: 1.9.3
-Date: 2009-03-21
+Version: 1.9.4
+Date: 2009-07-06
 Author: Brian S. Yandell <yandell@stat.wisc.edu> and Nengjun Yi
         <nyi@ms.soph.uab.edu>, with contributions from Tapan Mehta,
         Samprit Banerjee, Daniel Shriner and Ramprasad Venkataraman
@@ -12,6 +12,6 @@ Maintainer: Brian S. Yandell <yandell@stat.wisc.edu>
 Depends: stats, qtl (>= 1.9.43), lattice, coda, tools, MASS
 License: GPL (>= 2)
 URL: http://www.qtlbim.org
-Packaged: Sat Mar 21 17:01:37 2009; yandell
+Packaged: 2009-07-06 17:32:07 UTC; yandell
 Repository: CRAN
-Date/Publication: 2009-03-22 17:20:26
+Date/Publication: 2009-07-18 16:14:11

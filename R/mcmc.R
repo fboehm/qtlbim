@@ -198,10 +198,8 @@ output = output.dir( qbDir = mydir, traitName = allTraits[pheno] )	# set up a di
 
   ## calculate pD and DIC for model comparison
   deviances = read.table( file = paste(output,"/deviance.dat",sep="") )
-  pD1 = mean(deviances[1:n.iter,1],na.rm=TRUE) - deviances[n.iter+1,1]
-  pD2 = 0.5*var(deviances[1:n.iter,1],na.rm=TRUE)
-  DIC1 = mean(deviances[1:n.iter,1],na.rm=TRUE) + pD1
-  DIC2 = mean(deviances[1:n.iter,1],na.rm=TRUE) + pD2
+  pD = mean(deviances[1:n.iter,1],na.rm=TRUE) - deviances[n.iter+1,1]
+  DIC = mean(deviances[1:n.iter,1],na.rm=TRUE) + pD
 
   ## create an object qb
   qb = c(cross.name = cross.name,
@@ -212,10 +210,8 @@ output = output.dir( qbDir = mydir, traitName = allTraits[pheno] )	# set up a di
     n.burnin = n.burnin,
     algorithm = algorithm, 
     genoupdate = genoupdate,
-    pD1 = pD1,
-    pD2 = pD2,
-    DIC1 = DIC1,
-    DIC2 = DIC2,
+    pD = pD,
+    DIC = DIC,
     step = attr(cross$geno[[1]]$prob, "step"),
     seed = seed,
     verbose = verbose,

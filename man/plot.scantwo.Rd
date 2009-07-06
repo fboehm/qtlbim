@@ -7,7 +7,7 @@ Plots joint LOD for chromosomes on a two dimensional grid.
 \usage{
 \method{plot}{qb.scantwo}(x, chr, smooth = 3, main, offset,
   nodiag, slice = NULL, show.locus = TRUE,
-  weight = c("sqrt","count","none"), verbose = FALSE,
+  weight = c("sqrt","count","none","atten","ratten"), verbose = FALSE,
   split.chr, \dots)
 }
 
@@ -35,7 +35,7 @@ Plots joint LOD for chromosomes on a two dimensional grid.
 The scantwo object being plotted.
 }
 \details{
-The \code{offset} is used only if \code{\line{qb.scantwo}} used
+The \code{offset} is used only if \code{\link{qb.scantwo}} used
 \code{type} = "estimate" to make values for plotting all
 non-negative. Values are rescaled by \code{offset} so that the origin is
 at 1 and, by default, the min and max are at 0 and 2, respectively, for

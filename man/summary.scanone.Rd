@@ -12,7 +12,7 @@ Summary of a qb.scanone or qb.scantwo object.
 \method{summary}{qb.scantwo}(object, chr, threshold = 0,
   sort = "no", which.pos = "upper", min.iter,
   refine = FALSE, width = 10, smooth = 3, n.qtl = 0.05,
-  weight = c("sqrt","count","none"), \dots)
+  weight = c("sqrt","count","none","atten","ratten"), \dots)
 \method{print}{summary.qb.scantwo}(x, digits = 3, \dots)
 }
 
@@ -33,8 +33,9 @@ Summary of a qb.scanone or qb.scantwo object.
   \item{n.qtl}{Minimum number of estimated QTL per chromosome or
     chromosome pair.}
   \item{weight}{Weights to use for nearest neighbor
-    smoothing. \code{sqrt} is square root of count per locus. Used only
-    if \code{smooth} > 0.}
+    smoothing. \code{sqrt} is square root of count per
+    locus. \code{atten} and \code{ratten} are attenuation based on
+    \code{(1-2r)}. Used only if \code{smooth} > 0.}
   \item{digits}{Significant digits to round with print.}
   \item{\dots}{Additional arguments for multiple linked loci (see details).}
 }

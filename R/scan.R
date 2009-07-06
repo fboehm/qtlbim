@@ -22,6 +22,7 @@
 ## Need to watch out for extra digits in locus when matching up with grid.
 join.chr.pos <- function(chrom, locus, digits = 10)
   paste(chrom, signif(locus, digits), sep = ":")
+##  paste(chrom, locus, sep = ":")
 make.chr.pos <- function(chrom, locus,
                          level.chrom = chrom, level.locus = locus,
                          levels = unique(join.chr.pos(level.chrom,
@@ -440,7 +441,7 @@ qb.scanone <- function(qbObject, epistasis = TRUE,
                        min.iter = 1,
                        aggregate = TRUE,
                        smooth = 3,
-                       weight = c("sqrt","count","none"),
+                       weight = c("sqrt","count","none","atten","ratten"),
                        split.chr = qb.get(qbObject, "split.chr"),
                        center.type = c("mode","mean","scan"),
                        half = FALSE,
@@ -491,7 +492,7 @@ qb.commonone <- function(qbObject,
                          min.iter = 1,
                          aggregate = TRUE,
                          smooth = 3,
-                         weight = c("sqrt","count","none"),
+                         weight = c("sqrt","count","none","atten","ratten"),
                          split.chr = qb.get(qbObject, "split.chr"),
                          center.type = c("mode","mean","scan"),
                          half = FALSE,
@@ -955,7 +956,7 @@ qb.commonone <- function(qbObject,
     if(is.slice)
       scan <- dimnames(x$one)[[2]]
 
-    x <- qb.to.scanone(x, chr, smooth, scan.save, weight, split.chr,
+    x <- qb.to.scanone(x, chr, smooth, scan.save, weight[1], split.chr,
                        center.type)
     if(is.slice)
       attr(x, "slice") <- slice
@@ -1572,7 +1573,7 @@ qb.to.scanone <- function(x,
                           chr = NULL,
                           smooth = 3,
                           scan = dimnames(x$one)[[2]],
-                          weight = c("sqrt","count","none"),
+                          weight = c("sqrt","count","none","atten","ratten"),
                           split.chr = attr(x, "split.chr"),
                           center.type = c("mode","mean","scan"),
                           ...)
@@ -1662,7 +1663,7 @@ qb.smoothchr <- function(x, smooth, niter, reference = 0, weight = "sqrt")
          count = {w <- niter},
          none = {w <- rep(1, length(x))},
          sqrt =, {w <- sqrt(niter)})
-
+  
   nmap <- length(x)
   re.na <- is.na(x)
   x[re.na] <- reference
@@ -1671,7 +1672,7 @@ qb.smoothchr <- function(x, smooth, niter, reference = 0, weight = "sqrt")
     for(i in seq(smooth)) {
       wtlod <- w * x
       x <- wtlod[c(1, seq(nmap - 1))] + wtlod[c(seq(2, nmap), nmap)]
-
+      
       ## Double weight at observation if not zero.
       if(any(o))
         x[o] <- x[o] + 2 * wtlod[o]
@@ -1686,14 +1687,36 @@ qb.smoothchr <- function(x, smooth, niter, reference = 0, weight = "sqrt")
   x
 }
 ##############################################################################
-qb.smoothone <- function(x, grid, smooth, niter, reference = 0, weight = "sqrt")
+make.atten <- function(pos, smooth, weight)
+{
+  wt <- exp(-as.matrix(dist(pos)) / smooth)
+  if(weight == "ratten") {
+    ## Use weight matrix as sqrt of distances.
+    wt <- svd(wt)
+    wt <- wt$u %*% diag(sqrt(wt$d)) %*% t(wt$v)
+  }
+  t(apply(wt, 1, function(x,y) x / y, apply(wt, 2, sum)))
+}
+qb.smoothone <- function(x, grid, smooth, niter, reference = 0,
+                         weight = "sqrt")
 {
   if(smooth) {
+    ## Attenuation smoothes using distance (assumes 3 as default).
+    ## Rescales to 100 * cM.
+    if(weight %in% c("atten","ratten"))
+      smooth <- smooth * 2 / 3
     for(chr in unique(grid$chr)) {
       rows <- chr == grid$chr
-      if(sum(rows))
-        x[rows] <- qb.smoothchr(x[rows], smooth, niter[rows], reference,
-                                weight)
+      if(sum(rows)) {
+        if(weight %in% c("atten","ratten")) {
+          ## This approach ignores niter, which might be important.
+          wt <- make.atten(grid[rows, 2], smooth, weight)
+          x[rows] <- matrix(x[rows], 1) %*% wt
+        }
+        else
+          x[rows] <- qb.smoothchr(x[rows], smooth, niter[rows], reference,
+                                  weight)
+      }
     }
   }
   x
@@ -2220,6 +2243,7 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   else
     scan.one <- scan$lower[unlist(apply(as.matrix(var1),1,grep,scan$lower))]
   qb.scan <- list(two = accum)
+  grid <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
   if(length(scan.one)) {
     if(verbose)
       cat("qb.scanone on diagonal with", paste(scan.one, collapse = ","),
@@ -2232,10 +2256,10 @@ qb.scantwo <- function(qbObject, epistasis = TRUE,
   else {
     if(verbose)
       cat("diagonal set to zero\n")
-    qb.scan$one <- rep(0, nrow(pull.grid(qbObject)))
+    qb.scan$one <- rep(0, nrow(grid))
   }
 
-  qb.scan$grid <- pull.grid(qbObject, offset = TRUE, spacing = TRUE)
+  qb.scan$grid <- grid
   qb.scan$iterdiag <- iterdiag
   qb.scan$mainloci <- mainloci
   qb.scan$pairloci <- pairloci
@@ -2269,7 +2293,7 @@ summary.qb.scantwo <- function(object,
                                min.iter = attr(object, "min.iter"),
                                refine = FALSE, width = 10, smooth = 3,
                                n.qtl = 0.05,
-                               weight = c("sqrt","count","none"),
+                               weight = c("sqrt","count","none","atten","ratten"),
                                ...)
 {
   ## new intertwo needs to be checked out
@@ -2663,7 +2687,7 @@ plot.qb.scantwo <- function(x,
                             nodiag = all(diag(x2$lod) == 0),
                             slice = NULL,
                             show.locus = TRUE,
-                            weight = c("sqrt","count","none"),
+                            weight = c("sqrt","count","none","atten","ratten"),
                             verbose = FALSE,
                             split.chr = attr(x, "split.chr"),
                             ...)
@@ -2787,109 +2811,156 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
                          offdiag = 0.5, weight = "sqrt", ...)
 {
   ## Weighted average of x.
-  switch(weight,
-         count = {w <- nitertwo},
-         none = {w <- array(1, dim(nitertwo))},
-         sqrt =, {w <- sqrt(nitertwo)})
+  ## Use either local weighting or attenuated weighting.
+  smooth1 <- smooth
+  is.atten <- weight %in% c("atten","ratten")
+  if(is.atten) {
+    ## Rescale smooth (default 3 changed to 10) for sqrt attenuation.
+    ## Smoothing should probably depend on niter.
+    ## Should smoothing be weighted by niterone?
+    if(weight == "ratten")
+      smooth <- smooth * 4
+    smoothpair <- function(x, smooth, w, w2 = w, offdiag)
+      qb.smoothcM(x, w, w2)
+  }
+  else {
+    switch(weight,
+           count = {w <- nitertwo},
+           none = {w <- array(1, dim(nitertwo))},
+           sqrt =, {w <- sqrt(nitertwo)})
+    
+    smoothpair <- function(x, smooth, w, w2 = NULL, offdiag)
+      qb.smoothpair(x, smooth, w, offdiag)
+  }
   
   if(smooth) {
-    if(offdiag < 0)
-      offdiag <- 0
-    if(offdiag > 1)
-      offdiag <- 1
-    
-    smoothtwo <- function(x, smooth, w) {
-      n.map <- dim(x)
-      if(min(n.map) > 3) {
-        nr <- n.map[1]
-        nc <- n.map[2]
-        o <- (x != 0)
-        for(i in seq(smooth)) {
-          ## Set up numerator = weighted sum of xs.
-          wt <- w * x
-          x <- (wt[, c(1, seq(nc - 1))] +
-                wt[, c(seq(2, nc), nc)] +
-                wt[c(1, seq(nr - 1)), ] +
-                wt[c(seq(2, nr), nr), ])
-          if(offdiag)
-            x <- x + offdiag *
-              (wt[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
-               wt[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
-               wt[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
-               wt[c(seq(2, nr), nr), c(1, seq(nc - 1))])
-          
-          if(any(o))
-            x[o] <- (x + 4 * (1 + offdiag) * wt)[o]
-          
-          ## Now get denominator = sum of weights.
-          wt <- (w[, c(1, seq(nc - 1))] +
-                 w[, c(seq(2, nc), nc)] +
-                 w[c(1, seq(nr - 1)), ] +
-                 w[c(seq(2, nr), nr), ])
-          if(offdiag)
-            wt <- wt + offdiag *
-              (w[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
-               w[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
-               w[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
-               w[c(seq(2, nr), nr), c(1, seq(nc - 1))])
-          ## Off-diagonal elements.
-          if(any(o))
-            wt[o] <- (wt + 4 * (1 + offdiag) * w)[o]
-          x <- x / wt
-          x[is.na(x)] <- 0
-        }
-      }
-      x
-    }
-    smoothtwo.same <- function(x, smooth, w) {
-      ## Smooth upper and lower half of x, leaving diagonal unchanged.
-      is.upper <- row(x) > col(x)
-      is.lower <- row(x) < col(x)
-
-      ## Make mat symmetric using lower triangle.
-      tmpfn <- function(x, smooth, w, is.upper) {
-        tmpfn2 <- function(x) {
-          mat <- x
-          mat[is.upper] <- t(x)[is.upper]
-          diagmat <- mat[row(mat) == 1 + col(mat)]
-          ndiag <- length(diagmat)
-          diag(mat) <- (diagmat[c(1, seq(ndiag))] +
-                        diagmat[c(seq(ndiag), ndiag)]) / 2
-          mat
-        }
-        smoothtwo(tmpfn2(x), smooth, tmpfn2(w))
-      }
-      x[is.lower] <- tmpfn(x, smooth, w, is.upper)[is.lower]
-      x[is.upper] <- t(tmpfn(t(x), smooth, t(w), is.upper))[is.upper]
-      x
-    }
-    chrs <- unique(grid$chr)
+    chrs <- as.character(unique(grid$chr))
     n.chr <- length(chrs)
-    if(n.chr == 1)
-      x <- smoothtwo.same(x, smooth, w)
+    offdiag <- min(1, max(0, offdiag))
+    if(is.atten)
+      wts <- list()
+    if(n.chr == 1) {
+      if(is.atten)
+        wts[[chrs[1]]] <- make.atten(grid[, 2], smooth, weight)
+      x <- qb.smoothsame(x, smooth,
+                         if(is.atten) wts[[chrs[1]]]
+                         else w,
+                         offdiag, smoothpair)
+    }
     else {
       for(i in seq(n.chr)) {
-        ## process diagonal matrix.
         rows <- chrs[i] == grid$chr
         if(sum(rows)) {
-          x[rows,rows] <- smoothtwo.same(x[rows,rows], smooth,
-                                         w[rows,rows])
+          ## Set up attenuation weights if used.
+          if(is.atten) {
+            if(is.null(wts[[chrs[i]]]))
+              wts[[chrs[i]]] <- make.atten(grid[rows, 2], smooth, weight)
+          }
+          ## Diagonal matrices.
+          x[rows,rows] <- qb.smoothsame(x[rows,rows], smooth,
+                                        if(is.atten) wts[[chrs[i]]]
+                                        else w[rows,rows],
+                                        offdiag, smoothpair)
+          
+          ##*** This is in transistion from grid to wts.
           ## Now off diagonal matrices.
           if(i < n.chr) for(j in seq(i + 1, n.chr)) {
             cols <- chrs[j] == grid$chr
             if(sum(cols)) {
+              if(is.atten) {
+                if(is.null(wts[[chrs[j]]]))
+                  wts[[chrs[j]]] <- make.atten(grid[cols, 2], smooth, weight)
+              }
               ## Lower triangle matrix.
-              x[rows,cols] <- smoothtwo(x[rows,cols], smooth,
-                                        w[rows,cols])
+              x[rows,cols] <- smoothpair(x[rows,cols], smooth,
+                                         if(is.atten) wts[[chrs[i]]]
+                                         else w[rows,cols],
+                                         if(is.atten) wts[[chrs[j]]]
+                                         else NULL,
+                                         offdiag)
               ## Upper triangle matrix.
-              x[cols,rows] <- smoothtwo(x[cols,rows], smooth,
-                                        w[cols,rows])
+              x[cols,rows] <- smoothpair(x[cols,rows], smooth,
+                                         if(is.atten) wts[[chrs[j]]]
+                                         else w[cols,rows],
+                                         if(is.atten) wts[[chrs[i]]]
+                                         else NULL,
+                                         offdiag)
             }
           }
         }
       }
     }
-    diag(x) <- qb.smoothone(diag(x), grid, smooth, niterone, weight = weight)
+    diag(x) <- qb.smoothone(diag(x), grid, smooth1, niterone, weight = weight)
   }
+  x
+}
+qb.smoothcM <- function(x, wt1, wt2)
+{
+  ## Smooth by attenuating with cM distance between loci.
+  t(wt1) %*% x %*% wt2
+}
+qb.smoothpair <- function(x, smooth, w, offdiag = 0.5)
+{
+  n.map <- dim(x)
+  if(min(n.map) > 3) {
+    nr <- n.map[1]
+    nc <- n.map[2]
+    o <- (x != 0)
+    for(i in seq(smooth)) {
+      ## Set up numerator = weighted sum of xs.
+      wt <- w * x
+      x <- (wt[, c(1, seq(nc - 1))] + wt[, c(seq(2, nc), nc)] +
+            wt[c(1, seq(nr - 1)), ] + wt[c(seq(2, nr), nr), ])
+      if(offdiag > 0)
+        x <- x + offdiag *
+          (wt[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
+           wt[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
+           wt[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
+           wt[c(seq(2, nr), nr), c(1, seq(nc - 1))])
+      
+      if(any(o))
+        x[o] <- (x + 4 * (1 + offdiag) * wt)[o]
+      
+      ## Now get denominator = sum of weights.
+      wt <- (w[, c(1, seq(nc - 1))] + w[, c(seq(2, nc), nc)] +
+             w[c(1, seq(nr - 1)), ] + w[c(seq(2, nr), nr), ])
+      if(offdiag > 0)
+        wt <- wt + offdiag *
+          (w[c(1, seq(nr - 1)), c(1, seq(nc - 1))] +
+           w[c(1, seq(nr - 1)), c(seq(2, nc), nc)] +
+           w[c(seq(2, nr), nr), c(seq(2, nc), nc)] +
+           w[c(seq(2, nr), nr), c(1, seq(nc - 1))])
+      ## Off-diagonal elements.
+      if(any(o))
+        wt[o] <- (wt + 4 * (1 + offdiag) * w)[o]
+      x <- x / wt
+      x[is.na(x)] <- 0
+    }
+  }
+  x
+}
+qb.smoothsame <- function(x, smooth, w, offdiag = 0.5,
+                          pairfun = smoothpair)
+{
+  ## Smooth upper and lower half of x, leaving diagonal unchanged.
+  is.upper <- row(x) > col(x)
+  is.lower <- row(x) < col(x)
+  
+  ## Make mat symmetric using mirror of lower triangle.
+  tmpfn <- function(x, smooth, w, is.upper) {
+    tmpfn2 <- function(x) {
+      mat <- x
+      mat[is.upper] <- t(x)[is.upper]
+      ##*** Diagonal is not working properly, at least for atten.
+      diagmat <- mat[row(mat) == 1 + col(mat)]
+      ndiag <- length(diagmat)
+      diag(mat) <- (diagmat[c(1, seq(ndiag))] +
+                    diagmat[c(seq(ndiag), ndiag)]) / 2
+      mat
+    }
+    pairfun(tmpfn2(x), smooth, tmpfn2(w),, offdiag)
+  }
+  x[is.lower] <- tmpfn(x, smooth, w, is.upper)[is.lower]
+  x[is.upper] <- t(tmpfn(t(x), smooth, t(w), is.upper))[is.upper]
   x
 }
