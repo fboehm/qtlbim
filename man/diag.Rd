@@ -26,7 +26,7 @@ qb.diag(qbObject, items= c("mean","envvar","var","herit"), \dots)
 }
 \details{
   Model-averaged density is smooth kernel estimate similar to ordinary
-  histogram. A \code{\link[base]{boxplot}} (without outliers) is
+  histogram. A \code{\link[graphics]{boxplot}} (without outliers) is
   overlaid for comparison   with conditional boxplots. Conditional
   boxplots by number of QTL may   show   indication of model bias for
   small number of QTL. This and  \code{\link{qb.BayesFactor}} can help

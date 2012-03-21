@@ -96,7 +96,7 @@ qb.reorder(qbObject, warn = FALSE, pheno.col)
   \code{qb.save} and \code{qb.load} are depricated. They were used to
   save and retrieve MCMC 
   samples used in examples and vignettes. We now use
-  \code{\link[base]{save}} and \code{\link[base]{data}}.
+  \code{\link[base]{save}} and \code{\link[utils]{data}}.
 }
 \examples{
 data(qbExample)

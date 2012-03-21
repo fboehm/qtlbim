@@ -19,7 +19,8 @@ double Determinant(double **a,int n)
 
    if (n < 1) { 
    Rprintf("\n Major error in C program's determinant function");
-   exit(1);
+   return(det); /* exit(1); not allowed here */
+
    } else if (n == 1) { /* Shouldn't get used */
       det = a[0][0];
    } else if (n == 2) {

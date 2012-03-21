@@ -24,14 +24,14 @@ qb.loci(qbObject, loci = c("main", "epistasis", "GxE"), covar, \dots)
   \item{x}{Object of class \code{qb.loci}.}
   \item{object}{Object of class \code{qb.loci}.}
   \item{labels}{Include marker labels if TRUE.}
-  \item{amount}{Amount of \code{\link[graphics]{jitter}} (between 0 and .45)}
+  \item{amount}{Amount of \code{\link[base]{jitter}} (between 0 and .45)}
   \item{cex}{Character expansion (may be invisible if too
     small--default based on number of MCMC samples).}
   \item{col}{Character string with colors named by \code{loci}; also
     includes color for \code{marker} lines.}
   \item{digit}{Number of digits for roundoff of loci quantiles.}
   \item{\dots}{Graphical parameters can be given as arguments to
-    \code{\link[base]{plot}}. Not used in \code{qb.loci}.} 
+    \code{\link[graphics]{plot}}. Not used in \code{qb.loci}.} 
 }
 \details{
   Focuses attention on chromosome lengths and concentration of QTL loci

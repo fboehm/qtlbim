@@ -24,7 +24,7 @@ qb.inter.pleiotropy <- function(qbObject,n.pheno)
  tmp = vector(mode="list",length=n.pheno)
  for(i in 1:n.pheno)
  {
-  mainloci <- qb.get(qbObject, "mainloci",pheno=i)
+  mainloci <- qb.get(qbObject, "mainloci", pheno.col = i)
 tmp[[i]]=paste(mainloci[, "niter"],paste(mainloci[, "chrom"], mainloci[, "locus"], sep = ":"),sep="->")
  }
 
@@ -80,7 +80,7 @@ qb.pleiotropy <- function(qbObject,scan = "main",
  main.val=vector(mode="list",length=n.pheno)
     for(i in 1:n.pheno)
     {
-      mainloci = qb.get(qbObject,"mainloci",pheno=i)
+      mainloci = qb.get(qbObject,"mainloci", pheno.col = i)
       main.val[[i]] = mainloci[,element]
      } 
 

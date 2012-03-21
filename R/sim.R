@@ -103,24 +103,24 @@ if(is.vector(qtl.epis)) qtl.epis = t(as.matrix(qtl.epis))
         r <- 0.5*(1-exp(-2*d/100))  # we only consider Haldane distance
         rbar <- 1-r
         if(type=="bc") {
-           data[ ,1] <- sample(1:2,n.ind,repl=TRUE)
+           data[ ,1] <- sample(1:2, n.ind, replace = TRUE)
            if(n.mar[i] > 1) {
               for (j in 1:(n.mar[i]-1)) {
-                  rec <- sample(0:1,n.ind,repl=TRUE,prob=c(1-r[j],r[j]))
+                  rec <- sample(0:1, n.ind, replace = TRUE, prob = c(1-r[j],r[j]))
                   data[rec==0,j+1] <- data[rec==0,j]
                   data[rec==1,j+1] <- 3-data[rec==1,j]
               }
             }
         }
         if(type=="f2") {
-           data[, 1] <- sample(1:3, n.ind, repl=TRUE, prob=c(1,2,1))
+           data[, 1] <- sample(1:3, n.ind, replace = TRUE, prob=c(1,2,1))
            if(n.mar[i] > 1) {
                for(j in 1:(n.mar[i] - 1)) {
-                   data[data[, j] == 1, j + 1] <- sample(1:3, sum(data[, j]==1), repl=TRUE, 
+                   data[data[, j] == 1, j + 1] <- sample(1:3, sum(data[, j]==1), replace = TRUE, 
                         prob=c(rbar[j]*rbar[j], 2*r[j]*rbar[j], r[j]*r[j]))
-                   data[data[, j] == 2, j + 1] <- sample(1:3, sum(data[, j]==2), repl=TRUE, 
+                   data[data[, j] == 2, j + 1] <- sample(1:3, sum(data[, j]==2), replace = TRUE, 
                         prob = c(r[j]*rbar[j], rbar[j]*rbar[j] + r[j]*r[j], r[j]*rbar[j]))
-                   data[data[, j] == 3, j + 1] <- sample(1:3, sum(data[, j]==3), repl=TRUE, 
+                   data[data[, j] == 3, j + 1] <- sample(1:3, sum(data[, j]==3), replace = TRUE, 
                         prob = c(r[j]*r[j], 2*r[j]*rbar[j], rbar[j]*rbar[j]))
                 }
             }
@@ -293,8 +293,8 @@ if(!is.null(qtl.epis)) {
 }
     if(!is.null(covariate)) {
        names(covariate) <- c("fix.cov", "ran.cov")
-       fix.cov <- sample(c(0,1),n.ind,repl=TRUE)
-       random.cov <- sample(0:4,n.ind,repl=TRUE)
+       fix.cov <- sample(c(0,1),n.ind,replace = TRUE)
+       random.cov <- sample(0:4,n.ind,replace = TRUE)
        random.coe <- rnorm(5,0,covariate[2]^0.5)
        random <- rep(0,n.ind)
        for(i in 1:n.ind) {
@@ -445,19 +445,24 @@ if(!is.null(qtl.epis)) {
 # randomly give missing marker genotypes
 
     for (i in 1:n.chr) {
-        z <- sample( c(1,NA),n.ind*ncol(geno[[i]]$data),repl=TRUE,prob=c(1-missing.geno,missing.geno) )
+        z <- sample(c(1,NA), n.ind * ncol(geno[[i]]$data), replace = TRUE,
+                    prob = c(1-missing.geno, missing.geno))
         dim(z) <- c(n.ind, ncol(geno[[i]]$data))
         geno[[i]]$data <- geno[[i]]$data*z
     }
 
 # randomly give missing phenotypes and covariates
 for(m in 1:n.pheno)
-    pheno.normal[,m] = pheno.normal[,m]*sample( c(1,NA),n.ind,repl=TRUE,prob=c(1-missing.pheno,missing.pheno) )
+    pheno.normal[,m] = pheno.normal[,m]*sample(c(1,NA), n.ind, replace = TRUE,
+                  prob = c(1-missing.pheno, missing.pheno))
   
-if(!multiple.trait) pheno.ordinal = pheno.ordinal*sample( c(1,NA),n.ind,repl=TRUE,prob=c(1-missing.pheno,missing.pheno) )
+if(!multiple.trait) pheno.ordinal = pheno.ordinal*sample(c(1,NA), n.ind, replace = TRUE,
+                      prob = c(1-missing.pheno, missing.pheno))
     if(!is.null(covariate)) {
-       fix.cov = fix.cov*sample( c(1,NA),n.ind,repl=TRUE,prob=c(1-missing.pheno,missing.pheno) )
-       random.cov = random.cov*sample( c(1,NA),n.ind,repl=TRUE,prob=c(1-missing.pheno,missing.pheno) )
+       fix.cov = fix.cov*sample(c(1,NA), n.ind, replace = TRUE,
+         prob = c(1-missing.pheno, missing.pheno))
+       random.cov = random.cov*sample(c(1,NA), n.ind, replace = TRUE,
+         prob = c(1-missing.pheno, missing.pheno))
     }                       
            
 # create a cross dataset

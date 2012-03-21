@@ -62,7 +62,7 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
     grid <- grid[tmp, ]
   }
   scan <- scan[1]
-  one <- qb.scanone(qbObject, ..., type = "posterior")
+  one <- qb.scanone(qbObject, ..., type.scan = "posterior")
   tmp <- names(one)[-(1:2)]
   if(is.na(match(scan, tmp)))
     scan <- tmp[1]
@@ -105,12 +105,12 @@ qb.hpdone <- function(qbObject, level = 0.5, profile = "2logBF",
     rownames(grid) <- as.character(grid$chr)
     out <- list(hpd.region = grid)
 
-    out$profile <- qb.scanone(qbObject, type = profile, chr = chr, ...)
+    out$profile <- qb.scanone(qbObject, type.scan = profile, chr = chr, ...)
     attr(out$profile, "qb") <- qbName
     out$effects <- if(effects == "cellmean")
-      qb.scanone(qbObject, type = "cellmean", chr = chr, ...)
+      qb.scanone(qbObject, type.scan = "cellmean", chr = chr, ...)
     else
-      qb.scanone(qbObject, type = "estimate",
+      qb.scanone(qbObject, type.scan = "estimate",
                     scan = "main", aggregate = FALSE, chr = chr, ...)
     attr(out$effects, "qb") <- qbName
 

@@ -2814,14 +2814,14 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
   ## Use either local weighting or attenuated weighting.
   smooth1 <- smooth
   is.atten <- weight %in% c("atten","ratten")
+  smoothpair <- function(x, smooth, w, w2 = w, offdiag)
+    qb.smoothcM(x, w, w2)
   if(is.atten) {
     ## Rescale smooth (default 3 changed to 10) for sqrt attenuation.
     ## Smoothing should probably depend on niter.
     ## Should smoothing be weighted by niterone?
     if(weight == "ratten")
       smooth <- smooth * 4
-    smoothpair <- function(x, smooth, w, w2 = w, offdiag)
-      qb.smoothcM(x, w, w2)
   }
   else {
     switch(weight,
@@ -2829,7 +2829,7 @@ qb.smoothtwo <- function(grid, nitertwo, niterone, x, smooth,
            none = {w <- array(1, dim(nitertwo))},
            sqrt =, {w <- sqrt(nitertwo)})
     
-    smoothpair <- function(x, smooth, w, w2 = NULL, offdiag)
+    smoothpair <- function(x, smooth, w, w2 = w, offdiag)
       qb.smoothpair(x, smooth, w, offdiag)
   }
   

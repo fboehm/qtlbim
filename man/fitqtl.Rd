@@ -44,7 +44,7 @@ analysis with \code{\link[qtl]{fitqtl}}. \code{anova.step.fitqtl} is an
 
 \seealso{\code{\link{qb.arch}}, \code{\link[qtl]{fitqtl}},
   \code{\link[qtl]{summary.fitqtl}},
-  \code{\link[code]{makeqtl}}}
+  \code{\link[qtl]{makeqtl}}}
 \examples{
 \dontshow{
 if(!exists("cross.arch") | !exists("qbExample"))

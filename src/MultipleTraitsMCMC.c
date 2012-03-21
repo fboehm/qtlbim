@@ -89,7 +89,8 @@ void ResidualVariance_MultipleTraits()
      det = Determinant(omega,NPHENO);
      if(det < 1e-15 ){     
      Rprintf("\n\n Covariance matrix approaching near singularity.. quitting!\n");
-     exit(1);
+     return;
+     /* exit(1); */
      }   
      else {
      INVERSE(omega,NPHENO,temp);

@@ -18,10 +18,10 @@
   \item{verbose}{Verbose summaries if \code{TRUE}.}
   \item{ask}{Ask before each plot if \code{TRUE}.}
   \item{cutoff}{Cutoff passed to \code{\link{qb.BayesFactor}}.}
-  \item{\dots}{graphical parameters can be given as arguments to \code{\link[base]{plot}}}
+  \item{\dots}{graphical parameters can be given as arguments to \code{\link[graphics]{plot}}}
 }
 \details{
-  This generic \code{\link[base]{plot}} routine takes an object of class
+  This generic \code{\link[graphics]{plot}} routine takes an object of class
   \code{qb} created by \code{\link{qb.mcmc}} and produces plots via
   calls to several other plot routines. The generic
   \code{\link[base]{summary}} produces a summary, while the generic
@@ -30,7 +30,7 @@
 \references{ \url{http://www.qtlbim.org} }
 \author{ Brian S. Yandell, yandell@stat.wisc.edu }
 
-\seealso{\code{\link[base]{plot}}, \code{\link[base]{print}},
+\seealso{\code{\link[graphics]{plot}}, \code{\link[base]{print}},
   \code{\link[base]{summary}},
   \code{\link{qb.mcmc}},
   \code{\link{qb.coda}},

@@ -50,9 +50,8 @@ export(sim.data)
 export(step.fitqtl)
 
 
-
-
-
+#*****************************
+#******************************
 
 ## The following have S3 methods:
 export(plot.qb)
