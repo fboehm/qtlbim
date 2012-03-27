@@ -1,4 +1,4 @@
-d6d4989a44fbc8a801d8bf1804f642d4 *DESCRIPTION
+e5eced2871ff51ad81411b6e89a9c825 *DESCRIPTION
 b198fa8cde664dd7a6cb45cc5a1b138b *NAMESPACE
 8ed117c7745b2a7a44659a55579520e4 *R/bglmfunctions.R
 6a15931da33ee64ba1db4f80f7b45365 *R/close.R
@@ -20,13 +20,13 @@ a6f950b78c0814db460e4c1cb6ec1e0b *R/scan.R
 a8079cefd16533dfe0b23d71ed0bfe05 *R/sim.R
 75223f7bf4aa14782bd94e2eb6cf8a80 *R/slice.R
 47b6034cb26f8539633af8fde363637d *R/sweave.R
-b2b74b2977e858ffd3eab8db72053155 *data/Bnapus.RData
-2916e0feab3f8e2382805058a120ff81 *data/fisch.RData
-c53a95786c82a6d318f9602a0a0b49f6 *data/qbExample.RData
-4d633d1de06eb55a9169c1c09adea223 *data/qbHyper.RData
-637f8339cdd7936bf589fc98b5353a5e *data/qbSimEpi.RData
-28c06a9f752af500e6339fa131f28e34 *data/qbSimMain.RData
-4bef8786018e1d271464feb54810a2fc *data/vern.RData
+3d77d7abd9b68e1c41f1bad43cfe48e7 *data/Bnapus.RData
+dc1dbf94c345221f3a9eafd88e32aa37 *data/fisch.RData
+cde718908ce2ee9fbbf417df9ebbf61b *data/qbExample.RData
+74c88785231fcdabd79118d49cf95fdc *data/qbHyper.RData
+af0b6b95914f062e173bf21f49f304e5 *data/qbSimEpi.RData
+9e36708e825252348f57359f1fa829b1 *data/qbSimMain.RData
+40f13e021ad80a7c933dc63690aa8487 *data/vern.RData
 1e6ee5a238b39b7a3d5af3bb50d2b3c7 *demo/00Index
 eead8becfcc068de9e2cb80fe09145c7 *demo/qb.coda.tour.R
 44bd70d3a68c81c2e9f10d3a0f931499 *demo/qb.covar.tour.R
@@ -38,9 +38,9 @@ f44393501447193b33c1ef74b0dce1a4 *demo/qb.mcmc.tour.R
 18926748b7c3ca33658331551ec554bb *demo/qb.tour.R
 18926748b7c3ca33658331551ec554bb *demo/qtlbim.R
 aab994d412a75f92afdb130d38007c0c *inst/doc/prototype.qtl.hyper.slides.Rnw
-fae0a9ea4cee87dd09ae193dc330782e *inst/doc/prototype.qtl.hyper.slides.pdf
+3f5f08584e0911835e45e3726805d742 *inst/doc/prototype.qtl.hyper.slides.pdf
 844c34a112a7955c5b9b8316f9201d3c *inst/doc/qtlbim.Rnw
-23709b4e509f79de8a6b2060dc2763d7 *inst/doc/qtlbim.pdf
+3e4e8468653ca89026d56912e6a4cb77 *inst/doc/qtlbim.pdf
 d9ad3380a54912117b36c0e78f8c01c6 *inst/external/hyper.paper.extra.Rnw
 cc6a9d13eb6f7d5eb1b03e10822ea9cd *inst/external/hyper.slide.extra.Rnw
 716e76f0db06c10f7dd4872b8d691bf1 *inst/external/prototype.qtl.hyper.paper.Rnw
@@ -104,3 +104,6 @@ d6444f25924376113de6f973849f307f *src/SingleTraitMCMCSamplingRoutines.c
 b53a3dafce5486eee3497b5d9e13d29e *src/SingleTraitMCMCSamplingRoutines.h
 b82e4726015b1cc4f4a933bc08676e30 *src/StatUtils.c
 be26b950620fc8b9b81d7acb83ada116 *src/StatUtils.h
+3b4f4f37836602111ee344ec289590f2 *vignettes/beamerthemesplit.sty
+aab994d412a75f92afdb130d38007c0c *vignettes/prototype.qtl.hyper.slides.Rnw
+844c34a112a7955c5b9b8316f9201d3c *vignettes/qtlbim.Rnw
