@@ -1,6 +1,6 @@
 Package: qtlbim
-Version: 2.0.5
-Date: 2012-03-27
+Version: 2.0.7
+Date: 2013-04-15
 Author: Brian S. Yandell <yandell@stat.wisc.edu> and Nengjun Yi
         <nyi@ms.soph.uab.edu>, with contributions from Tapan Mehta,
         Samprit Banerjee, Daniel Shriner and Ramprasad Venkataraman
@@ -13,6 +13,7 @@ Depends: R (>= 2.10), stats, qtl (>= 1.9.43), lattice, coda, tools,
         MASS
 License: GPL (>= 2)
 URL: http://www.qtlbim.org
-Packaged: 2012-03-29 18:22:34 UTC; yandell
+Packaged: 2013-04-15 16:46:58 UTC; yandell
+NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2012-03-29 19:46:41
+Date/Publication: 2013-04-16 07:43:26

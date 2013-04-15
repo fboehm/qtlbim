@@ -42,7 +42,7 @@ qb.mcmc <- function(cross,
   if(is.transient.cross) {
     ## Should make sure the names is unique.
     tmp <- make.dir.name(tmp, "")
-    assign(tmp, cross, pos = 1)
+    assign(tmp, cross, envir = parent.frame())
     cross.name <- tmp
   }
   

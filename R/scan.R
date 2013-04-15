@@ -2940,7 +2940,7 @@ qb.smoothpair <- function(x, smooth, w, offdiag = 0.5)
   x
 }
 qb.smoothsame <- function(x, smooth, w, offdiag = 0.5,
-                          pairfun = smoothpair)
+                          pairfun)
 {
   ## Smooth upper and lower half of x, leaving diagonal unchanged.
   is.upper <- row(x) > col(x)

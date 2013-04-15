@@ -38,7 +38,7 @@ if(!file.exists(.qb.PDFDir)) {
     call. = FALSE, immediate. = TRUE)
 }
 ## Make sure Sweave.sty is locally available.
-invisible(file.copy(system.file("../../share/texmf","Sweave.sty"),"."))
+invisible(file.copy(file.path(R.home("share"), "texmf", "Sweave.sty"),"."))
 ## Assign visible names for script.
 cross <- .qb.cross
 pheno.col <- .qb.pheno
