@@ -1,11 +1,17 @@
-% \VignetteIndexEntry{QTLBIM Overview}
-% \VignetteDepends{qtlbim}
-% \VignetteKeywords{QTL}
-%\VignettePackage{qtlbim}
-\documentclass{article}
-\usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}
+---
+title: "qtlbim vignette"
+---
 
-\SweaveOpts{eps=FALSE,prefix.string=qtlbimPDF/FIG}
+
+
+
+```{r}
+library(knitr)
+opts_chunk$set(
+fig.path='qtlbimPDF/FIG'
+)
+```
+
 
 \begin{document}
 
@@ -13,7 +19,13 @@
 \author{Brian S. Yandell, Jee Young Moon, Samprit Banerjee, William W. Neely, Nengjun Yi}
 \maketitle
 
-\SweaveOpts{engine=R,echo=TRUE}
+
+```{r}
+opts_chunk$set(
+engine='R',echo=TRUE
+)
+```
+
 
 \abstract{
 \texttt{R/qtlbim} (\texttt{www.qtlbim.org}) provides a powerful suite
@@ -45,7 +57,8 @@ tools in \texttt{R/qtl 1.0.8}.
 \tableofcontents
 
 \section{Overview}
-<<echo=FALSE>>=
+
+```{r}
 # Make width of chunks 60.
 options(width=80)
 if(!file.exists("qtlbimPDF")) {
@@ -53,7 +66,7 @@ if(!file.exists("qtlbimPDF")) {
   warning(paste("Creating Sweave directory qtlbim"),
     call. = FALSE, immediate. = TRUE)
 }
-@
+```
 
 This vignette describes the MCMC sampling routines and some of the
 plotting facilities available through the \texttt{R/qtlbim} package
@@ -87,9 +100,9 @@ samples from the posterior using MCMC sampling; use of plot and
 summary tools to examine genetic architecture; data management in
 R/qtlbim. The package is invoked by the \texttt{library} command
 
-<<label=LoadQtlBim>>=
+```{r}
 library(qtlbim)
-@
+```
 
 \subsection{Hyper data demo}
 
@@ -101,42 +114,39 @@ package processes this \texttt{cross} object to create a \texttt{qb} object
 called \texttt{qbHyper}, containing the MCMC samples. The
 \texttt{hyper} demo shows how this is done.
 
-\begin{Schunk}
-\begin{Sinput}
-> demo(qb.hyper.tour)
-\end{Sinput}
-\end{Schunk}
+
+
 It is possible to directly load the already
 saved \texttt{qb} object with the \texttt{data} command. Following
 this by a call to \texttt{qb.cross} extracts a version of the
 \texttt{cross} object used to create the \texttt{qb} object.
-<<label=LoadQtlBim>>=
+```{r}
 data(qbHyper)
 hyper <- qb.cross(qbHyper)
-@
+```
 
 Alternatively, a \texttt{qb} object can be created by the following
 sequence of commands. First load the hyper data set from R/qtl, and
 subset on the autosomes, as \texttt{R/qtlbim} does not yet handle the
 X chromosome properly.
-\begin{Schunk}
-\begin{Sinput}
-> data(hyper)
-> hyper <- subset(hyper, chr=1:19)
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+data(hyper)
+hyper <- subset(hyper, chr=1:19)
+```
+
 
   To run the MCMC sampler on 
 the {\tt hyper} data we use the command
 
-\begin{Schunk}
-\begin{Sinput}
-> hyper <- qb.genoprob(hyper, step=2) 
+
+```{r}
+hyper <- qb.genoprob(hyper, step=2) 
 # Now run the MCMC model selection algorithm.
 # This can take several minutes.
-> qbHyper <- qb.mcmc(hyper, pheno.col = 1, seed = 1616)
-\end{Sinput}
-\end{Schunk}
+qbHyper <- qb.mcmc(hyper, pheno.col = 1, seed = 1616)
+```
+
 
 The option \texttt{seed} sets the random number seed so that this run can be
 repeated exactly. The \texttt{qb} object called \texttt{qbHyper} is
@@ -161,12 +171,12 @@ the multipoint method (\textsc{Jiang} and \textsc{Zeng} 1997).
 The MCMC samples are created by {\tt qb.mcmc} after running {\tt qb.genoprob}.
 In the simplest case, MCMC samples are created with the following two calls:
 
-\begin{Schunk}
-\begin{Sinput}
-> hyper <- qb.genoprob(hyper, step=2) 
-> qbHyper <- qb.mcmc(hyper, pheno.col = 1)
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+hyper <- qb.genoprob(hyper, step=2) 
+qbHyper <- qb.mcmc(hyper, pheno.col = 1)
+```
+
 
 By default the {\tt qb.mcmc} function prints out progress messages 
 of the number of iterations completed.  These progress messages can be 
@@ -183,12 +193,12 @@ whether to standardize or to use a boxcox transformation. Note that,
 the cross object can have several phenotypes and some of which could
 be used as covariates.
 
-\begin{Schunk}
-\begin{Sinput}
-> qbData <- qb.data(hyper, pheno.col = 1, trait = "normal",
-+     fixcov = 0, rancov = 0)
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+qbData <- qb.data(hyper, pheno.col = 1, trait = "normal",
+    fixcov = 0, rancov = 0)
+```
+
 
 \noindent
 The {\tt R/qtlbim} routines handle normal, binary and ordinal data. In
@@ -218,13 +228,13 @@ with QTLs, or equivalently, which environmental factors may have GxE
 interactions. The {\tt intcov} should be a vector of 0s and 1s of the
 same length as the {\tt fixcov} option specified for {\tt qb.data} (see above).
  
-\begin{Schunk}
-\begin{Sinput}
-> qbModel <- qb.model(hyper, epistasis = TRUE, main.nqtl = 3, 
-+     interval = rep(5,nchr(hyper)), chr.nqtl = rep(2,nchr(hyper)),
-+     depen = FALSE, prop = c(0.5, 0.1, 0.05))
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+qbModel <- qb.model(hyper, epistasis = TRUE, main.nqtl = 3, 
+    interval = rep(5,nchr(hyper)), chr.nqtl = rep(2,nchr(hyper)),
+    depen = FALSE, prop = c(0.5, 0.1, 0.05))
+```
+
 
 The function {\tt qb.mcmc} creates MCMC samples on the data and model
 specified. The results are initially saved in a unique directory under
@@ -232,12 +242,12 @@ specified. The results are initially saved in a unique directory under
 {\tt qb.data} and {\tt qb.model} can be passed directly to {\tt qb.mcmc},
 or as the objects created above.
 
-\begin{Schunk}
-\begin{Sinput}
-> qb <- qb.mcmc(hyper, data = qbData, model = qbModel, mydir = ".",
-+     n.iter = 3000, n.thin = 20, genoupdate = TRUE)
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+qb <- qb.mcmc(hyper, data = qbData, model = qbModel, mydir = ".",
+    n.iter = 3000, n.thin = 20, genoupdate = TRUE)
+```
+
 
 The {\tt genoupdate} option simulates pseudomarker and missing marker
 genotypes if {\tt TRUE}, or uses a Haley-Knott (1992) type approach if
@@ -264,9 +274,9 @@ The \texttt{qbHyper} is an object of class \texttt{qb} to which we can
 apply the generic \texttt{summary} or \texttt{plot} routines. We defer
 plots to later sections. Here we show only the summary:
 
-<<label=SummaryQbMCMC>>=
+```{r}
 summary(qbHyper)
-@
+```
 
 \noindent
 Thus, for the 3000 MCMC samples in this object, 21\% has 6 QTL (the mode),
@@ -279,17 +289,11 @@ in 63\% of samples with epistasis, was 6:15, or a pair of QTL on chromosomes
 The plot demo \texttt{demo(qb.plot.tour)} gives a sample of the plots
 available in the \texttt{R/qtlbim} package. To start the plot demo,
 use the command
-\begin{Schunk}
-\begin{Sinput}
-> demo(qb.plot.tour)
-\end{Sinput}
-\end{Schunk}
+
+
 For a complete set of demos, try
-\begin{Schunk}
-\begin{Sinput}
-> qb.demo()
-\end{Sinput}
-\end{Schunk}
+
+
 
 The plot demo begins by giving a generic plot for the \texttt{qb} object
 \texttt{qbHyper}. The \texttt{R/qtlbim} generic \texttt{qb} plot is
@@ -301,11 +305,11 @@ sequence of graphics whose purpose is to give an initial assessment of
 the results produced by the MCMC algortihm. The generic plot for the
 \texttt{qb} object \texttt{qbHyper} created above is shown with the 
 command
-\begin{Schunk}
-\begin{Sinput}
-> plot(qbHyper)
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+plot(qbHyper)
+```
+
 
 The generic plot function shows a sequence of plots that include time
 series plots of the mcmc chain, jittered plots of QTL by chromosome
@@ -378,7 +382,7 @@ resolving power of low-dimensional scans that condition on the presence
 of  other QTL using simulated data with  one QTL and the {\tt hyper} 
 data set.
 
-<<echo=FALSE,results=hide,label=Scanone-HyperLPD>>=
+```{r}
 temp <- qb.scanone(qbHyper,type="LPD") 
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scanone-HyperLPD.pdf"))
@@ -388,7 +392,8 @@ if(!file.exists("qtlbimPDF/FIG-Scanone-HyperLPD.pdf"))
    plot(temp)
    dev.off()
    }
-@ 
+``` 
+
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-Scanone-HyperLPD}
 \caption{Plot of {\tt qb.scanone} for LPD of hyper data.  Notice 
@@ -410,19 +415,19 @@ qb.scanone}, however, provides the contribution to LPD of a QTL at a
 locus {\em adjusting} for all other possible QTL. [For a technical
 interpretation, see the section on Theoretical Development.] A summary
 and plot of the LPD is carried out as follows.
-\begin{Schunk}
-\begin{Sinput}
-> temp <- qb.scanone(qbHyper,type="LPD") 
-\end{Sinput}
-\end{Schunk}
-\begin{Schunk}
-\begin{Sinput}
-> plot(temp)
-\end{Sinput}
-\end{Schunk}
-<<label=Scanone-HyperLPD>>=
+
+```{r}
+temp <- qb.scanone(qbHyper,type="LPD") 
+```
+
+
+```{r}
+plot(temp)
+```
+
+```{r}
 summary(temp)
-@ 
+``` 
 Figure~\ref{figScanone-HyperLPD} shows the LPD concentrated on
 chromosomes 1, 4, 6 and 15, which is consistent with other findings
 for these data (Sugiyama et al. 2001). 
@@ -436,15 +441,16 @@ measuring the strength of evidence (> 2.1 is high) for a QTL.
 In order to examine the effects on 1, 4, 6 and 15 more closely, we can
 plot subsets of chromosomes by using the plot 
 command {\tt plot(temp, chr=c(1,4,6,15)}.  
-<<label=Scanone-HyperBF>>=
+
+```{r}
 temp <- qb.scanone(qbHyper,type="2logBF")
-@ 
-\begin{Schunk}
-\begin{Sinput}
-> plot(temp,chr=c(1,4,6,15))
-\end{Sinput}
-\end{Schunk}
-<<echo=FALSE,results=hide,label=Scanone-HyperSubset>>=
+``` 
+
+```{r}
+plot(temp,chr=c(1,4,6,15))
+```
+
+```{r}
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scanone-HyperSubset.pdf"))
    { 
@@ -453,7 +459,7 @@ if(!file.exists("qtlbimPDF/FIG-Scanone-HyperSubset.pdf"))
    plot(temp,chr=c(1,4,6,15))
    dev.off()
    }
-@ 
+``` 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-Scanone-HyperSubset}
 \caption{The {\tt qb.scanone} results for the {\tt hyper} data restricted 
@@ -471,16 +477,16 @@ Figure~\ref{figScantwo-HyperData} shows strong evidence for the 6:15
 epistasis, and good evidence for a 4:15 epistatic interaction that was
 missed in earlier analyses.
 
-<<echo=TRUE,label=ScantwoSum-HyperData>>=
+```{r}
 temp <- qb.scantwo(qbHyper, chr = c(4,6,15))
 summary(temp, digits = 2)
-@
-\begin{Schunk}
-\begin{Sinput}
-> plot(temp)
-\end{Sinput}
-\end{Schunk}
-<<echo=FALSE,results=hide,label=Scantwo-HyperData>>=
+```
+
+```{r}
+plot(temp)
+```
+
+```{r}
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scantwo-HyperData.pdf"))
    { 
@@ -489,7 +495,9 @@ if(!file.exists("qtlbimPDF/FIG-Scantwo-HyperData.pdf"))
    plot(temp)
    dev.off()
    }
-@ 
+```
+
+
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-Scantwo-HyperData}
 \caption{A plot of a {\tt qb.scantwo} scan of the {\tt hyper} data 
@@ -593,15 +601,20 @@ stepwise regression approaches (Manichaikul et al. 2008).
 The routine \texttt{qb.bf} (or \texttt{qb.BayesFactor}) can compute
 the posterior and Bayes factor for the more probable patterns.
 
-<<label=qb.bf>>=
+```{r}
 bf <- qb.bf(qbHyper, item = "pattern")
 summary(bf)
-@
-<<echo=FALSE>>=
-bf.pat <- summary(bf)$pattern
-post.pat <- row.names(bf.pat)[which.max(bf.pat$posterior)]
-bf.pat <- row.names(bf.pat)[which.max(bf.pat$bf)]
-@
+```
+
+```{r}
+library(magrittr)
+highest <- bf$pattern %>%
+   tibble::as_tibble() %>%
+   dplyr::arrange(desc(posterior.Freq))
+   
+post.pat <- highest$posterior.pattern[1]
+bf.pat <- highest$bf.Freq[1]
+```
 
 The pattern with the highest posterior probability is
 \Sexpr{post.pat},
@@ -618,10 +631,10 @@ averages of loci positions for those models that include exactly these
 chromosome patterns. The routine \texttt{qb.best} (or {\tt qb.BestPattern})
 can perform this task, and a few more.
 
-<<label=qb.best>>=
+```{r}
 best <- qb.best(qbHyper)
 summary(best)
-@
+```
 
 The best pattern is by design the most probable, but we now have
 estimates of the \texttt{locus} and \texttt{variance} contribution for
@@ -629,18 +642,19 @@ each QTL. We can view more pattern details, say the top 3 patterns,
 with the option \texttt{n.best = 3}. We can see how this pattern
 compares to other patterns in a few plots.
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(best)
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=bestplot>>=
+
+```{r}
+plot(best)
+```
+
+
+```{r}
 file <- paste("qtlbimPDF", "/bestmds.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(best)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \noindent
 \ 
@@ -668,18 +682,18 @@ ordering of models based on overall fit.
 It is possible to examine the patterns in another way, by plotting a
 dendrogram based on hierarchical clustering.
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(best, type = "hclust")
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=besthcplot>>=
+
+```{r}
+plot(best, type = "hclust")
+```
+
+```{r}
 file <- paste("qtlbimPDF", "/besthc.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(best, type = "hclust")
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \noindent
 \ 
@@ -701,11 +715,12 @@ is \texttt{"median"}, but \texttt{"mean"} is an alternative). The plots
 and summaries (not shown) change slightly as well, as all better
 patterns are altered similarly.
 
-<<label=average>>=
+
+```{r}
 qb.best(qbHyper, include = "all")$model[[1]]
 qb.best(qbHyper, include = "nested")$model[[1]]
 qb.best(qbHyper, include = "exact")$model[[1]]
-@
+```
 
 \subsection{How Close are Other Models to a Target?}
 
@@ -716,34 +731,35 @@ with columns for \texttt{chrom}, \texttt{locus} and \texttt{variance}.
 [If \texttt{variance} is omitted, it is filled in with 0s.] Here is
 the target we are using:
 
-<<label=target>>=
+```{r}
 target <- best$model[[1]]
-@
+```
 
 The routine \texttt{qb.close} gives a score comparison for each MCMC
 realization. These are summarized over chromosome pattern, or over
 number of QTL using boxplots.
 
-<<label=qb.close>>=
+```{r}
 close <- qb.close(qbHyper, target)
 summary(close)
-@
+```
 
 It is more intuitive to look at the boxplots. Notice how patterns
 that miss the 6:15 interaction have much lower attenuation scores.
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(close)
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=closeplot>>=
+
+```{r}
+plot(close)
+```
+
+
+```{r}
 file <- paste("qtlbimPDF", "/closepat.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(close)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \noindent
 \  
@@ -755,18 +771,19 @@ target QTL. It is common for Bayesian interval mapping to
 have small effects. Other tools such as \texttt{qb.scanone} can be
 used to investigate which QTL fit have weak evidence.
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(close, category = "nqtl")
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=closenqtlplot>>=
+
+```{r}
+plot(close, category = "nqtl")
+```
+
+
+```{r}
 file <- paste("qtlbimPDF", "/closenqtl.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(close, category = "nqtl")
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \subsection{ANOVA confirmation}
 
@@ -782,50 +799,52 @@ The following uses {\tt R/qtl} tools {\tt calc.genoprob}, {\tt sim.geno} and
 {\tt makeqtl}, plus {\tt R/qtlbim}'s {\tt step.fitqtl}, which
 calls {\tt fitqtl} multiple times.
 
-<<echo=TRUE,label=Cross.Arch>>=
+
+```{r}
 hyper.arch <- qb.arch(best)
 hyper.arch
-@ 
+``` 
 
-<<echo=TRUE,label=InitializeFitQTL>>=
+```{r}
 hyper.sub <- subset(hyper, chr = hyper.arch$qtl$chr)
 n.draws <- 8
 hyper.sub <- sim.geno(hyper.sub, n.draws=n.draws, step=2, error=0.01)
 qtl <- makeqtl(hyper.sub, as.character(hyper.arch$qtl$chr), hyper.arch$qtl$pos)
-@
+```
 
 Now we run stepwise backward elimination, preserving hierarchy. The
 {\tt step.fitqtl} routine is simply a wrapper for {\tt R/qtl}'s {\tt
 fitqtl} using an analogy to {\tt R}'s {\tt step} function.
 
-<<echo=TRUE,label=StepwiseFitQTL>>=
+```{r}
 hyper.step <- step.fitqtl(hyper.sub, qtl, pheno.col = 1, hyper.arch)
-@
-\begin{Schunk}
-\begin{Sinput}
-> summary(hyper.step$fit)
-\end{Sinput}
+```
+
+```{r}
+summary(hyper.step$fit)
+```
 \begin{Soutput}
 Full model result
 ----------------------------------
 \end{Soutput}
-\end{Schunk}
-<<echo=FALSE,label=SummaryFitQTL>>=
+
+```{r}
 sum.fit <- summary(hyper.step$fit)
 print(sum.fit$result.full, quote = FALSE, na.print = "")
-@
-<<results=tex,echo=FALSE>>=
+```
+
+```{r}
 if(!is.null(sum.fit$result.drop)) {
-  cat("\\begin{Schunk}\n")
+  cat("\\n")
   cat("\\begin{Soutput}\n")
   cat("\nDrop one QTL at a time ANOVA table:\n")
   cat("----------------------------------\n")
   printCoefmat(sum.fit$result.drop[,-6], digits = 4, cs.ind = 1, P.values = TRUE, 
                has.Pvalue = TRUE, signif.legend = FALSE)
   cat("\\end{Soutput}\n\n")
-  cat("\\end{Schunk}\n")
+  cat("\\n")
 }
-@
+```
 
 In this case, there was no reduction in the selected model, meaning
 the four main QTL and the 6:15 epistatic pair are confirmed. There are
@@ -850,45 +869,46 @@ The upper left panel shows the epistatic pairs, and the lower left
 panel shows a two way plot of singletons (diagonal), pairs, triplets
 (as three pairs), etc.
 
-<<label=qb.multloci>>=
+```{r}
 mult <- qb.multloci(qbHyper, chr = 1)
-@
-\begin{Schunk}
-\begin{Sinput}
-> plot(mult)
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=multplot>>=
+```
+
+```{r}
+plot(mult)
+```
+
+```{r}
 file <- paste("qtlbimPDF", "/mult.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(mult)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
-<<>>=
+```
+
+```{r}
 summary(mult)
-@
+```
 
 \noindent
 It is helpful sometimes to separate out samples with different number
 of QTL. This can be done with the \texttt{merge} option.
 
-<<label=unmerge>>=
+```{r}
 summary(mult, merge = FALSE)
-@
+```
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(mult, merge = FALSE)
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=multmergeplot>>=
+
+```{r}
+plot(mult, merge = FALSE)
+```
+
+```{r}
 file <- paste("qtlbimPDF", "/multmerge.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(mult, merge = FALSE)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \noindent
  \ 
@@ -902,10 +922,10 @@ Once a logical split for a chromosome has been established, we can use
 \texttt{qb.split.chr} to formalize the split. By default, it uses the
 results from \texttt{qb.mainmodes}.
 
-<<label=qb.split>>=
+```{r}
 qbHyper <- qb.split.chr(qbHyper)
 qb.get(qbHyper, "split.chr")
-@
+```
 
 \noindent
 The split can be negated by the argument \texttt{split = NULL}. A few
@@ -913,31 +933,31 @@ routines now use this split, and more are planned. For now,
 \texttt{qb.scanone}, \texttt{qb.scantwo} and \texttt{qb.bf} take
 advantage of this. Chromosomes are recoded as chr.1, chr.2, etc.
 
-<<label=bf.split>>=
+```{r}
 qb.bf(qbHyper, item = "pattern") 
-@
+```
 
-<<label=bf.split>>=
+```{r}
 qb.best(qbHyper)
-@
+```
 
-<<label=bf.split>>=
+```{r}
 one <- qb.scanone(qbHyper, type = "LPD") 
 summary(one)
-@
+```
 
-\begin{Schunk}
-\begin{Sinput}
-> plot(one, chr = 1)
-\end{Sinput}
-\end{Schunk}
-<<results=tex,echo=FALSE,label=oneplot>>=
+
+```{r}
+plot(one, chr = 1)
+```
+
+```{r}
 file <- paste("qtlbimPDF", "/one.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(one, chr = 1)
 invisible(dev.off())
 cat("\\includegraphics{", file, "}\n\n", sep = "")
-@
+```
 
 \section{Useful Plots and Summaries}
 
@@ -955,11 +975,11 @@ and \texttt{fitqtl}.
 The \texttt{R/qtlbim} samples come from a Monte Carlo simulation.
 Are the MCMC samples well mixed? We can visually inspecting the
 history of the MCMC run. The command
-\begin{Schunk}
-\begin{Sinput}
-> plot(qb.coda(qbHyper))
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+plot(qb.coda(qbHyper))
+```
+
 shows the MCMC chain as a time series. Each step, or iteration, of 
 the MCMC chain represents a single model; therefore, we can explore the 
 history of the MCMC chain by plotting time series for relevant model features.  
@@ -978,12 +998,13 @@ above, by using the optional argument \texttt{variables} in the
 number of QTL (\texttt{nqtl}) and the model means, use the following
 command.  The results of the following command are shown in
 Figure~\ref{figPlotQBCODA}.
-\begin{Schunk}
-\begin{Sinput}
-> plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
-\end{Sinput}
-\end{Schunk}
-<<echo=FALSE,results=hide,label=PlotQbCoda>>=
+
+```{r}
+plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
+```
+
+
+```{r}
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBCODA.pdf"))
    { 
@@ -992,7 +1013,7 @@ if(!file.exists("qtlbimPDF/FIG-QBCODA.pdf"))
    plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
    dev.off()
    }
-@ 
+``` 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBCODA}
 \caption{Diagnostic Plot for a MCMC run.}
@@ -1008,25 +1029,25 @@ chromosome.  The QTL are from single QTL models appearing as samples
 in the MCMC chain.  In the plot, the actual locations of possible QTL
 are jittered slightly in order to give a sense of the density of
 putative QTL in the vicinity of  each marker. The code
-\begin{Schunk}
-\begin{Sinput}
-> plot(qb.loci(qbHyper))
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+plot(qb.loci(qbHyper))
+```
+
 will produce a plot with all chromosomes. In order to view a subset of
 the chromosomes, the parameter \texttt{chr} to the generic
 \texttt{subset} routine can be used to limit the plot to a selected
 set of chromosomes. The horizontal (blue) lines in the plot show the
 locations of markers. The markers themselves can be labelled by using
 the parameters \texttt{markers} in the function.
-\begin{Schunk}
-\begin{Sinput}
-> plot(qb.loci(subset(qbHyper, chr=c(3,4))), labels=TRUE)
-\end{Sinput}
-\end{Schunk} 
+
+```{r}
+plot(qb.loci(subset(qbHyper, chr=c(3,4))), labels=TRUE)
+```
+ 
 Figure~\ref{figPlotQBLOCI} shows the result of this command.
 
-<<echo=FALSE,results=hide,label=PlotQbLoci34>>=
+```{r}
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBLOCI34.pdf"))
    { 
@@ -1035,7 +1056,7 @@ if(!file.exists("qtlbimPDF/FIG-QBLOCI34.pdf"))
    plot(qb.loci(subset(qbHyper, chr=c(3,4))), labels=TRUE)
    dev.off()
    }
-@ 
+``` 
 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBLOCI34}
@@ -1071,7 +1092,9 @@ chromosome.
 \item The fourth row show relative importance of epistatic pairs. Here
 the "6.15", or chr 6 by chr 15, epistatic pair is by far the strongest.
 \end{enumerate}
-<<echo=FALSE,results=hide,label=PlotQbBF>>=
+
+
+```{r}
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBBF.pdf"))
    { 
@@ -1080,7 +1103,7 @@ if(!file.exists("plotQBBF.pdf"))
    plot(qb.BayesFactor(qbHyper,cutoff.pattern=0.5))
    dev.off()
    }
-@ 
+``` 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBBF}
 \caption{Paired plots of posteriors as bars overlaid by priors as blue
@@ -1110,7 +1133,8 @@ region containing 50\% (by default) of the density is the HPD
 region. The command \texttt{plot(qb.hpdone(qbHyper))} yields
 Figure~\ref{figPlotQBHPD}.
 
-<<echo=FALSE,results=hide,label=PlotQbHPD>>=
+
+```{r}
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBHPD.pdf"))
    { 
@@ -1119,7 +1143,7 @@ if(!file.exists("plotQBHPD.pdf"))
    plot(qb.hpdone(qbHyper))
    dev.off()
    }
-@ 
+``` 
 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBHPD}
@@ -1136,7 +1160,7 @@ pairs are shown in Figure~\ref{figPlotQBEPI}. \texttt{plot(qb.epistasis(qbHyper)
 produces jittered plots of sampled Cockerham effects, overlaid with
 boxplots. Summaries are provided as well but not shown here.
 
-<<echo=FALSE,results=hide,label=PlotQbEpi>>=
+```{r}
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBEPI.pdf"))
    { 
@@ -1145,7 +1169,7 @@ if(!file.exists("qtlbimPDF/FIG-QBEPI.pdf"))
    plot(qb.epistasis(qbHyper))
    dev.off()
    }
-@ 
+``` 
 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBEPI}
@@ -1161,7 +1185,8 @@ This diagnostic plot can be generated by the command
 \texttt{plot(qb.diag(qbHyper))}, as shown in 
 Figure~\ref{figPlotQBDIAG}.
 
-<<echo=FALSE,results=hide,label=PlotQbDiag>>=
+
+```{r}
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBDIAG.pdf"))
    { 
@@ -1170,7 +1195,7 @@ if(!file.exists("plotQBDIAG.pdf"))
    plot(qb.diag(qbHyper))
    dev.off()
    }
-@ 
+``` 
 
 \begin{figure}
 \includegraphics{qtlbimPDF/FIG-QBDIAG}
@@ -1202,7 +1227,7 @@ generated with their corresponding coefficients as 0.5 and 0.07. G x E
 covariate. A normal phenotype and an ordinal phenotype with 3
 categories are measured. 7\% of the genotypes are randomly missing.
 
-<<label=SimData>>=
+```{r}
 cross <- qb.sim.cross(len=rep(100,20), n.mar=11, eq.spacing=F, n.ind=100, type="f2", 
                  ordinal=c(0.3,0.3,0.2,0.2), missing.geno=0.03, missing.pheno=0.07,
                  qtl.pos=rbind(c(1,15),c(1,45),c(3,12),c(5,15),c(7,15),c(10,15),c(12,35),c(19,15)),
@@ -1210,35 +1235,35 @@ cross <- qb.sim.cross(len=rep(100,20), n.mar=11, eq.spacing=F, n.ind=100, type="
                  qtl.epis=rbind(c(4,5,-0.7,0,0,0),c(6,8,0,1.2,0,0)),
                  covariate=c(0.5,0.07), gbye=rbind(c(7,0.8,0))) 
 
-@
+```
 
 By using the function {\tt qb.sim.cross} a list is attached to cross
 object named "qtl".  This list is typically not a part of the {\tt
 cross} object as described in {\tt read.cross} of the R/qtl library
 and is generated only with the {\tt qb.sim.cross()} function.
 
-<<>>=
+```{r}
 
 names(cross)
 
-@
+```
 
 The {\tt cross\$gvalue} is a vector of predicted values of the same length as
   the phenotype {\tt cross\$pheno\$pheno.normal}.  
 The {\tt cross\$qtl} contains information about the true values
 which can be compared to after the analysis.
 
-<<>>=
+```{r}
 
 summary(cross$qtl)
 
-@
+```
 
 The summary of the cross object summary is shown below.
 
-<<>>=
+```{r}
 summary(cross)
-@
+```
 
 \section{Theoretical Development}
 
@@ -1389,9 +1414,10 @@ A Bayesian posterior estimate of $\sigma^2$ is its posterior mean,
 which is a weighted average of $RSS(\theta)/n.ind$ and its prior mean. Its
 empirical estimate can be found by averaging the posterior samples,
 
-<<echo=TRUE>>=
+
+```{r}
 summary(qb.scanone(qbHyper,type="variance",scan="env"))
-@
+```
 
 Heritability is computed as the percent of explained variation,
 $h^2 = 100 (TSS-RSS(\theta))/TSS$\,,
@@ -1400,9 +1426,9 @@ with $TSS=\sum(y-\bar{y})^2$ the total sum of squares.
 $X^2$ terms based on the type of cross.] We can find the posterior
 estimate of variability as the {\tt main} entry below:
 
-<<echo=TRUE>>=
+```{r}
 summary(qb.scanone(qbHyper,type="heritability"))
-@
+```
 
 \subsection{LOD, LPD and BF}
 
@@ -1456,9 +1482,9 @@ with the sum really an integral over the real line.
 Often this is more interpretable on a log scale as $2\log(BF)$\,,
 which we can compute as
 
-<<echo=TRUE>>=
+```{r}
 summary(qb.scanone(qbHyper,type="2logBF"))
-@
+```
 
 \subsection{Marginal Summaries}
 
@@ -1642,11 +1668,11 @@ identifying both main and epistatic effects.  Further information on using
 using {\tt R/qtlbim} to explore the {\tt hyper} data set can be found
 in the {\tt prototype.qtl.hyper.slides} vignette.
 In order to view the vignette, simply type 
-\begin{Schunk}
-\begin{Sinput}
-> vignette(topic="prototype.qtl.hyper.slides",package="qtlbim")
-\end{Sinput}
-\end{Schunk}
+
+```{r}
+vignette(topic="prototype.qtl.hyper.slides",package="qtlbim")
+```
+
 at the R prompt.
 
 \section*{References}
