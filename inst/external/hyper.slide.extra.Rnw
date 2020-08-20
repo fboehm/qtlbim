@@ -1,0 +1,75 @@
+% \VignetteIndexEntry{QTLBIM Prototype Slides: User Customized Section}
+% \VignetteDepends{qtlbim}
+% \VignetteKeywords{QTL}
+%\VignettePackage{qtlbim}
+
+\SweaveOpts{eval=FALSE}
+
+\section{User Customized Section}
+
+\begin{frame}[fragile]
+  \frametitle{Compare with Literature}
+
+\tiny
+
+Sugiyama et al. (2002) found:\\
+two main QTLs on 1 4\\
+two epistatic pairs with 6.15, 7.15
+
+compare to present model:
+
+<<echo=TRUE>>=
+arch3 <- qb.arch(cross.step,main=c(1,4),
+  epistasis = data.frame(q1 = c(6,7),q2 = rep(15,2)))
+arch3
+@
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Sugiyama Model}
+
+\tiny
+
+<<echo=TRUE>>=
+cross.step2 <- step.fitqtl(cross.sub, qtl, pheno.col, arch3)
+@
+\begin{Schunk}
+\begin{Sinput}
+> summary(cross.step2$fit)
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE>>=
+sum.fit <- summary(cross.step2$fit)
+print(sum.fit$result.full, quote = FALSE, na.print = "")
+@
+\end{frame}
+
+<<results=tex,echo=FALSE>>=
+if(!is.null(sum.fit$result.drop)) {
+  cat("\\begin{frame}[fragile]\n")
+  cat("\\frametitle{Stepwise Reduction}\n\n")
+  cat("\\tiny\n\n")
+  cat("\\begin{Schunk}\n")
+  cat("\\begin{Soutput}\n")
+  printCoefmat(sum.fit$result.drop[,-6], digits = 4, cs.ind = 1, P.values = TRUE, 
+               has.Pvalue = TRUE, signif.legend = FALSE)
+  cat("\\end{Soutput}\n\n")
+  cat("\\end{Schunk}\n")
+  cat("\\end{frame}\n\n")
+}
+@
+
+\begin{frame}[fragile]
+  \frametitle{Sugiyama vs. Automata}
+
+formal comparison with automated model
+
+\tiny
+
+<<echo=TRUE>>=
+anova(cross.step, cross.step2)
+@
+
+\end{frame}
+

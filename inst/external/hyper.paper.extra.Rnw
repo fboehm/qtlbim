@@ -1,0 +1,47 @@
+% \VignetteIndexEntry{QTLBIM Prototype Paper: User Customized Section}
+% \VignetteDepends{qtlbim}
+% \VignetteKeywords{QTL}
+%\VignettePackage{qtlbim}
+
+\SweaveOpts{eval=FALSE}
+
+\section{User Customized Section}
+
+We know from previous work that there are main QTLs on chromosomes 1 and 4,
+and epistatic pairs involving 6 and 15, and 7 and 15. Here we pick the
+ nested model that contains these QTL.
+
+<<echo=TRUE>>=
+arch3 <- qb.arch(cross.step,main=c(1,4),
+  epistasis = data.frame(q1 = c(6,7),q2 = rep(15,2)))
+arch3
+cross.step2 <- step.fitqtl(cross.sub, qtl, pheno.col, arch3)
+@
+\begin{Schunk}
+\begin{Sinput}
+> summary(cross.step2$fit)
+\end{Sinput}
+\end{Schunk}
+<<echo=FALSE>>=
+sum.fit <- summary(cross.step2$fit)
+print(sum.fit$result.full, quote = FALSE, na.print = "")
+@
+<<results=tex,echo=FALSE>>=
+if(!is.null(sum.fit$result.drop)) {
+  cat("\\begin{Schunk}\n")
+  cat("\\begin{Soutput}\n")
+  printCoefmat(sum.fit$result.drop[,-6], digits = 4, cs.ind = 1, P.values = TRUE, 
+               has.Pvalue = TRUE, signif.legend = FALSE)
+  cat("\\end{Soutput}\n\n")
+  cat("\\end{Schunk}\n")
+}
+@
+
+Now we do a formal comparison of this reduced model with the fuller model
+we automatically uncovered. It appears that the fuller model is a much
+better fit.
+
+<<echo=TRUE>>=
+anova(cross.step, cross.step2)
+@
+

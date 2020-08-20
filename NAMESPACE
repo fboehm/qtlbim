@@ -1,0 +1,181 @@
+
+
+
+###########################################################################
+# Shared object library load directives.
+#
+# The use of the "useDynLib(qbtl)" directive means that the qbtl shared
+# object library does not need to be called in the .onLoad function in
+# zzz.r.
+#
+
+useDynLib(qtlbim)
+
+############################################################################
+# Export directives.  These directives export functions.  S3 methods for
+# classes declared in the package should be declared with the "S3method"
+# directive.
+#
+
+export(covar.mean)
+export(qb.intcov)
+export(qb.split.chr)
+export(qb.best)
+
+export(qb.coda)
+export(qb.cross)
+export(qb.data)
+export(qb.genoprob)
+export(qb.get)
+export(qb.hpdchr)
+export(qb.legacy)
+export(qb.cross.class)
+export(qb.mcmc)
+export(qb.model)
+export(qb.recover)
+export(qb.remove)
+export(qb.reorder)
+export(qb.sim.cross)
+export(qb.sweave)
+
+
+export(qb.demo)
+export(qb.load)
+export(qb.save)
+export(pull.grid)  ## new routine usable (?) in R/qtl
+export(pull.loci)
+
+export(anova.step.fitqtl)
+export(sim.data)
+export(step.fitqtl)
+
+
+#*****************************
+#******************************
+
+## The following have S3 methods:
+export(plot.qb)
+
+export(qb.arch)
+export(qb.bf)
+export(qb.BayesFactor)
+export(qb.close)
+export(qb.BestPattern)
+export(qb.confound)
+export(qb.covar)
+export(qb.diag)
+export(qb.epimodes)
+export(qb.epistasis)
+export(qb.hpdone)
+export(qb.loci)
+export(qb.mainmodes)
+export(qb.meancomp)
+export(qb.multloci)
+export(qb.pairloci)
+export(qb.scanone)
+export(qb.scantwo)
+export(qb.sliceone)
+export(qb.slicetwo)
+export(qb.varcomp)
+
+##############################################################################
+# S3method declarations.  These will allow generic methods to function properly
+# with functions such as "plot.qb" declared in the package.
+#
+
+S3method(qb.arch, default)
+S3method(qb.arch, step.fitqtl)
+S3method(qb.arch, qb.BestPattern)
+
+S3method(anova, step.fitqtl)
+
+S3method(summary, qb.sim)
+
+S3method(subset, qb)
+
+S3method(plot, qb)
+S3method(print,qb)
+S3method(summary,qb)
+
+S3method(print,qb.arch)
+S3method(summary,qb.arch)
+
+S3method(plot, qb.BayesFactor)
+S3method(print, qb.BayesFactor)
+S3method(summary, qb.BayesFactor)
+
+S3method(plot, qb.close)
+S3method(print, qb.close)
+S3method(summary, qb.close)
+S3method(print, summary.qb.close)
+
+S3method(plot, qb.BestPattern)
+S3method(print, qb.BestPattern)
+S3method(summary, qb.BestPattern)
+S3method(print, summary.qb.BestPattern)
+
+
+
+S3method(plot, qb.confound)
+S3method(print, qb.confound)
+S3method(summary, qb.confound)
+
+S3method(plot, qb.covar)
+S3method(print, qb.covar)
+S3method(summary, qb.covar)
+
+S3method(plot, qb.diag)
+S3method(print, qb.diag)
+S3method(summary, qb.diag)
+
+S3method(plot, qb.epistasis)
+S3method(print, qb.epistasis)
+S3method(summary, qb.epistasis)
+
+
+S3method(plot, qb.hpdone)
+S3method(print, qb.hpdone)
+S3method(summary, qb.hpdone)
+S3method(print, summary.qb.hpdone)
+
+S3method(plot, qb.loci)
+S3method(print, qb.loci)
+S3method(summary, qb.loci)
+
+S3method(summary, qb.mainmodes)
+
+S3method(plot, qb.meancomp)
+S3method(print, qb.meancomp)
+S3method(summary, qb.meancomp)
+
+S3method(plot, qb.multloci)
+S3method(print, qb.multloci)
+S3method(summary, qb.multloci)
+S3method(print, summary.qb.multloci)
+
+S3method(plot, qb.pairloci)
+S3method(print, qb.pairloci)
+S3method(summary, qb.pairloci)
+
+S3method(plot, qb.scanone)
+S3method(print, qb.scanone)
+S3method(summary, qb.scanone)
+S3method(print, summary.qb.scanone)
+
+S3method(plot, qb.scantwo)
+S3method(print, qb.scantwo)
+S3method(summary, qb.scantwo)
+S3method(print, summary.qb.scantwo)
+
+S3method(plot, qb.sliceone)
+S3method(print, qb.sliceone)
+S3method(summary, qb.sliceone)
+
+S3method(plot, qb.slicetwo)
+S3method(print, qb.slicetwo)
+S3method(summary, qb.slicetwo)
+
+S3method(plot, qb.varcomp)
+S3method(print, qb.varcomp)
+S3method(summary, qb.varcomp)
+

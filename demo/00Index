@@ -1,0 +1,9 @@
+qtlbim          Complete tour of the qtlbim package
+qb.tour         Complete tour of the qtlbim package
+qb.mcmc.tour	Tour of creating mcmc results
+qb.plot.tour    Tour of summary and plot of mcmc results
+qb.coda.tour	Tour of coda applied to mcmc results
+qb.scan.tour    Tour of 1-D and 2-D marginal scans of mcmc results
+qb.covar.tour   Tour of covariate plots
+qb.sim.tour	Tour of scanone and qb.scanone for 1 simulated QTL
+qb.hyper.tour   Tour of hyper dataset
