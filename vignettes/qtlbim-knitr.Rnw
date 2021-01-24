@@ -5,16 +5,38 @@
 \documentclass{article}
 \usepackage[margin=1in,head=0.5in,foot=0.5in]{geometry}
 
-\SweaveOpts{eps=FALSE,prefix.string=qtlbimPDF/FIG}
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+fig.path='qtlbimPDF/FIG'
+)
+@
+
 
 \begin{document}
 \SweaveOpts{concordance=TRUE}
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+concordance=TRUE
+)
+@
+
 
 \title{\textbf{QTL} Analysis using \textbf{B}ayesian \textbf{I}nterval \textbf{M}apping}
 \author{Brian S. Yandell, Jee Young Moon, Samprit Banerjee, William W. Neely, Nengjun Yi}
 \maketitle
 
-\SweaveOpts{engine=R,echo=TRUE}
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+engine='R',echo=TRUE
+)
+@
+
 
 \abstract{
 \texttt{R/qtlbim} (\texttt{www.qtlbim.org}) provides a powerful suite
@@ -379,7 +401,7 @@ resolving power of low-dimensional scans that condition on the presence
 of  other QTL using simulated data with  one QTL and the {\tt hyper} 
 data set.
 
-<<echo=FALSE,results=hide,label=Scanone-HyperLPD>>=
+<<echo=FALSE,results='hide',label=Scanone-HyperLPD>>=
 temp <- qb.scanone(qbHyper,type="LPD") 
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scanone-HyperLPD.pdf"))
@@ -445,7 +467,7 @@ temp <- qb.scanone(qbHyper,type="2logBF")
 > plot(temp,chr=c(1,4,6,15))
 \end{Sinput}
 \end{Schunk}
-<<echo=FALSE,results=hide,label=Scanone-HyperSubset>>=
+<<echo=FALSE,results='hide',label=Scanone-HyperSubset>>=
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scanone-HyperSubset.pdf"))
    { 
@@ -481,7 +503,7 @@ summary(temp, digits = 2)
 > plot(temp)
 \end{Sinput}
 \end{Schunk}
-<<echo=FALSE,results=hide,label=Scantwo-HyperData>>=
+<<echo=FALSE,results='hide',label=Scantwo-HyperData>>=
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-Scantwo-HyperData.pdf"))
    { 
@@ -635,7 +657,7 @@ compares to other patterns in a few plots.
 > plot(best)
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=bestplot>>=
+<<results='asis',echo=FALSE,label=bestplot>>=
 file <- paste("qtlbimPDF", "/bestmds.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(best)
@@ -674,7 +696,7 @@ dendrogram based on hierarchical clustering.
 > plot(best, type = "hclust")
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=besthcplot>>=
+<<results='asis',echo=FALSE,label=besthcplot>>=
 file <- paste("qtlbimPDF", "/besthc.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(best, type = "hclust")
@@ -738,7 +760,7 @@ that miss the 6:15 interaction have much lower attenuation scores.
 > plot(close)
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=closeplot>>=
+<<results='asis',echo=FALSE,label=closeplot>>=
 file <- paste("qtlbimPDF", "/closepat.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(close)
@@ -761,7 +783,7 @@ used to investigate which QTL fit have weak evidence.
 > plot(close, category = "nqtl")
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=closenqtlplot>>=
+<<results='asis',echo=FALSE,label=closenqtlplot>>=
 file <- paste("qtlbimPDF", "/closenqtl.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 6)
 plot(close, category = "nqtl")
@@ -815,7 +837,7 @@ Full model result
 sum.fit <- summary(hyper.step$fit)
 print(sum.fit$result.full, quote = FALSE, na.print = "")
 @
-<<results=tex,echo=FALSE>>=
+<<results='asis',echo=FALSE>>=
 if(!is.null(sum.fit$result.drop)) {
   cat("\\begin{Schunk}\n")
   cat("\\begin{Soutput}\n")
@@ -859,7 +881,7 @@ mult <- qb.multloci(qbHyper, chr = 1)
 > plot(mult)
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=multplot>>=
+<<results='asis',echo=FALSE,label=multplot>>=
 file <- paste("qtlbimPDF", "/mult.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(mult)
@@ -883,7 +905,7 @@ summary(mult, merge = FALSE)
 > plot(mult, merge = FALSE)
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=multmergeplot>>=
+<<results='asis',echo=FALSE,label=multmergeplot>>=
 file <- paste("qtlbimPDF", "/multmerge.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(mult, merge = FALSE)
@@ -932,7 +954,7 @@ summary(one)
 > plot(one, chr = 1)
 \end{Sinput}
 \end{Schunk}
-<<results=tex,echo=FALSE,label=oneplot>>=
+<<results='asis',echo=FALSE,label=oneplot>>=
 file <- paste("qtlbimPDF", "/one.pdf", sep = "")
 pdf(file = file, paper = "special", width = 9, height = 9)
 plot(one, chr = 1)
@@ -984,7 +1006,7 @@ Figure~\ref{figPlotQBCODA}.
 > plot(qb.coda(qbHyper, variables = c("nqtl","envvar")))
 \end{Sinput}
 \end{Schunk}
-<<echo=FALSE,results=hide,label=PlotQbCoda>>=
+<<echo=FALSE,results='hide',label=PlotQbCoda>>=
 # If the pdf file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBCODA.pdf"))
    { 
@@ -1027,7 +1049,7 @@ the parameters \texttt{markers} in the function.
 \end{Schunk} 
 Figure~\ref{figPlotQBLOCI} shows the result of this command.
 
-<<echo=FALSE,results=hide,label=PlotQbLoci34>>=
+<<echo=FALSE,results='hide',label=PlotQbLoci34>>=
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBLOCI34.pdf"))
    { 
@@ -1072,7 +1094,7 @@ chromosome.
 \item The fourth row show relative importance of epistatic pairs. Here
 the "6.15", or chr 6 by chr 15, epistatic pair is by far the strongest.
 \end{enumerate}
-<<echo=FALSE,results=hide,label=PlotQbBF>>=
+<<echo=FALSE,results='hide',label=PlotQbBF>>=
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBBF.pdf"))
    { 
@@ -1111,7 +1133,7 @@ region containing 50\% (by default) of the density is the HPD
 region. The command \texttt{plot(qb.hpdone(qbHyper))} yields
 Figure~\ref{figPlotQBHPD}.
 
-<<echo=FALSE,results=hide,label=PlotQbHPD>>=
+<<echo=FALSE,results='hide',label=PlotQbHPD>>=
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBHPD.pdf"))
    { 
@@ -1137,7 +1159,7 @@ pairs are shown in Figure~\ref{figPlotQBEPI}. \texttt{plot(qb.epistasis(qbHyper)
 produces jittered plots of sampled Cockerham effects, overlaid with
 boxplots. Summaries are provided as well but not shown here.
 
-<<echo=FALSE,results=hide,label=PlotQbEpi>>=
+<<echo=FALSE,results='hide',label=PlotQbEpi>>=
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("qtlbimPDF/FIG-QBEPI.pdf"))
    { 
@@ -1162,7 +1184,7 @@ This diagnostic plot can be generated by the command
 \texttt{plot(qb.diag(qbHyper))}, as shown in 
 Figure~\ref{figPlotQBDIAG}.
 
-<<echo=FALSE,results=hide,label=PlotQbDiag>>=
+<<echo=FALSE,results='hide',label=PlotQbDiag>>=
 # If the file hasn't already been created, then draw the plot.
 if(!file.exists("plotQBDIAG.pdf"))
    { 

@@ -8,7 +8,6 @@
 \SweaveOpts{eps=FALSE,prefix.string=qtlbimPDF/FIG}
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 
 \title{\textbf{QTL} Analysis using \textbf{B}ayesian \textbf{I}nterval \textbf{M}apping}
 \author{Brian S. Yandell, Jee Young Moon, Samprit Banerjee, William W. Neely, Nengjun Yi}
