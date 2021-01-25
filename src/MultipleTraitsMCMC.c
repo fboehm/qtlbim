@@ -821,30 +821,27 @@ if(MULTIPLE>=1)  PROB1 = LogLikelihood(Y,G,AMU,SIGMA);
 
     double S1=(PROB1-PROB0)+(PD10-PD1[L])+(PD2[L]-PD20); //Needed for genoupdate
          
- if(S1>log(RANDOM())) 
-	{
-		QLOC[trait][L]=QLNEW;
-   for(I=0;I<NS;I++)          
-		{
-			if(UPDATEGENO==1)
-			{
-				GENO[trait][I][L]=GENO1[I];
-				Coefficient(GENO1[I]);
-			}  
+    if(S1>log(RANDOM())) {
+            QLOC[trait][L]=QLNEW;
+            for(I=0;I<NS;I++) {
+                if(UPDATEGENO==1) {
+                    GENO[trait][I][L]=GENO1[I];
+                    Coefficient(GENO1[I]);
+                }
 
-      if(UPDATEGENO==0) MT_Coefficient0(I,L,trait,QLOC[trait][L]);
+                if(UPDATEGENO==0) MT_Coefficient0(I,L,trait,QLOC[trait][L]);
 
-			for(K=0;K<NC;K++) COEF[trait][I][L][K]=X[K];
+                for(K=0;K<NC;K++) COEF[trait][I][L][K]=X[K];
 
-      for(ph=0;ph<NPHENO;ph++)  GVALUE[ph][I]=G[ph][I];				
-  			
-		}		
+                for(ph=0;ph<NPHENO;ph++)  GVALUE[ph][I]=G[ph][I];
+
+            }		
 	 		
-		PD1[L]=PD10,PD2[L]=PD20;
-	}
-		   for(ph=0;ph<NPHENO;ph++)  free(G[ph]);
-		   free(G);
-	return;
+            PD1[L]=PD10,PD2[L]=PD20;
+    }
+    for(ph=0;ph<NPHENO;ph++)  free(G[ph]);
+    free(G);
+    return;
 }                              
 
 
@@ -916,15 +913,13 @@ if(MULTIPLE>=1)  PROB1 = LogLikelihood(Y,G,AMU,SIGMA);
 
     double S1=(PROB1-PROB0)+(PD10-PD1[L])+(PD2[L]-PD20); //Needed for genoupdate
          
- if(S1>log(RANDOM())) 
-	{
-    QLOC[0][L]=QLNEW;
-   for(I=0;I<NS;I++)          
-		{
-      if(UPDATEGENO==0) MT_Coefficient0(I,L,0,QLOC[0][L]);
-			for(K=0;K<NC;K++) COEF[0][I][L][K]=X[K];
+    if(S1>log(RANDOM())) {
+        QLOC[0][L]=QLNEW;
+        for(I=0;I<NS;I++) {
+            if(UPDATEGENO==0) MT_Coefficient0(I,L,0,QLOC[0][L]);
+            for(K=0;K<NC;K++) COEF[0][I][L][K]=X[K];
 
-    for(ph=0;ph<NPHENO;ph++)  GVALUE[ph][I]=G[ph][I];				
+            for(ph=0;ph<NPHENO;ph++)  GVALUE[ph][I]=G[ph][I];
       
 /*			if(UPDATEGENO==1)
 			{
@@ -932,13 +927,13 @@ if(MULTIPLE>=1)  PROB1 = LogLikelihood(Y,G,AMU,SIGMA);
 				Coefficient(GENO1[I]);
 			}  */
 			
-		}		
-	 	
-		PD1[L]=PD10,PD2[L]=PD20;
-	}
-		   for(ph=0;ph<NPHENO;ph++)  free(G[ph]);
-		   free(G);
-	return;
+        }
+
+        PD1[L]=PD10,PD2[L]=PD20;
+    }
+    for(ph=0;ph<NPHENO;ph++)  free(G[ph]);
+    free(G);
+    return;
 }                              
                      
 //*************************************************************
@@ -2437,7 +2432,7 @@ for(PH=0;PH<NPHENO;PH++)  MT_Mean(YBAR[PH],VP[PH],PH);
 
 if(CATEGORY==1 && MULTIPLE>=1) ResidualVariance_MultipleTraits();
 
-int NU=6; double H=0.1,S=2,TAU; //NU=degrees of freedom, H=heritability, TAU=scale
+int NU=6; double H=0.1/*,S=2*/,TAU; //NU=degrees of freedom, H=heritability, TAU=scale
 
 for(L=0;L<NQTL;L++)
     for(PH=0;PH<NPHENO;PH++)    
@@ -2936,40 +2931,36 @@ if(EPISTASIS==1)
 							}
           }
         if(DiffLocation==0)
-          for(PH=0;PH<NPHENO;PH++)
-          {			if(T!=0) MT_EpistasisIndicator_GROUP0(L1,L2,K1,K2,PH);
-      			    if(MULTIPLE==1)
-                  {
-                  for(PH1=0;PH1<NPHENO;PH1++){
-                   GAMMA[PH1][L1]=GAMMA[PH][L1];
-                   GAMMA[PH1][L2]=GAMMA[PH][L2];
-                   }
-                  PH=NPHENO-1;
-                  }
-          }
-          if(DiffLocation==1)
-  					for(PH=0;PH<NPHENO;PH++)
-            {		
-            	if(W_EPISTASIS!=0)
-              {
-								if(GAMMA[PH][L1]==0 && GAMMA[PH][L2]!=0) T=MT_SamplingOnePosition(L1,PH);
-								if(GAMMA[PH][L1]!=0 && GAMMA[PH][L2]==0) T=MT_SamplingOnePosition(L2,PH);
-								if(GAMMA[PH][L1]==0 && GAMMA[PH][L2]==0)
-								{
-									T=MT_SamplingOnePosition(L1,PH);
-									if(T!=0) T=MT_SamplingOnePosition(L2,PH);
-									if(CHRQTL[QCHR[PH][L1]]+2>CHR_NQTL[QCHR[PH][L1]]&&QCHR[PH][L1]==QCHR[PH][L2]
-					&&(GRID[QCHR[PH][L1]][QLOC[PH][L1]]-GRID[QCHR[PH][L2]][QLOC[PH][L2]])<=DQQ[QCHR[PH][L1]]) T=0;
+            for(PH=0;PH<NPHENO;PH++) {
+                if(T!=0) MT_EpistasisIndicator_GROUP0(L1,L2,K1,K2,PH);
+                if(MULTIPLE==1) {
+                    for(PH1=0;PH1<NPHENO;PH1++){
+                        GAMMA[PH1][L1]=GAMMA[PH][L1];
+                        GAMMA[PH1][L2]=GAMMA[PH][L2];
+                    }
+                    PH=NPHENO-1;
+                }
+            }
+        if(DiffLocation==1)
+            for(PH=0;PH<NPHENO;PH++) {
+            	if(W_EPISTASIS!=0) {
+                    if(GAMMA[PH][L1]==0 && GAMMA[PH][L2]!=0) T=MT_SamplingOnePosition(L1,PH);
+                    if(GAMMA[PH][L1]!=0 && GAMMA[PH][L2]==0) T=MT_SamplingOnePosition(L2,PH);
+                    if(GAMMA[PH][L1]==0 && GAMMA[PH][L2]==0) {
+                        T=MT_SamplingOnePosition(L1,PH);
+                        if(T!=0) T=MT_SamplingOnePosition(L2,PH);
+                        if(CHRQTL[QCHR[PH][L1]]+2>CHR_NQTL[QCHR[PH][L1]]&&QCHR[PH][L1]==QCHR[PH][L2]
+                           &&(GRID[QCHR[PH][L1]][QLOC[PH][L1]]-GRID[QCHR[PH][L2]][QLOC[PH][L2]])<=DQQ[QCHR[PH][L1]]) T=0;
 
-								}
-						  }		
+                    }
+                }
               	if(T!=0) MT_EpistasisIndicator_GROUP0(L1,L2,K1,K2,PH);
 
 							
-					  }		
+            }
 		      			
 
-       } 
+        }
 	if(GIBBS==0)
 	{
       			int TTT[NPHENO],sumTTT=0;
@@ -3434,7 +3425,7 @@ fprintf(File6,"\n");
  */
      
  
-if(MULTIPLE>=1 & PH1 == 0) // only print sigma once per iteration.
+if( (MULTIPLE>=1) & (PH1 == 0) ) // only print sigma once per iteration.
  { 
     for(I=0;I<NPHENO;I++)
           for(J=0;J<NPHENO;J++)           fprintf(File7,"%f\t",sigma[I][J]);

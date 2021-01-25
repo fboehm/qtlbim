@@ -13,7 +13,8 @@
 double RANDOM()
 {
 	double U=rand()/(RAND_MAX+1.0);
-	if(U>=1.0) U=1.0-(1e-10); if(U<=0.0) U=1e-10;
+	if(U>=1.0) U=1.0-(1e-10);
+        if(U<=0.0) U=1e-10;
 	return(U);
 }
 
