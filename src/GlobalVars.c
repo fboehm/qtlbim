@@ -117,3 +117,9 @@ char gbyefile[100];
 char covfile[100];
 char devfile[100];
 char sigmafile[100];
+
+double **SIGMA;
+int MULTIPLE;
+int NPHENO;
+int DiffLocation;
+int QTLLOC;
