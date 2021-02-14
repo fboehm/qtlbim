@@ -9,13 +9,13 @@
 
 
 /// 0=uses QTLPOSITION_samelocation 1= uses QTLPOSITION
-int QTLLOC;
+extern int QTLLOC;
 /// Whether different locations are considered for each trait for each indicator or same locations are considered
-int DiffLocation;       
+extern int DiffLocation;
 /// Residual variance matrix for multiple triats
-double **SIGMA;
+extern double **SIGMA;
 /// Main Effect Variance scale for beta ~ N(0,cI) c=scale;
-double SCALE;
+extern double SCALE;
 //*******************************************************************************************
 
 
@@ -23,7 +23,7 @@ double SCALE;
 /// @{
 
 /// QTL genotypes for the MT code
-int ***GENO;
+extern int ***GENO;
 
 /// @}
 
@@ -31,16 +31,16 @@ int ***GENO;
 /// @{
 
 /// phenotypic data for the MT code
-double **Y;
+extern double **Y;
 /// The number of phenotypes to be jointly analyzed
-int NPHENO;            
+extern int NPHENO;
 /// 
-int MULTIPLE;
+extern int MULTIPLE;
 
 /// @}
 
 /// genotypic valyes for the MT code
-double **GVALUE;
+extern double **GVALUE;
 
 
 //***************************************************************************************
@@ -49,60 +49,60 @@ double **GVALUE;
 
 
 /// coefficients of QTL main effects
-double ****COEF;
+extern double ****COEF;
 /// QTL position indicators, position is GRID[QCHR[L]][QLOC[L]]
-int **QLOC;
+extern int **QLOC;
 /// chromosomes that QTL locate
-int **QCHR;
+extern int **QCHR;
 
     /// @defgroup qbOpCovariate_MT Multiple Traits variant of qb.op.covariate
     /// @{
     /// effects of fixed covariates
-    double  **FIX;
+    extern double  **FIX;
     /// effects of random covariates
-    double  ***RAN;
+    extern double  ***RAN;
     /// variances of random covariates
-    double  **VRAN;
+    extern double  **VRAN;
     /// interactions of QTL main effects and fixed covariates
-    double ****GBYE_FIX;
+    extern double ****GBYE_FIX;
     /// @}
 
     /// @defgroup qbOpIterdiag_MT Multiple Traits variant of qb.op.iterdiag
     /// @{
     /// overall mean
-    double *AMU;
+    extern double *AMU;
     /// QTL indicators
-    int **GAMMA;
+    extern int **GAMMA;
     /// residual variance
-    double VE;
+    extern double VE;
     /// @}
 
     /// @defgroup qbOpMainloci_MT Multiple Traits variant of qb.op.mainloci
     /// @{
     /// main effects
-    double  ***MAIN;
+    extern double  ***MAIN;
     /// main effects indicators
-    int **GAMMA_MAIN;
+    extern int **GAMMA_MAIN;
     /// prior variance of main effects
-    double  ***VMAIN;
+    extern double  ***VMAIN;
     /// @}
 
     /// @defgroup qbOpPairloci_MT Multiple Traits variant of qb.op.pairloci
     /// @{
     /// epistatic effects
-    double *****EPISTATIC;
+    extern double *****EPISTATIC;
     /// epistatic effects indicators
-    int ***GAMMA_EPISTASIS;
+    extern int ***GAMMA_EPISTASIS;
     /// prior variance of epistatic effects
-    double *****VEPISTASIS;
+    extern double *****VEPISTASIS;
     /// @}
 
     /// @defgroup qbOpGbyE_MT Multiple Traits variant of qb.op.gbye
     /// @{
     /// g-by-e indicators
-    double  ***GAMMA_GBYE;
+    extern double  ***GAMMA_GBYE;
     /// prior variance of g-by-e effects
-    double ****V_GBYE_FIX;
+    extern double ****V_GBYE_FIX;
     /// @}
 
 /// @}
